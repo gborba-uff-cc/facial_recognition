@@ -1,0 +1,8 @@
+flutter/ephemeral
+
+# ----------
+# from https://github.com/flutter/flutter/blob/master/.gitignore
+
+**/flutter/generated_plugin_registrant.cc
+**/flutter/generated_plugin_registrant.h
+**/flutter/generated_plugins.cmake

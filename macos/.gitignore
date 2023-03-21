@@ -1,0 +1,12 @@
+# Flutter-related
+**/Flutter/ephemeral/
+**/Pods/
+
+# Xcode-related
+**/dgph
+**/xcuserdata/
+
+# ----------
+# from https://github.com/flutter/flutter/blob/master/.gitignore
+
+**/Flutter/GeneratedPluginRegistrant.swift
