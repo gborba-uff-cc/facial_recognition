@@ -1,7 +1,8 @@
 name: facial_recognition
-description: 'App para contabilizar a presença de alunos em aula através do
-reconhecimento facial destes. App desenvolvido como projeto final para o
-bacharelado em Ciência de  Computação.'
+description: >-
+  App para contabilizar a presença de alunos em aula através do reconhecimento
+  facial destes. App desenvolvido como projeto final para o bacharelado em
+  Ciência da Computação.
 publish_to: 'none'
 version: 0.1.0
 
