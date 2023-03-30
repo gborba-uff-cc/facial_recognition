@@ -1,7 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="br.dev.gborba.facial_recognition">
    <application
-        android:label="facial_recognition"
+        android:label="${applicationLabel}"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
