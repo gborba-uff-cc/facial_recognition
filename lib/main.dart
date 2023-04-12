@@ -18,6 +18,8 @@ class MainApp extends StatelessWidget {
   }
 }
 
+final _theme = ThemeData(useMaterial3: true);
+
 final _router = GoRouter(
   routes: [
     GoRoute(
