@@ -47,6 +47,11 @@ android {
         applicationId "br.dev.gborba.facial_recognition"
         // You can update the following values to match your application needs.
         // For more information, see: https://docs.flutter.dev/deployment/android#reviewing-the-gradle-build-configuration.
+        // NOTE - minimum version needs to be
+        // max(
+        //      21, // for the camera package
+        //      19, // for the google ML kit
+        // )
         minSdkVersion 21
         // minSdkVersion flutter.minSdkVersion
         targetSdkVersion flutter.targetSdkVersion

@@ -1,4 +1,5 @@
 import 'package:camera/camera.dart';
+import 'package:facial_recognition/domain.dart';
 import 'package:facial_recognition/utils/project_logger.dart';
 import 'package:flutter/material.dart';
 
@@ -22,7 +23,7 @@ class _CameraViewState extends State<CameraView> with WidgetsBindingObserver {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     if (widget.cameras.isNotEmpty) {
-      updateCameraController(widget.cameras[0]);
+      updateCameraController(widget.cameras[1]);
     }
     // NOTE - camera controller initialized on didChangeAppLifecycleState
   }
@@ -181,5 +182,15 @@ class _CameraViewState extends State<CameraView> with WidgetsBindingObserver {
     if (controller == null) {
       return;
     }
+
+    projectLogger.fine('Converting CameraImage to InputImage');
+    final inImage = toInputImage(image, controller);
+    if (inImage == null) {
+      return;
+    }
+
+    projectLogger.fine('Detecting faces');
+    final faces = await detectFaces(inImage);
+    projectLogger.fine('Detected faces $faces');
   }
 }
