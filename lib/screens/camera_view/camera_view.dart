@@ -30,7 +30,7 @@ class _CameraViewState extends State<CameraView> with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    cameraController?.dispose();
+    _disposeCameraController(cameraController);
     super.dispose();
   }
 
@@ -54,21 +54,47 @@ class _CameraViewState extends State<CameraView> with WidgetsBindingObserver {
     );
   }
 
+  Future<void> _disposeCameraController(CameraController? controller) {
+    if (controller == null) {
+      return Future.value(null);
+    }
+    return Future(() {
+      controller.removeListener(onCameraControllerValueChange);
+      if (controller.value.isStreamingImages) {
+        return controller.stopImageStream();
+      }
+      return null;
+    }).then((_) => controller.dispose());
+  }
+
   Future<void> updateCameraController(CameraDescription description) {
-    cameraController?.dispose();
+    _disposeCameraController(cameraController);
     return startCameraController(description);
   }
 
   Future<void> startCameraController(CameraDescription description) async {
     final controller = CameraController(
       description,
-      ResolutionPreset.medium,
-      imageFormatGroup: ImageFormatGroup.jpeg,
+      // FIXME - as per documentation resolution limited due streaming and
+      // running the preview widget
+      ResolutionPreset.low,
+      // NOTE - let it fallback to platform's default to be able to stream
+      imageFormatGroup: null,
       enableAudio: false,
     );
 
     try {
-      await controller.initialize();
+      controller.initialize().then(
+        (_) async {
+          projectLogger.fine('cameraController inicializado');
+          controller.addListener(onCameraControllerValueChange);
+          controller.startImageStream( (image) {
+            // TODO - control the frequency to call the image processing
+            controller.stopImageStream();
+            onCameraImageAvailable(image);
+          });
+        },
+      );
     } on CameraException catch (e) {
       switch (e.code) {
         case 'CameraAccessDenied':
@@ -99,10 +125,8 @@ class _CameraViewState extends State<CameraView> with WidgetsBindingObserver {
           projectLogger.shout('Unknow CameraException code', e);
           break;
       }
-    } finally {
-      controller.addListener(() {
-        onCameraControllerValueChange();
-      });
+    }
+    finally {
       cameraController = controller;
     }
 
@@ -126,8 +150,7 @@ class _CameraViewState extends State<CameraView> with WidgetsBindingObserver {
     }
 
     if (state == AppLifecycleState.inactive) {
-      controller.removeListener(onCameraControllerValueChange);
-      controller.dispose();
+      _disposeCameraController(controller);
     }
     else if (state == AppLifecycleState.resumed) {
       updateCameraController(controller.description);
@@ -148,6 +171,15 @@ class _CameraViewState extends State<CameraView> with WidgetsBindingObserver {
     if (controller != null && controller.value.hasError) {
       projectLogger
           .severe('Camera error: ${controller.value.errorDescription}');
+    }
+  }
+
+  void onCameraImageAvailable(CameraImage image) async {
+    projectLogger.fine('#CameraImage #available');
+
+    final controller = cameraController;
+    if (controller == null) {
+      return;
     }
   }
 }
