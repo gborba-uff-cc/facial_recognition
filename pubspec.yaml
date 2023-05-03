@@ -16,6 +16,7 @@ dependencies:
   logging: ^1.1.1
   camera: ^0.10.4
   google_mlkit_face_detection: ^0.5.0
+  image: ^4.0.16
 
 dev_dependencies:
   flutter_test:
