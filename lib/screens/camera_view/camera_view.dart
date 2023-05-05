@@ -1,6 +1,7 @@
 import 'package:camera/camera.dart';
 import 'package:facial_recognition/domain.dart';
 import 'package:facial_recognition/utils/project_logger.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 class CameraView extends StatefulWidget {
@@ -17,6 +18,7 @@ class _CameraViewState extends State<CameraView> with WidgetsBindingObserver {
   //  create controller on: initState, app is resumed, change camera source
   //  delete controller on: dispose, app is inactive, change camera source
   CameraController? cameraController;
+  final List<Uint8List> facesPhotos = [];
 
   @override
   void initState() {
@@ -38,20 +40,32 @@ class _CameraViewState extends State<CameraView> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     final controller = cameraController;
+    if (controller == null) {
+      return const Center(
+        child: Text('Couldn\'t find a camera controller.'),
+      );
+    }
+    // what need to be visible
+    final widgets = <Widget>[];
+    widgets.add(CameraPreview(
+      controller,
+      child: const Icon(
+        Icons.arrow_upward,
+      ),
+    ));
+    widgets.add(Expanded(
+      child: ListView.builder(
+        itemCount: facesPhotos.length,
+        itemBuilder: (context, index) => Image.memory(facesPhotos[index]),
+        scrollDirection: Axis.horizontal,
+      ),
+    ));
+
     return Scaffold(
       appBar: AppBar(),
-      body: controller == null
-          ? const Center(
-              child: Text('Couldn\'t find a camera controller.'),
-            )
-          : Center(
-              child: CameraPreview(
-                controller,
-                child: const Icon(
-                  Icons.arrow_upward,
-                ),
-              ),
-            ),
+      body: Column(
+        children: widgets,
+      ),
     );
   }
 
@@ -191,6 +205,16 @@ class _CameraViewState extends State<CameraView> with WidgetsBindingObserver {
 
     projectLogger.fine('Detecting faces');
     final faces = await detectFaces(inImage);
-    projectLogger.fine('Detected faces $faces');
+
+    final asRgb = yCbCr420ToRgb(width: image.width, height: image.height, planes: image.planes,);
+    final asLogicalImage = toLogicalImage(width: image.width, height: image.height, rgbBytes: asRgb,);
+    final logicalImages = cropImage(asLogicalImage, faces.map((e) => e.boundingBox).toList(),);
+    for (final i in logicalImages) {
+      final jpeg = await convertToJpg(i);
+      facesPhotos.add(jpeg);
+    }
+
+    setState(() {});
+
   }
 }

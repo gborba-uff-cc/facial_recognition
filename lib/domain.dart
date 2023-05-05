@@ -189,3 +189,5 @@ Future<Uint8List> convertToJpg(pkg_image.Image image) async {
 
   return pkg_image.encodeJpg(image);
 }
+
+// FIXME - imagem invertida, desentrelaçada e rosto não centrado
