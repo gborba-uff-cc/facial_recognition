@@ -176,7 +176,7 @@ ByteBuffer yCbCr420ToRgb({
   return rgbBytes.done().buffer;
 }
 
-Future<dart_ui.Image> convertImageToDartUi(pkg_image.Image image) async {
+Future<Uint8List> convertToJpg(pkg_image.Image image) async {
   if (image.format != pkg_image.Format.uint8 || image.numChannels != 4) {
     final cmd = pkg_image.Command()
       ..image(image)
@@ -187,20 +187,5 @@ Future<dart_ui.Image> convertImageToDartUi(pkg_image.Image image) async {
     }
   }
 
-  final buffer = await
-  dart_ui.ImmutableBuffer.fromUint8List(image.toUint8List());
-
-  final descriptor = dart_ui.ImageDescriptor.raw(
-      buffer,
-      height: image.height,
-      width: image.width,
-      pixelFormat: dart_ui.PixelFormat.rgba8888);
-
-  final codec = await descriptor.instantiateCodec(
-      targetHeight: image.height,
-      targetWidth: image.width);
-
-  final frameInfo = await codec.getNextFrame();
-
-  return frameInfo.image;
+  return pkg_image.encodeJpg(image);
 }
