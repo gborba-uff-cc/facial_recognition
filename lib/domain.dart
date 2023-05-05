@@ -1,5 +1,5 @@
 import 'dart:typed_data';
-import 'dart:ui';
+import 'dart:ui' as dart_ui;
 
 import 'package:camera/camera.dart';
 import 'package:facial_recognition/utils/project_logger.dart';
@@ -44,17 +44,23 @@ Future<List<Face>> detectFaces(InputImage image) {
   return detector.processImage(image);
 }
 
-// /// Return a subarea from [image]
-// void cropImage(image, final List<int> boundingBox) {  // FIXME - method signature.
-//   // TODO - .
-//   return;
-// }
+/// Return logical images of subareas from [image].
+List<pkg_image.Image> cropImage(
+    pkg_image.Image image, final List<dart_ui.Rect> areas) {
+  return List.generate(areas.length, (index) {
+    final rect = areas[index];
+    return pkg_image.copyCrop(image,
+        x: rect.left.toInt(),
+        y: rect.top.toInt(),
+        width: rect.width.toInt(),
+        height: rect.height.toInt());
+  }, growable: false);
+}
 
-// /// Resize the *image* to match [size]
-// void resizeImage(image, width, height) {  // FIXME - method signature.
-//   // TODO - .
-//   return;
-// }
+/// Resize the *image* to match [size]
+pkg_image.Image resizeImage(pkg_image.Image image, int width, int height) {
+  return pkg_image.copyResize(image, width: width, height: height);
+}
 
 // /// Create recognition data for the only face on [image]
 // void newEmbedding(image) {  // FIXME - method signature.
@@ -93,7 +99,7 @@ InputImage? toInputImage(CameraImage image, CameraController controller) {
   }
   final bytes = allPlanesCopy.done().buffer.asUint8List();
 
-  final imageSize = Size(image.width.toDouble(), image.height.toDouble());
+  final imageSize = dart_ui.Size(image.width.toDouble(), image.height.toDouble());
 
   final planeData = image.planes
       .map(
@@ -168,4 +174,33 @@ ByteBuffer yCbCr420ToRgb({
   }
 
   return rgbBytes.done().buffer;
+}
+
+Future<dart_ui.Image> convertImageToDartUi(pkg_image.Image image) async {
+  if (image.format != pkg_image.Format.uint8 || image.numChannels != 4) {
+    final cmd = pkg_image.Command()
+      ..image(image)
+      ..convert(format: pkg_image.Format.uint8, numChannels: 4);
+    final rgba8 = await cmd.getImageThread();
+    if (rgba8 != null) {
+      image = rgba8;
+    }
+  }
+
+  final buffer = await
+  dart_ui.ImmutableBuffer.fromUint8List(image.toUint8List());
+
+  final descriptor = dart_ui.ImageDescriptor.raw(
+      buffer,
+      height: image.height,
+      width: image.width,
+      pixelFormat: dart_ui.PixelFormat.rgba8888);
+
+  final codec = await descriptor.instantiateCodec(
+      targetHeight: image.height,
+      targetWidth: image.width);
+
+  final frameInfo = await codec.getNextFrame();
+
+  return frameInfo.image;
 }
