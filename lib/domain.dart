@@ -48,9 +48,10 @@ Future<List<Face>> detectFaces(InputImage image) {
 List<pkg_image.Image> cropImage(
     pkg_image.Image image, final List<dart_ui.Rect> areas) {
   return List.generate(areas.length, (index) {
+    // NOTE - (?) rect x axis origin is at top right (?)
     final rect = areas[index];
     return pkg_image.copyCrop(image,
-        x: rect.left.toInt(),
+        x: (image.width-1) - (rect.left+rect.width).toInt(),
         y: rect.top.toInt(),
         width: rect.width.toInt(),
         height: rect.height.toInt());
@@ -202,5 +203,3 @@ Future<Uint8List> convertToJpg(pkg_image.Image image) async {
 int mapBiToUniDimCoord(x, y, xGroup, yGroup, elementSize, xSize) {
   return x~/xGroup*elementSize + y~/yGroup*xSize;
 }
-
-// FIXME - rosto não centrado nas imagens cortadas
