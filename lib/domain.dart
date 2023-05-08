@@ -134,7 +134,7 @@ pkg_image.Image toLogicalImage({
     bytes: rgbBytes,
     order: pkg_image.ChannelOrder.rgb,
   );
-  return pkg_image.copyRotate(image,angle: 270);
+  return pkg_image.flipHorizontal(pkg_image.copyRotate(image,angle: 270));
 }
 
 /// Convert YCbCr (called YUV) 4:2:0 3-plane to an RGB 1-plane.
