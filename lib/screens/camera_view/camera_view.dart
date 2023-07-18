@@ -212,13 +212,17 @@ class _CameraViewState extends State<CameraView> with WidgetsBindingObserver {
 
     final asRgb = yCbCr420ToRgb(width: image.width, height: image.height, planes: image.planes,);
     final asLogicalImage = toLogicalImage(width: image.width, height: image.height, rgbBytes: asRgb,);
+    // see croped images
     final logicalImages = cropImage(asLogicalImage, faces.map((e) => e.boundingBox).toList(),);
+    final List<Uint8List> newFaces = [];
     for (final i in logicalImages) {
       final jpeg = await convertToJpg(i);
-      facesPhotos.add(jpeg);
+      newFaces.add(jpeg);
     }
 
-    setState(() {});
+    setState(() {
+      facesPhotos.addAll(newFaces);
+    });
 
   }
 }
