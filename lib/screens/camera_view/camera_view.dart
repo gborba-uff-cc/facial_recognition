@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:camera/camera.dart';
 import 'package:facial_recognition/domain.dart';
 import 'package:facial_recognition/utils/project_logger.dart';
@@ -103,10 +105,12 @@ class _CameraViewState extends State<CameraView> with WidgetsBindingObserver {
         (_) async {
           projectLogger.fine('cameraController inicializado');
           controller.addListener(onCameraControllerValueChange);
-          controller.startImageStream( (image) {
-            // TODO - control the frequency to call the image processing
-            controller.stopImageStream();
-            onCameraImageAvailable(image);
+          Timer(const Duration(seconds: 1), () {
+            controller.startImageStream( (image) {
+              // TODO - control the frequency to call the image processing
+              controller.stopImageStream();
+              onCameraImageAvailable(image);
+            });
           });
         },
       );
