@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'dart:typed_data';
 import 'dart:ui' as dart_ui;
 
@@ -6,6 +7,8 @@ import 'package:facial_recognition/utils/project_logger.dart';
 import 'package:flutter/foundation.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 import 'package:image/image.dart' as pkg_image;
+
+import 'package:tflite_flutter/tflite_flutter.dart' as tflite;
 
 /// main use case for the app
 // // FIXME - provide the missing components
@@ -203,3 +206,58 @@ Future<Uint8List> convertToJpg(pkg_image.Image image) async {
 int mapBiToUniDimCoord(x, y, xGroup, yGroup, elementSize, xSize) {
   return x~/xGroup*elementSize + y~/yGroup*xSize;
 }
+
+///
+Future<List<Float32List>> extractFaceEmbedding(List<Float32List> facesRGB) async {
+  // model input  have ndim=4, shape=(None, 160, 160, 3)
+  // model output have ndim=2, shape=(None, 512)
+  const modelPath = 'assets/facenet512_00d21808fc7d.tflite';
+  const modelOutputLength = 512;
+  final numberFaces = facesRGB.length;
+
+  final interpreter = await tflite.Interpreter.fromAsset(modelPath);
+  Map<int, Float32List> outputs = {
+    for (var n in Iterable.generate(numberFaces))
+      n : Float32List.fromList(List.filled(modelOutputLength, 0.0))
+    };
+
+  interpreter.runForMultipleInputs(facesRGB, outputs);
+
+  // convert the output map to a list where map keys become list indexes and
+  // for indexes that don't exists put an zero value
+  return List.generate(
+      numberFaces,
+      (index) =>
+          outputs[index] ??
+          Float32List.fromList(List.filled(modelOutputLength, 0.0)),
+      growable: false);
+}
+
+///
+bool verify(Float32List embedding1, Float32List embedding2) {
+  const maximumDistance = 0.03;
+  return euclideanDistance(embedding1, embedding2) < maximumDistance;
+}
+
+///
+List<List<Float32List>> rgbListToMatrix(Float32List buffer, int width, int height) {
+  // image origin is (x,y)=(0,0) on the top left corner, x and y grow to the
+  // right and bottom respectivelly
+  const nColorChannels = 3;
+  // generate lines
+  return List.generate(height,
+    // generate colums
+    (y) => List.generate(width,
+      // generate group of k colors
+      (x) => Float32List.fromList(
+        List.generate(nColorChannels,
+          (z) => buffer[y * width * nColorChannels + x * nColorChannels + z],
+          growable: false,
+        ),
+      ),
+      growable: false,
+    ),
+    growable: false,
+  );
+}
+
