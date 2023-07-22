@@ -6,6 +6,10 @@ import os
 # get pretrained David Sandberg Facenet512 keras model from python deepface
 model = DeepFace.build_model('Facenet512')
 
+# show model information
+model.summary(line_length=120)
+print(f'{model.inputs=}\n{model.outputs=}')
+
 # convert to tflite model
 converter = tensorflow.lite.TFLiteConverter.from_keras_model(model)
 tfliteModel = converter.convert()
