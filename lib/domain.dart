@@ -208,33 +208,28 @@ int mapBiToUniDimCoord(x, y, xGroup, yGroup, elementSize, xSize) {
 }
 
 ///
-Future<List<Float32List>> extractFaceEmbedding(List<List<List<Float32List>>> facesRGB) async {
+Future<List<double>> extractFaceEmbedding(List<List<List<double>>> faceRGB) async {
   // model input  have ndim=4, shape=(None, 160, 160, 3)
   // model output have ndim=2, shape=(None, 512)
   const modelPath = 'assets/facenet512_00d21808fc7d.tflite';
   const modelOutputLength = 512;
-  final numberFaces = facesRGB.length;
-
+  // final numberFaces = facesRGB.length;
   final interpreter = await tflite.Interpreter.fromAsset(modelPath);
-  Map<int, Float32List> outputs = {
-    for (var n in Iterable.generate(numberFaces))
-      n : Float32List.fromList(List.filled(modelOutputLength, 0.0))
+
+  Map<int, List<double>> output = {
+    0 : List.filled(modelOutputLength, 0.0)
     };
 
-  interpreter.runForMultipleInputs(facesRGB, outputs);
+  interpreter.run([faceRGB], output);
+  interpreter.close();
 
   // convert the output map to a list where map keys become list indexes and
   // for indexes that don't exists put an zero value
-  return List.generate(
-      numberFaces,
-      (index) =>
-          outputs[index] ??
-          Float32List.fromList(List.filled(modelOutputLength, 0.0)),
-      growable: false);
+  return output.values.elementAt(0);
 }
 
 ///
-double featuresDistance(Float32List embedding1, Float32List embedding2) {
+double featuresDistance(List<double> embedding1, List<double> embedding2) {
   return euclideanDistance(embedding1, embedding2);
 }
 
@@ -251,7 +246,7 @@ double euclideanDistance(List A, List B) {
 }
 
 ///
-List<List<Float32List>> rgbListToMatrix(Float32List buffer, int width, int height) {
+List<List<List<double>>> rgbListToMatrix(Float32List buffer, int width, int height) {
   // image origin is (x,y)=(0,0) on the top left corner, x and y grow to the
   // right and bottom respectivelly
   const nColorChannels = 3;
@@ -260,11 +255,9 @@ List<List<Float32List>> rgbListToMatrix(Float32List buffer, int width, int heigh
     // generate colums
     (y) => List.generate(width,
       // generate group of k colors
-      (x) => Float32List.fromList(
-        List.generate(nColorChannels,
-          (z) => buffer[y * width * nColorChannels + x * nColorChannels + z],
-          growable: false,
-        ),
+      (x) => List.generate(nColorChannels,
+        (z) => buffer[y * width * nColorChannels + x * nColorChannels + z],
+        growable: false,
       ),
       growable: false,
     ),

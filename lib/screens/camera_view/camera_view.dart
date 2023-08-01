@@ -221,7 +221,7 @@ class _CameraViewState extends State<CameraView> with WidgetsBindingObserver {
     final List<Uint8List> newFaces = [];
 
     // samples to generate features sets
-    final List<List<List<Float32List>>> samples = [];
+    final List<List<List<List<double>>>> samples = [];
     for (final i in logicalImages) {
       final jpeg = await convertToJpg(i);
       projectLogger.fine('i (w,h)=(${i.width},${i.height}) format=${i.format.name} channels=${i.numChannels} len=${i.length} nBytes=${i.buffer.lengthInBytes}');
@@ -238,7 +238,7 @@ class _CameraViewState extends State<CameraView> with WidgetsBindingObserver {
       facesPhotos.addAll(newFaces);
     });
 
-    final features = await extractFaceEmbedding(samples);
+    final features = [for (final s in samples) await extractFaceEmbedding(s)];
     for (var f in features) {
       final d = featuresDistance(f, f);
       projectLogger.info('#feature_distance $d');
