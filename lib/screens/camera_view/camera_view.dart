@@ -239,12 +239,16 @@ class _CameraViewState extends State<CameraView> with WidgetsBindingObserver {
       facesPhotos.addAll(newFaces);
     });
 
+    final augementedSamples = [for (var i=0; i<samples.length*2; i++) samples[i~/2]];
     List<List<double>> features = [];
-    if (samples.isNotEmpty) {
-      features = await extractFaceEmbedding(samples);
+    if (augementedSamples.isNotEmpty) {
+      features = [for (final aS in augementedSamples) await extractFaceEmbedding(aS)];
     }
-    for (var f in features) {
-      final d = featuresDistance(f, f);
+
+    for (var i=0; i<features.length/2; i++) {
+      final fA = features[i];
+      final fB = features[i+1];
+      final d = featuresDistance(fA, fB);
       projectLogger.info('#feature_distance $d');
     }
   }

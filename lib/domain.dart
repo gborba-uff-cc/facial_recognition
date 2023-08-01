@@ -208,7 +208,7 @@ int mapBiToUniDimCoord(x, y, xGroup, yGroup, elementSize, xSize) {
 }
 
 ///
-Future<List<List<double>>> extractFaceEmbedding(List<List<List<List<List<double>>>>> facesRGB) async {
+Future<List<double>> extractFaceEmbedding(List<List<List<List<double>>>> facesRGB) async {
 /*
 original model input (face matrix) shape=(160, 160, 3)
 tflite   model input (face matrix) shape=(1, 160, 160, 3)
@@ -227,26 +227,28 @@ output have ndim=3, shape=(None, 1, 512) where dim=(1, 512) is feature array
 */
   const modelPath = 'assets/facenet512_00d21808fc7d.tflite';
   const modelOutputLength = 512;
-  final numberFaces = facesRGB.length;
-  final interpreter = await tflite.Interpreter.fromAsset(modelPath);
+  final interpreterOptions = tflite.InterpreterOptions();
+  if (Platform.isAndroid) {
+    interpreterOptions.useNnApiForAndroid = true;
+  }
+  else if (Platform.isIOS) {
+    interpreterOptions.useMetalDelegateForIOS = true;
+  }
+  final interpreter = await tflite.Interpreter.fromAsset(modelPath, options: interpreterOptions);
   projectLogger.shout('inputT: ${interpreter.getInputTensors()} outputT: ${interpreter.getOutputTensors()}');
 
-  Map<int, List<List<double>>> outputs = {
-    for (var n in Iterable.generate(numberFaces))
-      n : [List.filled(modelOutputLength, 0.0)]
-    };
+  final output = {
+    0 : List<double>.filled(modelOutputLength, 0.0)
+  };
 
-  interpreter.runForMultipleInputs(facesRGB, outputs);
+  interpreter.run(facesRGB, output);
   interpreter.close();
+  interpreterOptions.delete();
 
   // convert the output map to a list where map keys become list indexes and
   // for indexes that don't exists put an zero value
-  return List.generate(
-      numberFaces,
-      (index) =>
-          outputs[index]?[0] ??
-          Float32List.fromList(List.filled(modelOutputLength, 0.0)),
-      growable: false);
+  // return output[0] ?? List.filled(modelOutputLength, 0.0);
+  return output[0]!;
 }
 
 ///
