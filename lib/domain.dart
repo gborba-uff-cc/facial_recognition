@@ -208,7 +208,7 @@ int mapBiToUniDimCoord(x, y, xGroup, yGroup, elementSize, xSize) {
 }
 
 ///
-Future<List<Float32List>> extractFaceEmbedding(List<Float32List> facesRGB) async {
+Future<List<Float32List>> extractFaceEmbedding(List<List<List<Float32List>>> facesRGB) async {
   // model input  have ndim=4, shape=(None, 160, 160, 3)
   // model output have ndim=2, shape=(None, 512)
   const modelPath = 'assets/facenet512_00d21808fc7d.tflite';
@@ -234,9 +234,20 @@ Future<List<Float32List>> extractFaceEmbedding(List<Float32List> facesRGB) async
 }
 
 ///
-bool verify(Float32List embedding1, Float32List embedding2) {
-  const maximumDistance = 0.03;
-  return euclideanDistance(embedding1, embedding2) < maximumDistance;
+double featuresDistance(Float32List embedding1, Float32List embedding2) {
+  return euclideanDistance(embedding1, embedding2);
+}
+
+///
+double euclideanDistance(List A, List B) {
+  if (A.length != B.length) {
+    throw ArgumentError('expected both vectors to have the same length');
+  }
+  double res = 0.0;
+  for (var i = 0; i < A.length; i++) {
+    res += pow(B[i] - A[i], 2);
+  }
+  return sqrt(res);
 }
 
 ///
@@ -261,3 +272,22 @@ List<List<Float32List>> rgbListToMatrix(Float32List buffer, int width, int heigh
   );
 }
 
+Float32List standardizeImage(Uint8List image, int width, int height) {
+  final imageBuffer = image.buffer.asUint8List();
+  // per row sum before calculating the mean
+  final double mean = List<double>.generate(height,
+    (row) {
+      double rowSum = 0.0;
+      // rgb (3 values) * imageWidth
+      for (var column = 0; column < width*3; column++) {
+        rowSum += imageBuffer[row*width+column];
+      }
+      return rowSum;
+    }).reduce(
+      (value, element) => value+element/height*width*3);
+  final double std = sqrt(imageBuffer.fold<double>(0.0,
+          (previousValue, element) => previousValue + pow(element - mean, 2)) /
+      (width * height * 3));
+
+  return Float32List.fromList([for (var i = 0; i < height*width*3; i++) (imageBuffer[i]-mean)/std]);
+}

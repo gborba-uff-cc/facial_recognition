@@ -206,23 +206,42 @@ class _CameraViewState extends State<CameraView> with WidgetsBindingObserver {
     if (inImage == null) {
       return;
     }
-
     projectLogger.fine('Detecting faces');
-    final faces = await detectFaces(inImage);
 
+    final faces = await detectFaces(inImage);
     final asRgb = yCbCr420ToRgb(width: image.width, height: image.height, planes: image.planes,);
     final asLogicalImage = toLogicalImage(width: image.width, height: image.height, rgbBytes: asRgb,);
-    // see croped images
+
+    // see the whole image
+    final jpeg = await convertToJpg(asLogicalImage);
+    facesPhotos.add(jpeg);
+
+    // detach faces
     final logicalImages = cropImage(asLogicalImage, faces.map((e) => e.boundingBox).toList(),);
     final List<Uint8List> newFaces = [];
+
+    // samples to generate features sets
+    final List<List<List<Float32List>>> samples = [];
     for (final i in logicalImages) {
       final jpeg = await convertToJpg(i);
+      projectLogger.fine('i (w,h)=(${i.width},${i.height}) format=${i.format.name} channels=${i.numChannels} len=${i.length} nBytes=${i.buffer.lengthInBytes}');
+
+      final resizedImage = resizeImage(i, 160, 160);
+      final stdImage = standardizeImage(resizedImage.buffer.asUint8List(), resizedImage.width, resizedImage.height);
+      projectLogger.fine('resizedImage (w,h)=(${resizedImage.width},${resizedImage.height}) format=${resizedImage.format.name} channels=${resizedImage.numChannels} len=${resizedImage.length} nBytes=${resizedImage.buffer.lengthInBytes}');
+
       newFaces.add(jpeg);
+      samples.add(rgbListToMatrix(stdImage, resizedImage.width, resizedImage.height));
     }
 
     setState(() {
       facesPhotos.addAll(newFaces);
     });
 
+    final features = await extractFaceEmbedding(samples);
+    for (var f in features) {
+      final d = featuresDistance(f, f);
+      projectLogger.info('#feature_distance $d');
+    }
   }
 }
