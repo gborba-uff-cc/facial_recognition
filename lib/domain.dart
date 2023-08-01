@@ -208,24 +208,45 @@ int mapBiToUniDimCoord(x, y, xGroup, yGroup, elementSize, xSize) {
 }
 
 ///
-Future<List<double>> extractFaceEmbedding(List<List<List<double>>> faceRGB) async {
-  // model input  have ndim=4, shape=(None, 160, 160, 3)
-  // model output have ndim=2, shape=(None, 512)
+Future<List<List<double>>> extractFaceEmbedding(List<List<List<List<List<double>>>>> facesRGB) async {
+/*
+original model input (face matrix) shape=(160, 160, 3)
+tflite   model input (face matrix) shape=(1, 160, 160, 3)
+
+original model (multiple inputs at once):
+input  have ndim=4, shape=(None, 160, 160, 3) where dim=(160, 160, 3) is face matrix
+output have ndim=2, shape=(None, 512) where dim=(512,) is face matrix
+
+tflite   model (one input):
+input  have ndim=4, shape=(1, 160, 160, 3) where dim=(1, 160, 160, 3) is face matrix
+output have ndim=2, shape=(512,) where dim=(512,) is feature array
+
+tflite   model (multiple inputs at once):
+input  have ndim=5, shape=(None, 1, 160, 160, 3) where dim=(1, 160, 160, 3) is face matrix
+output have ndim=3, shape=(None, 1, 512) where dim=(1, 512) is feature array
+*/
   const modelPath = 'assets/facenet512_00d21808fc7d.tflite';
   const modelOutputLength = 512;
-  // final numberFaces = facesRGB.length;
+  final numberFaces = facesRGB.length;
   final interpreter = await tflite.Interpreter.fromAsset(modelPath);
+  projectLogger.shout('inputT: ${interpreter.getInputTensors()} outputT: ${interpreter.getOutputTensors()}');
 
-  Map<int, List<double>> output = {
-    0 : List.filled(modelOutputLength, 0.0)
+  Map<int, List<List<double>>> outputs = {
+    for (var n in Iterable.generate(numberFaces))
+      n : [List.filled(modelOutputLength, 0.0)]
     };
 
-  interpreter.run([faceRGB], output);
+  interpreter.runForMultipleInputs(facesRGB, outputs);
   interpreter.close();
 
   // convert the output map to a list where map keys become list indexes and
   // for indexes that don't exists put an zero value
-  return output.values.elementAt(0);
+  return List.generate(
+      numberFaces,
+      (index) =>
+          outputs[index]?[0] ??
+          Float32List.fromList(List.filled(modelOutputLength, 0.0)),
+      growable: false);
 }
 
 ///
