@@ -1,0 +1,28 @@
+{
+	"users": {
+		"definition": {
+			"create": "CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT) STRICT;"
+		},
+		"manipulation": {
+			"create": "INSERT INTO users (name) VALUES (?);",
+			"read": "SELECT * FROM users WHERE id = (?);",
+			"read_all": "SELECT * FROM users",
+			"update": "UPDATE users SET name WHERE (?);",
+			"delete": "DELETE FROM users WHERE (?);"
+		}
+	},
+	"face_features": {
+		"definition": {
+			"create": "CREATE TABLE IF NOT EXISTS face_features (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER REFERENCES users (id), data TEXT) STRICT;"
+		},
+		"manipulation": {
+			"create": "INSERT INTO face_features (user_id, data) VALUES (?, ?);",
+			"create_from_user_registration": "",
+			"read": "SELECT * FROM face_features WHERE id = ?;",
+			"read_all": "SELECT * FROM face_features;",
+			"read_by_class": "SELECT * FROM face_features LIMIT 10;",
+			"update": "UPDATE face_features SET (user_id, data) WHERE id = ?;",
+			"delete": "DELETE FROM face_features WHERE id = ?;"
+		}
+	}
+}

@@ -1,0 +1,8 @@
+{
+    "server": {
+        "home":"/",
+        "user":"/user",
+        "face_features":"/face_features",
+        "face_features_by_class": "/face_features/<class>"
+    }
+}
