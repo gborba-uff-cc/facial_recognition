@@ -552,3 +552,315 @@ SELECT a.matricula, df.dado
   ON df.idIndividuo = a.idIndividuo
   WHERE t.codigoDisciplina = 'codigo_disciplina_2' AND t.ano = 2024 AND t.semestre = 1 AND t.nome = 'nome turma 1';
 ```
+
+## Revisão 1
+
+- Traduzindo nomes de relações e atributos para o ingles.
+- Troca da primary key de Dado_Facial
+
+### Diagrama ER
+
+```plantuml
+@startuml
+entity  individual <<Entity>> {
+  auto_id
+  individualRegistration
+  name
+  surname
+}
+entity  student <<Entity>> {
+  individualId
+  registration
+}
+entity  teacher <<Entity>> {
+  individualId
+  registration
+}
+entity  facialData <<Entity>> {
+  individualId
+  data
+}
+entity  subject <<Entity>> {
+  code
+  name
+}
+entity  class <<Entity>> {
+  auto_id
+  subjectCode
+  year
+  semester
+  name
+  teacherRegistration
+}
+entity  lesson <<Entity>> {
+  auto_id
+  classId
+  utcDateTime
+  teacherRegistration
+}
+entity  attendance <<Entity>> {
+  studentRegistration
+  lessonId
+}
+entity  enrollment <<Entity>> {
+  studentRegistration
+  classId
+}
+
+individual "1..1"---"0..*" facialData
+student    "1..1"---"1..1" individual
+teacher    "1..1"---"1..1" individual
+student    "1..1"---"1..*" attendance
+attendance "1..*"---"1..1" lesson
+student    "1..1"---"1..*" enrollment
+enrollment "1..*"---"1..1" class
+teacher    "1..1"---"0..*" class
+teacher    "1..1"---"0..*" lesson
+class      "1..1"---"1..*" lesson
+class      "1..*"---"1..1" subject
+
+skinparam linetype ortho
+hide methods
+@enduml
+```
+
+### Esquema Lógico Relacional
+
+- individual(auto_id: Int «NN, AI, PK», individualRegistration: Char [\*] «NN, AK1», name: Char [\*] «NN», surname: Char [\*])
+
+- facialData(data: Char [\*] «NN, PK», individualId: Int «NN, FK»)
+  - individualId referencia individual(auto_id)
+
+- student(registration: Char [\*] «NN, PK», individualId: Int «NN, FK, AK1»)
+  - individualId referencia individual(auto_id)
+
+- teacher(registration: Char [\*] «NN, PK», individualId: Int «NN, FK, AK1»)
+  - individualId referencia individual(auto_id)
+
+- subject(code: Char [\*] «NN, PK», name: Char [\*] «NN»)
+
+- class(auto_id: Int «NN, AI, PK», subjectCode: Char [\*] «NN, FK, AK1», year: Int «NN, AK1», semester: Int «NN, AK1», name Char [\*] «NN, AK1», teacherRegistration: Char [\*] «NN, FK»)
+  - subjectCode referencia subject(code)
+  - teacherRegistration referencia teacher(registration)
+
+- lesson(auto_id: Int «NN, AI, PK», classId: Int «NN, FK, AK1», UtcDateTime: Char [16] «NN, AK1», teacherRegistration: Char [\*] «NN, FK»)
+  - classId referencia class(auto_id)
+  - teacherRegistration referencia teacher(registration)
+
+- attendance(studentRegistration: Char [\*] «NN, FK, PK», lessonId: Int «NN, FK, PK»)
+  - studentRegistration referencia student(registration)
+  - lessonId referencia lesson(auto_id)
+
+- enrollment(studentRegistration: Char [\*] «NN, FK, PK», classId: Int «NN, FK, PK»)
+  - studentRegistration referencia student(registration)
+  - classId referencia class(auto_id)
+
+#### Acronimos usados
+
+- NN: Não nulo (not null)
+- AI: Auto incremento (auto increment)
+- PK: Chave primária (primary key)
+- AK: Chave alternativa (alternate key)
+- FK: Chave estrangeira (foreign key)
+
+### Implementação para SQLite
+
+#### DDL
+
+```sql
+-- written as for SQLite v3.38
+CREATE TABLE IF NOT EXISTS individual (
+  auto_id                INTEGER NOT NULL,
+  individualRegistration TEXT    NOT NULL,
+  name                   TEXT    NOT NULL,
+  surname                TEXT,
+  UNIQUE      (individualRegistration),
+  PRIMARY KEY (auto_id)
+) STRICT;
+
+CREATE TABLE IF NOT EXISTS facialData (
+  data         TEXT    NOT NULL,
+  individualId INTEGER NOT NULL,
+  FOREIGN KEY (individualId) REFERENCES individual (auto_id),
+  PRIMARY KEY (data)
+) STRICT;
+
+CREATE TABLE IF NOT EXISTS student (
+  registration TEXT    NOT NULL,
+  individualId INTEGER NOT NULL,
+  FOREIGN KEY (individualId) REFERENCES individual (auto_id),
+  UNIQUE      (individualId),
+  PRIMARY KEY (registration)
+) STRICT;
+
+CREATE TABLE IF NOT EXISTS teacher (
+  registration TEXT    NOT NULL,
+  individualId INTEGER NOT NULL,
+  FOREIGN KEY (individualId) REFERENCES individual (auto_id),
+  UNIQUE      (individualId),
+  PRIMARY KEY (registration)
+) STRICT;
+
+CREATE TABLE IF NOT EXISTS subject (
+  code TEXT NOT NULL,
+  name TEXT NOT NULL,
+  PRIMARY KEY (code)
+) STRICT;
+
+CREATE TABLE IF NOT EXISTS class (
+  auto_id             INTEGER NOT NULL,
+  subjectCode         TEXT    NOT NULL,
+  year                INTEGER NOT NULL,
+  semester            INTEGER NOT NULL,
+  name                TEXT    NOT NULL,
+  teacherRegistration TEXT    NOT NULL,
+  FOREIGN KEY (subjectCode)         REFERENCES subject (code),
+  FOREIGN KEY (teacherRegistration) REFERENCES professsor (registration),
+  UNIQUE      (subjectCode, year, semester, name),
+  PRIMARY KEY (auto_id)
+) STRICT;
+
+CREATE TABLE IF NOT EXISTS lesson (
+  auto_id             INTEGER NOT NULL,
+  classId             INTEGER NOT NULL,
+  utcDateTime         TEXT    NOT NULL,
+  teacherRegistration TEXT    NOT NULL,
+  FOREIGN KEY (classId)             REFERENCES class (auto_id),
+  FOREIGN KEY (teacherRegistration) REFERENCES teacher (registration),
+  UNIQUE      (classId, utcDateTime),
+  PRIMARY KEY (auto_id)
+) STRICT;
+
+CREATE TABLE IF NOT EXISTS enrollment (
+  studentRegistration TEXT    NOT NULL,
+  classId             INTEGER NOT NULL,
+  FOREIGN KEY (studentRegistration) REFERENCES student (registration),
+  FOREIGN KEY (classId)             REFERENCES class (auto_id),
+  PRIMARY KEY (studentRegistration, classId)
+) STRICT;
+
+CREATE TABLE IF NOT EXISTS attendance (
+  studentRegistration TEXT    NOT NULL,
+  lessonId            INTEGER NOT NULL,
+  FOREIGN KEY (studentRegistration) REFERENCES student (registration),
+  FOREIGN KEY (lessonId)            REFERENCES lesson (auto_id),
+  PRIMARY KEY (studentRegistration, lessonId)
+) STRICT;
+```
+
+#### Testes
+
+```sql
+INSERT INTO individual (individualRegistration, name, surname) VALUES
+  ('22233344401', 'john', 'aaa'),
+  ('22233355501', 'john', 'bbb'),
+  ('22233366601', 'jane', 'aaa'),
+  ('22233377701', 'jane', 'bbb');
+INSERT INTO individual (individualRegistration, name) VALUES
+  ('33344422201', 'john'),
+  ('33344433301', 'jane');
+INSERT INTO student (individualId, registration) VALUES
+  (1, 'matricula_aluno_1'),
+  (2, 'matricula_aluno_2'),
+  (3, 'matricula_aluno_3'),
+  (4, 'matricula_aluno_4');
+INSERT INTO teacher (individualId, registration) VALUES
+  (5, 'matricula_professor_1'),
+  (6, 'matricula_professor_2');
+
+-- inserir 3 dados faciais, para 2 alunos e 1 para professor
+INSERT INTO facialData (individualId, data) VALUES
+  (2, 'dado_facial_1_aluno_2'),
+  (3, 'dado_facial_1_aluno_3'),
+  (3, 'dado_facial_2_aluno_3'),
+  (3, 'dado_facial_3_aluno_3'),
+  (6, 'dado_facial_1_professor_2');
+
+-- inserir 3 disciplinas
+INSERT INTO subject (code, name) VALUES
+  ('codigo_disciplina_1', 'nome da disciplina 1'),
+  ('codigo_disciplina_2', 'nome da disciplina 2'),
+  ('codigo_disciplina_3', 'nome da disciplina 3');
+
+-- inserir 5 turmas
+INSERT INTO class (subjectCode, year, semester, name, teacherRegistration) VALUES
+  ('codigo_disciplina_1', 2024, 1, 'nome turma 1', 'matricula_professor_1'),
+  ('codigo_disciplina_2', 2024, 1, 'nome turma 1', 'matricula_professor_2'),
+  ('codigo_disciplina_3', 2024, 1, 'nome turma 1', 'matricula_professor_1'),
+  ('codigo_disciplina_1', 2024, 1, 'nome turma 2', 'matricula_professor_2'),
+  ('codigo_disciplina_2', 2024, 1, 'nome turma 2', 'matricula_professor_1');
+
+-- inserir 3 aulas
+-- formato para dataHorarioUtc: YYYY-MM-DD HH:MM
+INSERT INTO lesson (classId, teacherRegistration, utcDateTime) VALUES
+  (1, 'matricula_professor_1', strftime('%F %R', 'now')),
+  (1, 'matricula_professor_1', strftime('%F %R', 'now', '+1 day')),
+  (2, 'matricula_professor_2', strftime('%F %R', 'now', '+2 days'));
+
+-- inserir os 4 alunos em 3 turmas
+INSERT INTO enrollment (studentRegistration, classId) VALUES
+  ('matricula_aluno_1', 1),
+  ('matricula_aluno_3', 1),
+  ('matricula_aluno_4', 1),
+  ('matricula_aluno_1', 2),
+  ('matricula_aluno_2', 2),
+  ('matricula_aluno_3', 2),
+  ('matricula_aluno_4', 2),
+  ('matricula_aluno_1', 3),
+  ('matricula_aluno_2', 3),
+  ('matricula_aluno_3', 3),
+  ('matricula_aluno_4', 3);
+
+-- inserir presencas nas 3 aulas criadas
+INSERT INTO attendance (studentRegistration, lessonId) VALUES
+  ('matricula_aluno_1', 1),
+  ('matricula_aluno_4', 1),
+  ('matricula_aluno_1', 2),
+  ('matricula_aluno_2', 2),
+  ('matricula_aluno_4', 2),
+  ('matricula_aluno_1', 3),
+  ('matricula_aluno_2', 3),
+  ('matricula_aluno_3', 3),
+  ('matricula_aluno_4', 4);
+
+/*
+selecionar os dados faciais de todos os alunos que participam da turma especificada
+turma: 'codigo_disciplina_1', 2024, 1, 'nome turma 1'
+*/
+SELECT s.registration, f.data
+  FROM enrollment e
+  JOIN class c
+  ON c.auto_id = e.classId
+  JOIN student s
+  ON s.registration = e.studentRegistration
+  JOIN facialData f
+  ON f.individualId = s.individualId
+  WHERE c.subjectCode = 'codigo_disciplina_1' AND c.year = 2024 AND c.semester = 1 AND c.name = 'nome turma 1'
+  ORDER BY f.data ASC;
+/*
+matricula_aluno_3|dado_facial_1_aluno_3
+matricula_aluno_3|dado_facial_2_aluno_3
+matricula_aluno_3|dado_facial_3_aluno_3
+*/
+
+/*
+selecionar os dados faciais de todos os alunos que participam da turma especificada
+turma: 'codigo_disciplina_2', 2024, 1, 'nome turma 1'
+*/
+SELECT s.registration, f.data
+  FROM enrollment e
+  JOIN class c
+  ON c.auto_id = e.classId
+  JOIN student s
+  ON s.registration = e.studentRegistration
+  JOIN facialData f
+  ON f.individualId = s.individualId
+  WHERE c.subjectCode = 'codigo_disciplina_2' AND c.year = 2024 AND c.semester = 1 AND c.name = 'nome turma 1'
+  ORDER BY f.data ASC;
+/*
+matricula_aluno_2|dado_facial_1_aluno_2
+matricula_aluno_3|dado_facial_1_aluno_3
+matricula_aluno_3|dado_facial_2_aluno_3
+matricula_aluno_3|dado_facial_3_aluno_3
+*/
+```
