@@ -123,9 +123,12 @@ void main() {
     'creating database tables',
     () {
       pkg_sqlite3.ResultSet tableList = getTableList(db);
-      final allPresent = tables.keys.every(
-        (tableName) => tableList.any(
-          (row) => row['name'] == tableName));
+      final allPresent =
+        // tableList-2 because of the builtin sqlite tables
+        tables.keys.length == (tableList.length-2) &&
+        tables.keys.every(
+          (tableName) => tableList.any(
+            (row) => row['name'] == tableName));
       return allPresent;
   },
   preTest: () => createTables(db, tables.keys.toList(), statementsLoader),
@@ -139,9 +142,11 @@ void main() {
       'table $tableName has expected columns',
       () {
         final pkg_sqlite3.ResultSet tableInfo = getTableInfo(db, tableName);
-        final bool hasColumns = expectedColumns.every(
-          (column) => tableInfo.any(
-            (row) => row['name'] == column));
+        final bool hasColumns =
+          expectedColumns.length == tableInfo.length &&
+          expectedColumns.every(
+            (column) => tableInfo.any(
+              (row) => row['name'] == column));
         return hasColumns;
       },
     );
@@ -153,16 +158,22 @@ void main() {
       pkg_sqlite3.ResultSet tableList;
 
       tableList = getTableList(db);
-      final beforeAllPresent = tables.keys.every(
-        (tableName) => tableList.any(
-          (row) => row['name'] == tableName));
+      final beforeAllPresent =
+        // tableList-2 because of the builtin sqlite tables
+        tables.keys.length == tableList.length-2 &&
+        tables.keys.every(
+          (tableName) => tableList.any(
+            (row) => row['name'] == tableName));
 
       dropTables(db, tables.keys.toList(), statementsLoader);
 
       tableList = getTableList(db);
-      final afterAllAbsent = tables.keys.every(
-        (tableName) => !tableList.any(
-          (row) => row['name'] == tableName));
+      final afterAllAbsent =
+        // tableList-2 because of the builtin sqlite tables
+        tableList.length-2 == 0 &&
+        tables.keys.every(
+          (tableName) => !tableList.any(
+            (row) => row['name'] == tableName));
       return beforeAllPresent && afterAllAbsent;
     },
   );
