@@ -104,7 +104,7 @@ void main() {
 
   // NOTE - from dbModelagemDados.md
   const tables = <String, List<String>>{
-    'individual': ['auto_id', 'individualRegistration', 'name'],
+    'individual': ['auto_id', 'individualRegistration', 'name', 'surname'],
     'facialData': ['data', 'individualId'],
     'student': ['registration', 'individualId'],
     'teacher': ['registration', 'individualId'],
