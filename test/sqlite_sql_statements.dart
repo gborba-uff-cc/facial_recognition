@@ -101,9 +101,7 @@ pkg_sqlite3.ResultSet getTableInfo(
 void main() {
   const databaseLibPath = String.fromEnvironment('sqliteLibPath');
   const sqlStatementsResourcePath = String.fromEnvironment('sqlStatementsResourcePath');
-  pkg_sqlite3_open.open.overrideFor(pkg_sqlite3_open.OperatingSystem.windows, () => DynamicLibrary.open(databaseLibPath));
 
-  final SqlStatementsLoader statementsLoader = SqlStatementsLoader(sqlStatementsResourcePath);
   // NOTE - from dbModelagemDados.md
   const tables = <String, List<String>>{
     'individual': ['auto_id', 'individualRegistration', 'name'],
@@ -116,47 +114,58 @@ void main() {
     'enrollment': ['studentRegistration', 'classId'],
     'attendance': ['studentRegistration', 'lessonId'],
   };
+  final SqlStatementsLoader statementsLoader = SqlStatementsLoader(sqlStatementsResourcePath);
+  pkg_sqlite3_open.open.overrideFor(pkg_sqlite3_open.OperatingSystem.windows, () => DynamicLibrary.open(databaseLibPath));
   final pkg_sqlite3.Database db = pkg_sqlite3.sqlite3.openInMemory();
   db.execute('PRAGMA foreign_keys = ON;');
 
-  test('creating database tables', () {
-    pkg_sqlite3.ResultSet tableList = getTableList(db);
-    final allPresent = tables.keys.every(
-      (tableName) => tableList.any(
-        (row) => row['name'] == tableName));
-    return allPresent;
+  test(
+    'creating database tables',
+    () {
+      pkg_sqlite3.ResultSet tableList = getTableList(db);
+      final allPresent = tables.keys.every(
+        (tableName) => tableList.any(
+          (row) => row['name'] == tableName));
+      return allPresent;
   },
-  preTest: () => createTables(db, tables.keys.toList(), statementsLoader));
+  preTest: () => createTables(db, tables.keys.toList(), statementsLoader),
+  );
 
   for (final entry in tables.entries) {
     final tableName = entry.key;
     final expectedColumns = entry.value;
 
-    test('table $tableName has expected columns', () {
-      final pkg_sqlite3.ResultSet tableInfo = getTableInfo(db, tableName);
-      final bool hasColumns = expectedColumns.every(
-        (column) => tableInfo.any(
-          (row) => row['name'] == column));
-      return hasColumns;
-    });
+    test(
+      'table $tableName has expected columns',
+      () {
+        final pkg_sqlite3.ResultSet tableInfo = getTableInfo(db, tableName);
+        final bool hasColumns = expectedColumns.every(
+          (column) => tableInfo.any(
+            (row) => row['name'] == column));
+        return hasColumns;
+      },
+    );
   }
 
-  test('droping database tables', () {
-    pkg_sqlite3.ResultSet tableList;
+  test(
+    'droping database tables',
+    () {
+      pkg_sqlite3.ResultSet tableList;
 
-    tableList = getTableList(db);
-    final beforeAllPresent = tables.keys.every(
-      (tableName) => tableList.any(
-        (row) => row['name'] == tableName));
+      tableList = getTableList(db);
+      final beforeAllPresent = tables.keys.every(
+        (tableName) => tableList.any(
+          (row) => row['name'] == tableName));
 
-    dropTables(db, tables.keys.toList(), statementsLoader);
+      dropTables(db, tables.keys.toList(), statementsLoader);
 
-    tableList = getTableList(db);
-    final afterAllAbsent = tables.keys.every(
-      (tableName) => !tableList.any(
-        (row) => row['name'] == tableName));
-    return beforeAllPresent && afterAllAbsent;
-  });
+      tableList = getTableList(db);
+      final afterAllAbsent = tables.keys.every(
+        (tableName) => !tableList.any(
+          (row) => row['name'] == tableName));
+      return beforeAllPresent && afterAllAbsent;
+    },
+  );
 
   db.dispose();
   exit(0);
