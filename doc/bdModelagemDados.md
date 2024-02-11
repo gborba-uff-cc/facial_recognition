@@ -643,7 +643,7 @@ hide methods
   - subjectCode referencia subject(code)
   - teacherRegistration referencia teacher(registration)
 
-- lesson(auto_id: Int «NN, AI, PK», classId: Int «NN, FK, AK1», UtcDateTime: Char [16] «NN, AK1», teacherRegistration: Char [\*] «NN, FK»)
+- lesson(auto_id: Int «NN, AI, PK», classId: Int «NN, FK, AK1», utcDateTime: Char [16] «NN, AK1», teacherRegistration: Char [\*] «NN, FK»)
   - classId referencia class(auto_id)
   - teacherRegistration referencia teacher(registration)
 
