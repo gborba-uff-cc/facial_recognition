@@ -48,8 +48,9 @@ void dropTables(
   }
   commitTransation(database);
 }
+
 /*
-call testBody, call postTest after it, show and return whether testBody failed
+call testBody, call postTest after it, show and return whether testBody succeded
 */
 void test(
   final String testName,
@@ -62,19 +63,19 @@ void test(
   if (preTest != null) {
     preTest();
   }
-  bool fail = false;
+  bool succeded = false;
   try {
-    fail = testBody();
+    succeded = testBody();
   } catch (e) {
-    fail = true;
+    succeded = false;
   }
   finally {
     String logMessage = '$testName... ';
-    if (fail) {
-      logMessage += 'FAIL';
+    if (succeded) {
+      logMessage += 'OK';
     }
     else {
-      logMessage += 'OK';
+      logMessage += 'FAIL';
     }
     stdout.writeln(logMessage);
   }
@@ -123,7 +124,7 @@ void main() {
     final allPresent = tables.keys.every(
       (tableName) => tableList.any(
         (row) => row['name'] == tableName));
-    return !(allPresent);
+    return allPresent;
   },
   preTest: () => createTables(db, tables.keys.toList(), statementsLoader));
 
@@ -136,7 +137,7 @@ void main() {
       final bool hasColumns = expectedColumns.every(
         (column) => tableInfo.any(
           (row) => row['name'] == column));
-      return !(hasColumns);
+      return hasColumns;
     });
   }
 
@@ -144,17 +145,17 @@ void main() {
     pkg_sqlite3.ResultSet tableList;
 
     tableList = getTableList(db);
-    final firstAllPresent = tables.keys.every(
+    final beforeAllPresent = tables.keys.every(
       (tableName) => tableList.any(
         (row) => row['name'] == tableName));
 
     dropTables(db, tables.keys.toList(), statementsLoader);
 
     tableList = getTableList(db);
-    final laterAllAbsent = tables.keys.every(
+    final afterAllAbsent = tables.keys.every(
       (tableName) => !tableList.any(
         (row) => row['name'] == tableName));
-    return !(firstAllPresent && laterAllAbsent);
+    return beforeAllPresent && afterAllAbsent;
   });
 
   db.dispose();
