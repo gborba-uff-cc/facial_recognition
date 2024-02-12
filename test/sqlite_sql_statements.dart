@@ -52,7 +52,7 @@ void dropTables(
 /*
 call testBody, call postTest after it, show and return whether testBody succeded
 */
-void test(
+bool test(
   final String testName,
   final bool Function() testBody,
   {
@@ -82,6 +82,7 @@ void test(
   if (postTest != null) {
     postTest();
   }
+  return succeded;
 }
 
 pkg_sqlite3.ResultSet getTableList(
@@ -101,6 +102,7 @@ pkg_sqlite3.ResultSet getTableInfo(
 void main() {
   const databaseLibPath = String.fromEnvironment('sqliteLibPath');
   const sqlStatementsResourcePath = String.fromEnvironment('sqlStatementsResourcePath');
+  bool allTestsSucceded = true;
 
   // NOTE - from dbModelagemDados.md
   const tables = <String, List<String>>{
@@ -119,7 +121,7 @@ void main() {
   final pkg_sqlite3.Database db = pkg_sqlite3.sqlite3.openInMemory();
   db.execute('PRAGMA foreign_keys = ON;');
 
-  test(
+  allTestsSucceded &= test(
     'creating database tables',
     () {
       pkg_sqlite3.ResultSet tableList = getTableList(db);
@@ -138,7 +140,7 @@ void main() {
     final tableName = entry.key;
     final expectedColumns = entry.value;
 
-    test(
+    allTestsSucceded &= test(
       'table $tableName has expected columns',
       () {
         final pkg_sqlite3.ResultSet tableInfo = getTableInfo(db, tableName);
@@ -152,7 +154,7 @@ void main() {
     );
   }
 
-  test(
+  allTestsSucceded &= test(
     'droping database tables',
     () {
       pkg_sqlite3.ResultSet tableList;
@@ -179,5 +181,14 @@ void main() {
   );
 
   db.dispose();
-  exit(0);
+
+  String message = '\nall tests suceeded:';
+  if (allTestsSucceded) {
+    stdout.writeln('$message True');
+    exit(0);
+  }
+  else {
+    stdout.writeln('$message False');
+    exit(1);
+  }
 }
