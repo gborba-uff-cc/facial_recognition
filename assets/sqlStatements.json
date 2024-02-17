@@ -1,28 +1,127 @@
 {
-	"users": {
-		"definition": {
-			"create": "CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT) STRICT;"
-		},
-		"manipulation": {
-			"create": "INSERT INTO users (name) VALUES (?);",
-			"read": "SELECT * FROM users WHERE id = (?);",
-			"read_all": "SELECT * FROM users",
-			"update": "UPDATE users SET name WHERE (?);",
-			"delete": "DELETE FROM users WHERE (?);"
-		}
-	},
-	"face_features": {
-		"definition": {
-			"create": "CREATE TABLE IF NOT EXISTS face_features (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER REFERENCES users (id), data TEXT) STRICT;"
-		},
-		"manipulation": {
-			"create": "INSERT INTO face_features (user_id, data) VALUES (?, ?);",
-			"create_from_user_registration": "",
-			"read": "SELECT * FROM face_features WHERE id = ?;",
-			"read_all": "SELECT * FROM face_features;",
-			"read_by_class": "SELECT * FROM face_features LIMIT 10;",
-			"update": "UPDATE face_features SET (user_id, data) WHERE id = ?;",
-			"delete": "DELETE FROM face_features WHERE id = ?;"
-		}
-	}
+    "tcl": {
+        "begin": "BEGIN TRANSACTION;",
+        "commit": "COMMIT TRANSACTION;",
+        "rollback": "ROLLBACK TRANSACTION;"
+    },
+    "individual": {
+        "ddl": {
+            "create": "CREATE TABLE IF NOT EXISTS individual (auto_id INTEGER NOT NULL, individualRegistration TEXT NOT NULL, name TEXT NOT NULL, surname TEXT, UNIQUE (individualRegistration), PRIMARY KEY (auto_id)) STRICT;",
+            "drop": "DROP TABLE IF EXISTS individual;"
+        },
+        "dml": {
+            "insert": {
+                "default": "INSERT INTO individual (individualRegistration, name, surname) VALUES (:individualRegistration, :name, :surname)",
+                "returningAutoId": "INSERT INTO individual (individualRegistration, name, surname) VALUES (:individualRegistration, :name, :surname) RETURNING auto_id;"
+            },
+            "delete": {
+                "byAutoId": "DELETE FROM individual WHERE auto_id = :auto_id;",
+                "byIndividualRegistration": "DELETE FROM individual WHERE individualRegistration = :individualRegistration;",
+                "byIndividualRegistrationReturningAutoId": "DELETE FROM individual WHERE individualRegistration = :individualRegistration RETURNING auto_id;"
+            }
+        }
+    },
+    "facialData": {
+        "ddl": {
+            "create": "CREATE TABLE IF NOT EXISTS facialData (data TEXT NOT NULL, individualId INTEGER NOT NULL, FOREIGN KEY (individualId) REFERENCES individual (auto_id), PRIMARY KEY (data)) STRICT;",
+            "drop": "DROP TABLE IF EXISTS facialData;"
+        },
+        "dml": {
+            "insert": "INSERT INTO facialData (data, individualId) VALUES (:data, :individualId);",
+            "delete": "DELETE FROM facialData WHERE data = :data;"
+        }
+    },
+    "student": {
+        "ddl": {
+            "create": "CREATE TABLE IF NOT EXISTS student (registration TEXT NOT NULL, individualId INTEGER NOT NULL, FOREIGN KEY (individualId) REFERENCES individual (auto_id), UNIQUE (individualId), PRIMARY KEY (registration)) STRICT;",
+            "drop": "DROP TABLE IF EXISTS student;"
+        },
+        "dml": {
+            "insert": "INSERT INTO student (registration, individualId) VALUES (:registration, :individualId);",
+            "delete": {
+                "byRegistration": "DELETE FROM student WHERE registration = :registration;",
+                "byIndividualId": "DELETE FROM student WHERE individualId = :individualId;"
+            }
+        }
+    },
+    "teacher": {
+        "ddl": {
+            "create": "CREATE TABLE IF NOT EXISTS teacher (registration TEXT NOT NULL, individualId INTEGER NOT NULL, FOREIGN KEY (individualId) REFERENCES individual (auto_id), UNIQUE (individualId), PRIMARY KEY (registration)) STRICT;",
+            "drop": "DROP TABLE IF EXISTS teacher;"
+        },
+        "dml": {
+            "insert": "INSERT INTO teacher (registration, individualId) VALUES (:registration, :individualId);",
+            "delete": {
+                "byRegistration": "DELETE FROM teacher WHERE registration = :registration",
+                "byIndividualId": "DELETE FROM teacher WHERE individualId = :individualId;"
+            }
+        }
+    },
+    "subject": {
+        "ddl": {
+            "create": "CREATE TABLE IF NOT EXISTS subject (code TEXT NOT NULL, name TEXT NOT NULL, PRIMARY KEY (code)) STRICT;",
+            "drop": "DROP TABLE IF EXISTS subject;"
+        },
+        "dml": {
+            "insert": "INSERT INTO subject (code, name) VALUES (:code, :name);",
+            "delete": "DELETE FROM subject WHERE code = :code;"
+        }
+    },
+    "class": {
+        "ddl": {
+            "create": "CREATE TABLE IF NOT EXISTS class (auto_id INTEGER NOT NULL, subjectCode TEXT NOT NULL, year INTEGER NOT NULL, semester INTEGER NOT NULL, name TEXT NOT NULL, teacherRegistration TEXT NOT NULL, FOREIGN KEY (subjectCode) REFERENCES subject (code), FOREIGN KEY (teacherRegistration) REFERENCES teacher (registration), UNIQUE (subjectCode, year, semester, name), PRIMARY KEY (auto_id)) STRICT;",
+            "drop": "DROP TABLE IF EXISTS class;"
+        },
+        "dml": {
+            "insert": {
+                "default": "INSERT INTO class (subjectCode, year, semester, name, teacherRegistration) VALUES (:subjectCode, :year, :semester, :name, :teacherRegistration);",
+                "returningAutoId": "INSERT INTO class (subjectCode, year, semester, name, teacherRegistration) VALUES (:subjectCode, :year, :semester, :name, :teacherRegistration) RETURNING auto_id;"
+            },
+            "delete": {
+                "byAutoId": "DELETE FROM class WHERE auto_id = :auto_id;",
+                "bySubjectCodeYearSemesterName": "DELETE FROM class WHERE subjectCode = :subjectCode AND year = :year AND semester = :semester AND name = :name;",
+                "bySubjectCodeYearSemesterNameReturningAutoId": "DELETE FROM class WHERE subjectCode = :subjectCode AND year = :year AND semester = :semester AND name = :name RETURNING auto_id;"
+            }
+        }
+    },
+    "lesson": {
+        "ddl": {
+            "create": "CREATE TABLE IF NOT EXISTS lesson (auto_id INTEGER NOT NULL, classId INTEGER NOT NULL, utcDateTime TEXT NOT NULL, teacherRegistration TEXT NOT NULL, FOREIGN KEY (classId) REFERENCES class (auto_id), FOREIGN KEY (teacherRegistration) REFERENCES teacher (registration), UNIQUE (classId, utcDateTime), PRIMARY KEY (auto_id)) STRICT;",
+            "drop": "DROP TABLE IF EXISTS lesson;"
+        },
+        "dml": {
+            "insert": {
+                "default": "INSERT INTO lesson (classId, utcDateTime, teacherRegistration) VALUES (:classId, :utcDateTime, :teacherRegistration);",
+                "returningAutoId": "INSERT INTO lesson (classId, utcDateTime, teacherRegistration) VALUES (:classId, :utcDateTime, :teacherRegistration) RETURNING auto_id;"
+            },
+            "delete": {
+                "byAutoId": "DELETE FROM lesson WHERE auto_id = :auto_id;",
+                "byClassIdUtcDateTime": "DELETE FROM lesson WHERE classId = :classId AND utcDateTime = :utcDateTime;",
+                "byClassIdUtcDateTimeReturningAutoId": "DELETE FROM lesson WHERE classId = :classId AND utcDateTime = :utcDateTime RETURNING auto_id;"
+            }
+        }
+    },
+    "enrollment": {
+        "ddl": {
+            "create": "CREATE TABLE IF NOT EXISTS enrollment (studentRegistration TEXT NOT NULL, classId INTEGER NOT NULL, FOREIGN KEY (studentRegistration) REFERENCES student (registration), FOREIGN KEY (classId) REFERENCES class (auto_id), PRIMARY KEY (studentRegistration, classId)) STRICT;",
+            "drop": "DROP TABLE IF EXISTS enrollment;"
+        },
+        "dml": {
+            "insert": "INSERT INTO enrollment (studentRegistration, classId) VALUES (:studentRegistration, :classId);",
+            "delete": "DELETE FROM enrollment WHERE studentRegistration = :studentRegistration AND classId = :classId;"
+        }
+    },
+    "attendance": {
+        "ddl": {
+            "create": "CREATE TABLE IF NOT EXISTS attendance (studentRegistration TEXT NOT NULL, lessonId INTEGER NOT NULL, FOREIGN KEY (studentRegistration) REFERENCES student (registration), FOREIGN KEY (lessonId) REFERENCES lesson (auto_id), PRIMARY KEY (studentRegistration, lessonId)) STRICT;",
+            "drop": "DROP TABLE IF EXISTS attendance;"
+        },
+        "dml": {
+            "insert": "INSERT INTO attendance (studentRegistration, lessonId) VALUES (:studentRegistration, :lessonId);",
+            "delete": "DELETE FROM attendance WHERE studentRegistration = :studentRegistration AND lessonId = :lessonId;"
+        }
+    },
+    "dql": {
+        "studentRegistrationFacialDataFromClass": "SELECT s.registration, f.data FROM enrollment e JOIN class c ON c.auto_id = e.classId JOIN student s ON s.registration = e.studentRegistration LEFT OUTER JOIN facialData f ON f.individualId = s.individualId WHERE c.subjectCode = :classSubjectCode AND c.year = :classYear AND c.semester = :classSemester AND c.name = :className ORDER BY s.registration ASC, f.data ASC;"
+    }
 }
