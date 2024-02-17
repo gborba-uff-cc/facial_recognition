@@ -7,32 +7,21 @@ import 'package:facial_recognition/utils/file_loaders.dart';
 import 'package:sqlite3/sqlite3.dart' as pkg_sqlite3;
 import 'package:sqlite3/open.dart' as pkg_sqlite3_open;
 
-
-void beginTransaction(
-  pkg_sqlite3.Database database
-) => database.execute('BEGIN TRANSACTION;');  // REVIEW - to support transactions
-
-void commitTransation(
-  pkg_sqlite3.Database database
-) => database.execute('COMMIT TRANSACTION;');  // REVIEW - to support transactions
-
-void rollbackTransaction(
-  pkg_sqlite3.Database database
-) => database.execute('ROLLBACK TRANSACTION;');  // REVIEW - to support transactions
-
-
 void createTables(
   final pkg_sqlite3.Database database,
   final List<String> tableNames,
   final SqlStatementsLoader sqlLoader,
 ) {
+  final sqlBeginTransaction = sqlLoader.getStatement(['tcl', 'begin']);
+  final sqlCommitTransaction = sqlLoader.getStatement(['tcl', 'commit']);
   final keySequences = tableNames.map((name) => [name, 'ddl', 'create']);
   final loadedSqls = sqlLoader.getStatements(keySequences.toList());
-  beginTransaction(database);
+
+  database.execute(sqlBeginTransaction);
   for (final String sql in loadedSqls) {
     database.execute(sql);
   }
-  commitTransation(database);
+  database.execute(sqlCommitTransaction);
 }
 
 void dropTables(
@@ -40,13 +29,23 @@ void dropTables(
   final List<String> tableNames,
   final SqlStatementsLoader sqlLoader,
 ) {
+  final sqlBeginTransaction = sqlLoader.getStatement(['tcl', 'begin']);
+  final sqlCommitTransaction = sqlLoader.getStatement(['tcl', 'commit']);
+  final sqlRollbackTransaction = sqlLoader.getStatement(['tcl', 'rollback']);
   final keySequences = tableNames.map((name) => [name, 'ddl', 'drop']);
   final loadedSqls = sqlLoader.getStatements(keySequences.toList());
-  beginTransaction(database);
-  for (final String sql in loadedSqls) {
-    database.execute(sql);
+
+  try {
+    // NOTE - transaction remains open until a successful commit or a rollback
+    database.execute(sqlBeginTransaction);
+    // REVIEW - update ddl to define foreign_keys as deferred?
+    database.execute('PRAGMA defer_foreign_keys = on;');
+    loadedSqls.forEach(database.execute);
+    database.execute(sqlCommitTransaction);
+  } catch (e) {
+    database.execute(sqlRollbackTransaction);
+    stdout.writeln(e);
   }
-  commitTransation(database);
 }
 
 /*
