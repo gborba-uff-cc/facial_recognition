@@ -182,13 +182,17 @@ void main() {
 
   db.dispose();
 
-  String message = '\nall tests suceeded:';
+  String message = 'all tests succeded?';
+  stdout.writeln('');
+  stdout.writeln('-'*(message.length+5));
   if (allTestsSucceded) {
-    stdout.writeln('$message True');
-    exit(0);
+    stdout.writeln('$message Yes');
+    exitCode = 0;
   }
   else {
-    stdout.writeln('$message False');
-    exit(1);
+    stdout.writeln('$message No');
+    exitCode = 1;
   }
+  stdout.writeln('='*(message.length+5));
+  exit(exitCode);
 }
