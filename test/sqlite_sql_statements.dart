@@ -66,6 +66,7 @@ bool test(
   try {
     succeded = testBody();
   } catch (e) {
+    stdout.writeln('${'='*15}\n$e\n${'-'*15}');
     succeded = false;
   }
   finally {
