@@ -98,6 +98,59 @@ pkg_sqlite3.ResultSet getTableInfo(
   return database.select('PRAGMA table_info($tableName);');
 }
 
+void sqlPrepareBindExecute(
+  pkg_sqlite3.Database db,
+  String sqlStatement,
+  List<Map<String, Object?>>params
+) {
+  final stmt = db.prepare(sqlStatement);
+
+  try {
+    params.forEach(stmt.executeMap);
+  }
+  catch (e) {
+    stdout.writeln('${e.runtimeType} at sqlPrepareBindExecute(..., $sqlStatement, ...):\n$e');
+    rethrow;
+  }
+  finally {
+    stmt.dispose();
+  }
+}
+
+pkg_sqlite3.ResultSet sqlPrepareBindSelect(
+  pkg_sqlite3.Database db,
+  String sqlStatement,
+  Map<String, Object?>params
+) {
+  final stmt = db.prepare(sqlStatement);
+  pkg_sqlite3.ResultSet result = pkg_sqlite3.ResultSet([], [], []);
+
+  try {
+    result = stmt.selectMap(params);
+  }
+  catch (e) {
+    stdout.writeln('${e.runtimeType} at sqlPrepareBindSelect(..., $sqlStatement, ...):\n$e');
+    rethrow;
+  }
+  finally {
+    stmt.dispose();
+  }
+
+  return result;
+}
+
+bool equalMaps<K extends Comparable, V>(final Map<K,V> m1, final Map<K,V> m2) {
+  if (m1.length != m2.length) {
+    return false;
+  }
+  for (final key in m1.keys) {
+    if (!m2.containsKey(key) || m2[key] != m1[key]) {
+      return false;
+    }
+  }
+  return true;
+}
+
 void main() {
   const databaseLibPath = String.fromEnvironment('sqliteLibPath');
   const sqlStatementsResourcePath = String.fromEnvironment('sqlStatementsResourcePath');
@@ -119,6 +172,18 @@ void main() {
   pkg_sqlite3_open.open.overrideFor(pkg_sqlite3_open.OperatingSystem.windows, () => DynamicLibrary.open(databaseLibPath));
   final pkg_sqlite3.Database db = pkg_sqlite3.sqlite3.openInMemory();
   db.execute('PRAGMA foreign_keys = ON;');
+
+  final sqlBeginTransaction = statementsLoader.getStatement(['tcl', 'begin']);
+  final sqlCommitTransaction = statementsLoader.getStatement(['tcl', 'commit']);
+  final sqlInsertIndividual = statementsLoader.getStatement(['individual', 'dml', 'insert', 'default']);
+  final sqlInsertFacialData = statementsLoader.getStatement(['facialData','dml', 'insert']);
+  final sqlInsertStudent = statementsLoader.getStatement(['student','dml', 'insert']);
+  final sqlInsertTeacher = statementsLoader.getStatement(['teacher','dml', 'insert']);
+  final sqlInsertSubject = statementsLoader.getStatement(['subject','dml', 'insert']);
+  final sqlInsertClass = statementsLoader.getStatement(['class','dml', 'insert', 'default']);
+  final sqlInsertLesson = statementsLoader.getStatement(['lesson','dml', 'insert', 'default']);
+  final sqlInsertAttendance = statementsLoader.getStatement(['attendance','dml', 'insert']);
+  final sqlInsertEnrollment = statementsLoader.getStatement(['enrollment','dml', 'insert']);
 
   allTestsSucceded &= test(
     'creating database tables',
@@ -177,6 +242,94 @@ void main() {
             (row) => row['name'] == tableName));
       return beforeAllPresent && afterAllAbsent;
     },
+  );
+
+  allTestsSucceded &= test(
+    'registration and facial data from all students within a class that has facial data',
+    () {
+      db.execute(sqlBeginTransaction);
+      sqlPrepareBindExecute(db, sqlInsertIndividual, const [
+        {':individualRegistration':'i0000000001',':name':'john',':surname':'doe'},
+        {':individualRegistration':'i0000000002',':name':'john',':surname':'roe'},
+        {':individualRegistration':'i0000000003',':name':'jane',':surname':'doe'},
+        {':individualRegistration':'i0000000004',':name':'jane',':surname':'roe'},
+        {':individualRegistration':'i0000000005',':name':'john',':surname':null},
+        {':individualRegistration':'i0000000006',':name':'jane',':surname':null},
+      ]);
+      sqlPrepareBindExecute(db, sqlInsertFacialData, const [
+        {':data':'fd01s02',':individualId':2},
+        {':data':'fd01s03',':individualId':3},
+        {':data':'fd02s03',':individualId':3},
+        {':data':'fd03s03',':individualId':3},
+        {':data':'fd01t02',':individualId':6},
+      ]);
+      sqlPrepareBindExecute(db, sqlInsertStudent, const [
+        {':registration':'s00000001',':individualId':1},
+        {':registration':'s00000002',':individualId':2},
+        {':registration':'s00000003',':individualId':3},
+        {':registration':'s00000004',':individualId':4},
+      ]);
+      sqlPrepareBindExecute(db, sqlInsertTeacher, const [
+        {':registration':'t00000001',':individualId':5},
+        {':registration':'t00000002',':individualId':6},
+      ]);
+      sqlPrepareBindExecute(db, sqlInsertSubject, const [
+        {':code':'s00001',':name':'subjectA'},
+        {':code':'s00002',':name':'subjectB'},
+      ]);
+      sqlPrepareBindExecute(db, sqlInsertClass, const [
+        {':subjectCode':'s00001',':year':2024,':semester':1,':name':'classA',':teacherRegistration':'t00000001'},
+        {':subjectCode':'s00002',':year':2024,':semester':1,':name':'classB',':teacherRegistration':'t00000002'},
+      ]);
+      sqlPrepareBindExecute(db, sqlInsertLesson, const [
+        {':classId':1,':utcDateTime':"strftime('%F %R', 'now)",':teacherRegistration':'t00000001'},
+        {':classId':2,':utcDateTime':"strftime('%F %R', 'now)",':teacherRegistration':'t00000002'},
+      ]);
+      sqlPrepareBindExecute(db, sqlInsertEnrollment, const [
+        {':studentRegistration':'s00000001',':classId':1},
+        {':studentRegistration':'s00000003',':classId':1},
+        {':studentRegistration':'s00000004',':classId':1},
+        {':studentRegistration':'s00000001',':classId':2},
+        {':studentRegistration':'s00000002',':classId':2},
+        {':studentRegistration':'s00000003',':classId':2},
+        {':studentRegistration':'s00000004',':classId':2},
+      ]);
+      sqlPrepareBindExecute(db, sqlInsertAttendance, const [
+        {':studentRegistration':'s00000001',':lessonId':1},
+        {':studentRegistration':'s00000004',':lessonId':1},
+        {':studentRegistration':'s00000001',':lessonId':2},
+        {':studentRegistration':'s00000002',':lessonId':2},
+      ]);
+      db.execute(sqlCommitTransaction);
+
+      final desiredResult = pkg_sqlite3.ResultSet(
+        ['registration', 'data'],
+        ['enrollment', 'class', 'student', 'facialData'],
+        [
+          ['s00000001',null],
+          ['s00000003','fd01s03'],
+          ['s00000003','fd02s03'],
+          ['s00000003','fd03s03'],
+          ['s00000004',null],
+        ],
+      );
+      final query = statementsLoader.getStatement(['dql', 'studentRegistrationFacialDataFromClass']);
+      final queryParameters = {':classSubjectCode':'s00001', ':classYear':2024, ':classSemester':1, ':className':'classA'};
+      pkg_sqlite3.ResultSet result;
+      result = sqlPrepareBindSelect(db, query, queryParameters);
+
+      if (result.length != desiredResult.length) {
+        return false;
+      }
+      for (int i=0; i<desiredResult.length; i++) {
+        if (!equalMaps(result[i], desiredResult[i])) {
+          return false;
+        }
+      }
+      return true;
+    },
+    preTest: () => createTables(db, tables.keys.toList(), statementsLoader),
+    postTest: () => dropTables(db, tables.keys.toList(), statementsLoader),
   );
 
   db.dispose();
