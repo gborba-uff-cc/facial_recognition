@@ -82,6 +82,8 @@ class FacenetFaceRecognizer implements IFaceRecognizer {
 
   ///
   List<List<List<double>>> _standardizeImage(List<List<List<num>>> image) {
+    final nElements = image.length * image[0].length * image[0][0].length;
+
     var mean = 0.0;
     for (final line in image) {
       for (final column in line) {
@@ -90,31 +92,25 @@ class FacenetFaceRecognizer implements IFaceRecognizer {
         }
       }
     }
+    mean /= nElements;
 
-    var squaredSum = 0.0;
+    var squaredDeviation = 0.0;
     for (final line in image) {
       for (final column in line) {
         for (final channelValue in column) {
-          squaredSum += pow(channelValue - mean, 2.0);
+          squaredDeviation += pow(channelValue - mean, 2.0);
         }
       }
     }
+    final std = sqrt(squaredDeviation / nElements);
 
-    final nElements = image.length * image[0].length * image[0][0].length;
-    final std = sqrt(squaredSum / nElements);
-    return image
-        .map(
-          (line) => line
-              .map(
-                (column) => column
-                    .map(
-                      (channelValue) => (channelValue - mean) / std,
-                    )
-                    .toList(growable: false),
-              )
-              .toList(growable: false),
-        )
-        .toList(growable: false);
+    return image.map(
+      (line) => line.map(
+        (column) => column.map(
+          (channelValue) => (channelValue - mean) / std,
+        ).toList(growable: false),
+      ).toList(growable: false),
+    ).toList(growable: false);
   }
 
   ///
