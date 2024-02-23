@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:math';
 import 'dart:typed_data';
 import 'dart:ui' as dart_ui;
@@ -207,24 +208,11 @@ int mapBiToUniDimCoord(x, y, xGroup, yGroup, elementSize, xSize) {
   return x~/xGroup*elementSize + y~/yGroup*xSize;
 }
 
+/// Create a facial recognition data for each face in [facesRgbMatrix]
 ///
-Future<List<double>> extractFaceEmbedding(List<List<List<List<double>>>> facesRGB) async {
-/*
-original model input (face matrix) shape=(160, 160, 3)
-tflite   model input (face matrix) shape=(1, 160, 160, 3)
-
-original model (multiple inputs at once):
-input  have ndim=4, shape=(None, 160, 160, 3) where dim=(160, 160, 3) is face matrix
-output have ndim=2, shape=(None, 512) where dim=(512,) is face matrix
-
-tflite   model (one input):
-input  have ndim=4, shape=(1, 160, 160, 3) where dim=(1, 160, 160, 3) is face matrix
-output have ndim=2, shape=(512,) where dim=(512,) is feature array
-
-tflite   model (multiple inputs at once):
-input  have ndim=5, shape=(None, 1, 160, 160, 3) where dim=(1, 160, 160, 3) is face matrix
-output have ndim=3, shape=(None, 1, 512) where dim=(1, 512) is feature array
-*/
+/// faces features are encoded from a rgb matrix (with size 160x160) that
+/// represent a face image
+Future<List<List<double>>> extractFaceEmbedding(List<List<List<List<double>>>> facesRgbMatrix) async {
   const modelPath = 'assets/facenet512_00d21808fc7d.tflite';
   const modelOutputLength = 512;
   final interpreterOptions = tflite.InterpreterOptions();
@@ -237,18 +225,19 @@ output have ndim=3, shape=(None, 1, 512) where dim=(1, 512) is feature array
   final interpreter = await tflite.Interpreter.fromAsset(modelPath, options: interpreterOptions);
   projectLogger.shout('inputT: ${interpreter.getInputTensors()} outputT: ${interpreter.getOutputTensors()}');
 
-  final output = {
-    0 : List<double>.filled(modelOutputLength, 0.0)
+  final outputs = {
+    0: [
+      for (int i = 0; i < facesRgbMatrix.length; i++)
+        List<double>.filled(modelOutputLength, 0.0)
+    ]
   };
+  interpreter.runForMultipleInputs([facesRgbMatrix], outputs);
 
-  interpreter.run(facesRGB, output);
   interpreter.close();
   interpreterOptions.delete();
 
-  // convert the output map to a list where map keys become list indexes and
-  // for indexes that don't exists put an zero value
-  // return output[0] ?? List.filled(modelOutputLength, 0.0);
-  return output[0]!;
+  // retrieve the output list from the output map and return it
+  return Future.value(outputs[0]);
 }
 
 ///
