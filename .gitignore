@@ -11,6 +11,8 @@
 migrate_working_dir/
 .*_venv/
 *.tflite
+bin/tmp.dart
+assets/*.sqlite3
 
 # IntelliJ related
 *.iml
