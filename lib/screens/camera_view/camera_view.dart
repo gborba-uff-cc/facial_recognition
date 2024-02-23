@@ -221,7 +221,7 @@ class _CameraViewState extends State<CameraView> with WidgetsBindingObserver {
     final List<Uint8List> newFaces = [];
 
     // samples to generate features sets
-    final List<List<List<List<List<double>>>>> samples = [];
+    final List<List<List<List<double>>>> samples = [];
     for (final i in logicalImages) {
       final jpeg = await convertToJpg(i);
       projectLogger.fine('i (w,h)=(${i.width},${i.height}) format=${i.format.name} channels=${i.numChannels} len=${i.length} nBytes=${i.buffer.lengthInBytes}');
@@ -232,7 +232,7 @@ class _CameraViewState extends State<CameraView> with WidgetsBindingObserver {
 
       newFaces.add(jpeg);
       final stdImageMatrix = rgbListToMatrix(stdImage, resizedImage.width, resizedImage.height);
-      samples.add([stdImageMatrix]);
+      samples.add(stdImageMatrix);
     }
 
     setState(() {
@@ -242,7 +242,7 @@ class _CameraViewState extends State<CameraView> with WidgetsBindingObserver {
     final augementedSamples = [for (var i=0; i<samples.length*2; i++) samples[i~/2]];
     List<List<double>> features = [];
     if (augementedSamples.isNotEmpty) {
-      features = [for (final aS in augementedSamples) await extractFaceEmbedding(aS)];
+      features = await extractFaceEmbedding(augementedSamples);
     }
 
     for (var i=0; i<features.length/2; i++) {

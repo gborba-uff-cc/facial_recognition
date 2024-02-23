@@ -204,7 +204,7 @@ Future<Uint8List> convertToJpg(pkg_image.Image image) async {
 /// 1 element on unidimensional space represent a group of [xGroup] by [yGroup]
 /// [elementSize] and [xSize] serve to virtualy split the unidimensinal
 /// dimension.
-int mapBiToUniDimCoord(x, y, xGroup, yGroup, elementSize, xSize) {
+int mapBiToUniDimCoord(int x, int y, int xGroup, int yGroup, int elementSize, int xSize) {
   return x~/xGroup*elementSize + y~/yGroup*xSize;
 }
 
@@ -246,7 +246,7 @@ double featuresDistance(List<double> embedding1, List<double> embedding2) {
 }
 
 ///
-double euclideanDistance(List A, List B) {
+double euclideanDistance(List<num> A, List<num> B) {
   if (A.length != B.length) {
     throw ArgumentError('expected both vectors to have the same length');
   }
