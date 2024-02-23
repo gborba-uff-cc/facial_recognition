@@ -63,3 +63,21 @@ bool equalMaps<K extends Comparable, V>(final Map<K,V> m1, final Map<K,V> m2) {
   }
   return true;
 }
+
+bool equalLists<T>(List<T> l1, List<T> l2) {
+  if (l1.length != l2.length) {
+    return false;
+  }
+  for (int i=0; i<l1.length; i++) {
+    if (l1[i] is List || l2[i] is List) {
+      final res = equalLists(l1[i] as List, l2[i] as List);
+      if (!res) {
+        return false;
+      }
+    }
+    else if (l1[i] != l2[i]) {
+      return false;
+    }
+  }
+  return true;
+}
