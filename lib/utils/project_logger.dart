@@ -3,6 +3,17 @@ import 'dart:io';
 import 'package:logging/logging.dart';
 
 /// Root logger for the project.
+///
+/// Level | Description
+/// ------|------------
+/// SHOUT   | extra debugging loudness
+/// SEVERE  | serious failures
+/// WARNING | potential problems
+/// INFO    | informational messages
+/// CONFIG  | static configuration messages
+/// FINE    | tracing information
+/// FINER   | fairly detailed tracing
+/// FINEST  | highly detailed tracing
 final Logger projectLogger = () {
   const level = Level.ALL;
 
