@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:logging/logging.dart';
 
 /// Root logger for the project.
@@ -20,11 +22,14 @@ final Logger projectLogger = () {
 
   final root = Logger.detached('RootProjectLogger');
   root.level = level;
-  root.onRecord.listen(_showOnConsole);
+  root.onRecord.listen(_showOnStdout);
   root.config('Root logger for the app created and configured.');
   return root;
 }();
 
-// ignore: avoid_print
-void _showOnConsole(LogRecord log) => print(
-    '${log.time} ${log.loggerName} [${log.level.name}]: ${log.message}${log.error == null ? '' : ' With error: ${log.error}'}');
+void _showOnStdout(LogRecord log) {
+  final String header = '${log.time} ${log.loggerName} [${log.level.name}]:';
+  final String error = log.error == null ? '' : 'Error raised: ${log.error}';
+  final String stackTrace = log.stackTrace == null ? '' : 'Stack trace: ${log.stackTrace}';
+  return stdout.write('$header ${log.message} $error $stackTrace\n');
+}
