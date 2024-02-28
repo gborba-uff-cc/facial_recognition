@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'dart:ui' as dart_ui;
 
 import 'package:camera/camera.dart';
+import 'package:facial_recognition/models/domain.dart';
 import 'package:facial_recognition/utils/project_logger.dart';
 import 'package:flutter/foundation.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
@@ -39,11 +40,115 @@ pkg_image.Image resizeImage(pkg_image.Image image, int width, int height) {
   return pkg_image.copyResize(image, width: width, height: height);
 }
 
-// /// Search for a matching person that corresponds to [embedding]
-// void searchFace(embedding) {  // FIXME - method signature.
-//   // TODO - .
-//   return;
-// }
+DomainRepository domainRepository = DomainRepository();
+
+/// Search for a matching person that corresponds to [embedding]
+Map<Student, Iterable<FacialData>> getFacialDataFromSubjectClass(
+  SubjectClass subjectClass,
+) {
+  final studentByClass =
+      domainRepository.getStudentFromSubjectClass([subjectClass]);
+  final facialDataByStudent = domainRepository.getFacialDataFromStudent(studentByClass[subjectClass]!);
+  projectLogger.info(studentByClass);
+  projectLogger.info(facialDataByStudent);
+  return facialDataByStudent;
+}
+
+class FacialDataDistance {
+  final FacialData facialData;
+  final Student student;
+  final double distance;
+
+  FacialDataDistance(
+    this.facialData,
+    this.student,
+    this.distance,
+  );
+}
+
+class CouldntSearchException implements Exception {}
+
+/// give the distance
+Map<FaceEmbedding, List<FacialDataDistance>> getFacialDataDistance(
+  final List<List<double>> embedding,
+  final Map<Student, Iterable<FacialData>> facialDataByStudent,
+) {
+  final result = { for (final e in embedding) e : <FacialDataDistance>[] };
+  for (final e in embedding) {
+    for (final studentFacialData in facialDataByStudent.entries) {
+      for (final fd in studentFacialData.value) {
+        result[e]?.add(
+          FacialDataDistance(
+              fd, studentFacialData.key, featuresDistance(embedding[0], fd.data)),
+        );
+      }
+    }
+  }
+  return result;
+}
+
+const double recognitionDistanceThreshold = 0.20;
+
+void writeStudentAttendance(
+  Iterable<Student> student,
+  Lesson lesson,
+) {
+  final a = student.map((s) => Attendance(student: s, lesson: lesson));
+  domainRepository.addAttendance(a);
+}
+
+void AddStudentToSubjectClass(List<FacialData> facialData, SubjectClass) {
+  // TODO - code
+  return;
+}
+
+void faceNotRecognized(
+  Map<FaceEmbedding, FacialDataDistance?> notRecognized,
+  SubjectClass subjectClass
+) {
+  final individuals = <Individual>[];
+  final facialsData = <FacialData>[];
+  final students = <Student>[];
+  final enrollments = <Enrollment>[];
+  for (final entry in notRecognized.entries) {
+    final rand = Random();
+    final ir = List.generate(11, (index) => rand.nextInt(10)).join();
+    final name = List.generate(8, (index) => (rand.nextInt(26)+97)).map(String.fromCharCode).join();
+    final reg = List.generate(9, (index) => rand.nextInt(10)).join();
+
+    final i = Individual(individualRegistration: ir, name: name);
+    final fd = FacialData(data: entry.key, individual: i);
+    final s = Student(registration: reg, individual: i);
+    final e = Enrollment(student: s, subjectClass: subjectClass);
+
+    individuals.add(i);
+    facialsData.add(fd);
+    students.add(s);
+    enrollments.add(e);
+  }
+  domainRepository.addIndividual(individuals);
+  domainRepository.addFacialData(facialsData);
+  domainRepository.addStudent(students);
+  domainRepository.addEnrollment(enrollments);
+}
+
+class _DeferredAttendanceRecord {
+  final List<FaceEmbedding> facesEmbedding;
+  final Lesson lesson;
+
+  _DeferredAttendanceRecord(
+    this.facesEmbedding,
+    this.lesson,
+  );
+}
+
+final _deferredAttendance = <_DeferredAttendanceRecord>[];
+
+void deferAttendance(List<FaceEmbedding> facesEmbedding, lesson) {
+  _deferredAttendance.add(
+    _DeferredAttendanceRecord(facesEmbedding, lesson),
+  );
+}
 
 // HELPER ------
 /// Convert a [image] from camera to an image used by the Google ML Kit

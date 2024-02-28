@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:camera/camera.dart';
 import 'package:facial_recognition/domain.dart';
+import 'package:facial_recognition/models/domain.dart';
 import 'package:facial_recognition/utils/project_logger.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -201,29 +202,21 @@ class _CameraViewState extends State<CameraView> with WidgetsBindingObserver {
     CameraImage image,
     int controllerSensorOrientation,
   ) async {
-    projectLogger.fine('#CameraImage #available');
 
-    final controller = cameraController;
-    if (controller == null) {
-      return;
-    }
-
-    projectLogger.fine('Converting CameraImage to InputImage');
     final inImage = toInputImage(image, controllerSensorOrientation);
     if (inImage == null) {
       return;
     }
-    projectLogger.fine('Detecting faces');
 
     final faces = await detectFaces(inImage);
+    if (faces.isEmpty) {
+      return;
+    }
+
     final asRgb = yCbCr420ToRgb(width: image.width, height: image.height, planes: image.planes,);
     final asLogicalImage = toLogicalImage(width: image.width, height: image.height, rgbBytes: asRgb,);
 
-    // see the whole image
-    final jpeg = await convertToJpg(asLogicalImage);
-    facesPhotos.add(jpeg);
-
-    // detach faces
+    // detach faces into manipulable images
     final logicalImages = cropImage(asLogicalImage, faces.map((e) => e.boundingBox).toList(),);
     final List<Uint8List> newFaces = [];
 
@@ -231,32 +224,87 @@ class _CameraViewState extends State<CameraView> with WidgetsBindingObserver {
     final List<List<List<List<double>>>> samples = [];
     for (final i in logicalImages) {
       final jpeg = await convertToJpg(i);
-      projectLogger.fine('i (w,h)=(${i.width},${i.height}) format=${i.format.name} channels=${i.numChannels} len=${i.length} nBytes=${i.buffer.lengthInBytes}');
 
       final resizedImage = resizeImage(i, 160, 160);
       final stdImage = standardizeImage(resizedImage.buffer.asUint8List(), resizedImage.width, resizedImage.height);
-      projectLogger.fine('resizedImage (w,h)=(${resizedImage.width},${resizedImage.height}) format=${resizedImage.format.name} channels=${resizedImage.numChannels} len=${resizedImage.length} nBytes=${resizedImage.buffer.lengthInBytes}');
 
       newFaces.add(jpeg);
       final stdImageMatrix = rgbListToMatrix(stdImage, resizedImage.width, resizedImage.height);
       samples.add(stdImageMatrix);
     }
 
-    setState(() {
-      facesPhotos.addAll(newFaces);
-    });
-
-    final augementedSamples = [for (var i=0; i<samples.length*2; i++) samples[i~/2]];
-    List<List<double>> features = [];
-    if (augementedSamples.isNotEmpty) {
-      features = await extractFaceEmbedding(augementedSamples);
+    // update detected faces preview
+    if (mounted) {
+      setState(() {
+        facesPhotos.addAll(newFaces);
+      });
     }
 
-    for (var i=0; i<features.length/2; i++) {
-      final fA = features[i];
-      final fB = features[i+1];
-      final d = featuresDistance(fA, fB);
-      projectLogger.info('#feature_distance $d');
+    // generate faces embedding
+    List<FaceEmbedding> facesEmbedding = await extractFaceEmbedding(samples);
+    for (final fe in facesEmbedding) {
+      projectLogger.fine(fe.take(10));
+    }
+
+    final subject = Subject(code: 'TestingSubject', name: 'testing');
+    final individual = Individual(individualRegistration: 'individual01', name: 'TesteingIndividualName');
+    final teacher = Teacher(registration: 'teacher01', individual: individual);
+    final subjectClass = SubjectClass(subject: subject, year: 2024, semester: 01, name: 'TestingSubjectClass', teacher: teacher);
+    final lesson = Lesson(subjectClass: subjectClass, utcDateTime: DateTime(2024,01,01,07), teacher: teacher);
+
+    // retrieve all students in this class that have facial data added
+    final facialDataByStudent = getFacialDataFromSubjectClass(subjectClass);
+    Map<FaceEmbedding, List<FacialDataDistance>> searchResult = {};
+    bool couldSearch = true;
+    try {
+      searchResult = getFacialDataDistance(facesEmbedding, facialDataByStudent);
+    }
+    on CouldntSearchException {
+      couldSearch = false;
+    }
+
+    // handle later if it was not possible to retrieve the students
+    if (!couldSearch) {
+      deferAttendance(facesEmbedding, lesson);
+      return;
+    }
+
+    //
+    final List<FacialDataDistance> recognized = [];
+    final Map<FaceEmbedding, FacialDataDistance?> notRecognized = {};
+    for (final entry in searchResult.entries) {
+      final List<FacialDataDistance> result = entry.value;
+
+      if (result.isEmpty) {
+        notRecognized.addAll({entry.key: null});
+        projectLogger.info(
+          'This subject class has no student with facial data registered'
+        );
+      }
+      else {
+        result.sort((e1, e2) => e1.distance.compareTo(e2.distance));
+        final nearestFacialData = result.first;
+        if (nearestFacialData.distance < recognitionDistanceThreshold) {
+          recognized.add(nearestFacialData);
+        }
+        else {
+          notRecognized.addAll({entry.key: result.first});
+        }
+      }
+    }
+
+    if (recognized.isNotEmpty) {
+      for (var fdd in recognized) {
+        projectLogger.fine('${fdd.distance} is the actual distance to ${fdd.student.individual.name}');
+      }
+      writeStudentAttendance(
+        recognized.map((r) => r.student),
+        lesson,
+      );
+    }
+    // dismiss not recognized faces or ask to update known facial data for student
+    if (notRecognized.isNotEmpty) {
+      faceNotRecognized(notRecognized, subjectClass);
     }
   }
 }
