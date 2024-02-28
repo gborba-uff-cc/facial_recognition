@@ -20,8 +20,10 @@ class Individual {
       other.surname == surname;
 }
 
+typedef FaceEmbedding = List<double>;
+
 class FacialData {
-  List<double> data;
+  FaceEmbedding data;
   Individual individual;
 
   FacialData({
