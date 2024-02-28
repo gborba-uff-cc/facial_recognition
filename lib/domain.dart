@@ -224,7 +224,7 @@ double euclideanDistance(List<num> A, List<num> B) {
 }
 
 ///
-List<List<List<double>>> rgbListToMatrix(Float32List buffer, int width, int height) {
+List<List<List<T>>> rgbListToMatrix<T>(List<T> buffer, int width, int height) {
   // image origin is (x,y)=(0,0) on the top left corner, x and y grow to the
   // right and bottom respectivelly
   const nColorChannels = 3;
