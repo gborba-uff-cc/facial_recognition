@@ -22,6 +22,8 @@ class _CameraViewState extends State<CameraView> with WidgetsBindingObserver {
   CameraController? cameraController;
   final List<Uint8List> facesPhotos = [];
 
+  bool _finishedProcessingImage = true;
+
   @override
   void initState() {
     super.initState();
@@ -104,14 +106,16 @@ class _CameraViewState extends State<CameraView> with WidgetsBindingObserver {
       controller.initialize().then(
         (_) async {
           projectLogger.fine('cameraController inicializado');
-          controller.addListener(onCameraControllerValueChange);
-          Timer(const Duration(seconds: 1), () {
-            controller.startImageStream( (image) {
-              // TODO - control the frequency to call the image processing
-              controller.stopImageStream();
-              onCameraImageAvailable(image);
-            });
-          });
+          controller.startImageStream( (image) async {
+            if (_finishedProcessingImage) {
+              _finishedProcessingImage = false;
+              await onCameraImageAvailable(
+                image,
+                controller.description.sensorOrientation,
+              );
+              _finishedProcessingImage = true;
+            }},
+          );
         },
       );
     } on CameraException catch (e) {
@@ -193,7 +197,10 @@ class _CameraViewState extends State<CameraView> with WidgetsBindingObserver {
     }
   }
 
-  void onCameraImageAvailable(CameraImage image) async {
+  Future<void> onCameraImageAvailable(
+    CameraImage image,
+    int controllerSensorOrientation,
+  ) async {
     projectLogger.fine('#CameraImage #available');
 
     final controller = cameraController;
@@ -202,7 +209,7 @@ class _CameraViewState extends State<CameraView> with WidgetsBindingObserver {
     }
 
     projectLogger.fine('Converting CameraImage to InputImage');
-    final inImage = toInputImage(image, controller);
+    final inImage = toInputImage(image, controllerSensorOrientation);
     if (inImage == null) {
       return;
     }

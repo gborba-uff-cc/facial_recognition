@@ -47,11 +47,11 @@ pkg_image.Image resizeImage(pkg_image.Image image, int width, int height) {
 
 // HELPER ------
 /// Convert a [image] from camera to an image used by the Google ML Kit
-InputImage? toInputImage(CameraImage image, CameraController controller) {
-  final imageRotation = InputImageRotationValue.fromRawValue(
-      controller.description.sensorOrientation);
+InputImage? toInputImage(CameraImage image, int controllerSensorOrientation) {
+  final imageRotation =
+      InputImageRotationValue.fromRawValue(controllerSensorOrientation);
   if (imageRotation == null) {
-    projectLogger.severe("Couldn't identify the image rotation value");
+    projectLogger.severe("Couldn't identify the sensor orientation value");
     return null;
   }
 
