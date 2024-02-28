@@ -186,3 +186,142 @@ class Attendance {
     other.lesson == lesson;
 }
 
+class DomainRepository {
+  final Set<Individual> _individual = {};
+  final Set<FacialData> _facialData = {};
+  final Set<Student> _student = {};
+  final Set<Teacher> _teacher = {};
+  final Set<Subject> _subject = {};
+  final Set<SubjectClass> _subjectClass = {};
+  final Set<Lesson> _lesson = {};
+  final Set<Enrollment> _enrollment = {};
+  final Set<Attendance> _attendance = {};
+
+  DomainRepository();
+
+  void addIndividual(
+    final Iterable<Individual> individual,
+  ) {
+    _individual.addAll(individual);
+  }
+  void addFacialData(
+    final Iterable<FacialData> facialData,
+  ) {
+    _facialData.addAll(facialData);
+  }
+  void addStudent(
+    final Iterable<Student> student,
+  ) {
+    _student.addAll(student);
+  }
+  void addTeacher(
+    final Iterable<Teacher> teacher,
+  ) {
+    _teacher.addAll(teacher);
+  }
+  void addSubject(
+    final Iterable<Subject> subject,
+  ) {
+    _subject.addAll(subject);
+  }
+  void addSubjectClass(
+    final Iterable<SubjectClass> subjectClass,
+  ) {
+    _subjectClass.addAll(subjectClass);
+  }
+  void addLesson(
+    final Iterable<Lesson> lesson,
+  ) {
+    _lesson.addAll(lesson);
+  }
+  void addEnrollment(
+    final Iterable<Enrollment> enrollment,
+  ) {
+    _enrollment.addAll(enrollment);
+  }
+  void addAttendance(
+    final Iterable<Attendance> attendance,
+  ) {
+    _attendance.addAll(attendance);
+  }
+// ---------------------------
+  Map<SubjectClass, List<Student>> getStudentFromSubjectClass(
+    final Iterable<SubjectClass> subjectClass,
+  ) {
+    final result = { for (final sc in subjectClass) sc : <Student>[] };
+    for (final e in _enrollment) {
+      for (final sc in subjectClass) {
+        if (e.subjectClass == sc) {
+          result[sc]?.add(e.student);
+        }
+      }
+    }
+    return result;
+  }
+  Map<Student, List<FacialData>> getFacialDataFromStudent(
+    final Iterable<Student> student,
+  ) {
+    final result = { for (final s in student) s : <FacialData>[] };
+    for (final fd in _facialData) {
+      for (final s in student) {
+        if (s.individual == fd.individual) {
+          result[s]?.add(fd);
+        }
+      }
+    }
+    return result;
+  }
+  Map<String, Student?> getStudentFromRegistration(
+    final Iterable<String> registration,
+  ) {
+    final result = <String, Student?>{ for (final r in registration) r : null };
+    for (final s in _student) {
+      for (final reg in registration) {
+        if (reg == s.registration) {
+          result[reg] = s;
+        }
+      }
+    }
+    return result;
+  }
+  Map<Teacher, List<FacialData>> getFacialDataFromTeacher(
+    final Iterable<Teacher> teacher,
+  ) {
+    final result = { for (final t in teacher) t : <FacialData>[] };
+    for (final fd in _facialData) {
+      for (final t in teacher) {
+        if (t.individual == fd.individual) {
+          result[t]?.add(fd);
+        }
+      }
+    }
+    return result;
+  }
+  Map<String, Teacher?> getTeacherFromRegistration(
+    final Iterable<String> registration,
+  ) {
+    final result = <String, Teacher?>{ for (final reg in registration) reg : null };
+    for (final t in _teacher) {
+      for (final reg in registration) {
+        if (reg == t.registration) {
+          result[reg] = t;
+        }
+      }
+    }
+    return result;
+  }
+  Map<SubjectClass, Map<Student, List<Attendance>>> getSubjectClassAttendance(
+    final Iterable<SubjectClass> subjectClass,
+  ) {
+    final studentBySubjectClass = getStudentFromSubjectClass(subjectClass);
+
+    final result = {
+      for (final sSC in studentBySubjectClass.entries) sSC.key : {
+        for (final s in sSC.value) s : <Attendance>[
+          for (final a in _attendance) if (a.student == s) a
+        ]
+      }
+    };
+    return result;
+  }
+}
