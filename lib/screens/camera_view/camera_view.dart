@@ -226,11 +226,10 @@ class _CameraViewState extends State<CameraView> with WidgetsBindingObserver {
       final jpeg = await convertToJpg(i);
 
       final resizedImage = resizeImage(i, 160, 160);
-      final stdImage = standardizeImage(resizedImage.buffer.asUint8List(), resizedImage.width, resizedImage.height);
 
       newFaces.add(jpeg);
-      final stdImageMatrix = rgbListToMatrix(stdImage, resizedImage.width, resizedImage.height);
-      samples.add(stdImageMatrix);
+      final imageMatrix = rgbListToMatrix(resizedImage.buffer.asUint8List().map((e) => e.toDouble()).toList(), resizedImage.width, resizedImage.height);
+      samples.add(imageMatrix);
     }
 
     // update detected faces preview
