@@ -6,9 +6,9 @@ abstract class IFaceDetector<CI> {
   Future<List<Rect>> detect(final CI image, [final int controllerSensorOrientation = 0]);
 }
 
-abstract class IImageHandler<CI, CD, I, J> {
-  I fromCameraImage(final CI image, final CD? description);
-  I cropFromImage(final I image, final Rect rect);
+abstract class IImageHandler<CI, I, J> {
+  I fromCameraImage(final CI image);
+  List<I> cropFromImage(final I image, final List<Rect> rect);
   I resizeImage(final I image, final int width, final int height);
   J toJpeg(final I image);
   List<List<List<int>>> toRgbMatrix(final I image);
