@@ -32,12 +32,14 @@ class FacenetFaceRecognizer implements IFaceRecognizer {
       _modelPath,
       options: _interpreterOptions,
     );
+    _interpreter.then((interpreter) {
+      projectLogger.info('inputT: ${interpreter.getInputTensors()} outputT: ${interpreter.getOutputTensors()}');
+    });
   }
 
   ///
   void close() async {
-    final interpreter = await _interpreter;
-    interpreter.close();
+    (await _interpreter).close();
     _interpreterOptions.delete();
   }
 
@@ -49,15 +51,17 @@ class FacenetFaceRecognizer implements IFaceRecognizer {
   Future<List<FaceEmbedding>> extractEmbedding(
     List<List<List<List<num>>>> facesRgbMatrix,
   ) async {
-    final interpreter = await _interpreter;
-    projectLogger.shout('inputT: ${interpreter.getInputTensors()} outputT: ${interpreter.getOutputTensors()}');
+    if (facesRgbMatrix.isEmpty) {
+      return List.empty(growable: false);
+    }
 
     final stdRgbMatrix = facesRgbMatrix.map(_standardizeImage).toList();
     final results = <FaceEmbedding>[
       for (int i = 0; i < facesRgbMatrix.length; i++)
         List<double>.filled(_modelOutputLength, 0.0)
     ];
-    interpreter.runForMultipleInputs([stdRgbMatrix], { 0: results });
+
+    (await _interpreter).runForMultipleInputs([stdRgbMatrix], { 0: results });
     return results;
   }
 
