@@ -202,33 +202,31 @@ class _CameraViewState extends State<CameraView> with WidgetsBindingObserver {
     CameraImage image,
     int controllerSensorOrientation,
   ) async {
-
-    final inImage = toInputImage(image, controllerSensorOrientation);
-    if (inImage == null) {
-      return;
-    }
-
-    final faces = await detectFaces(inImage);
-    if (faces.isEmpty) {
-      return;
-    }
-
-    final asRgb = yCbCr420ToRgb(width: image.width, height: image.height, planes: image.planes,);
-    final asLogicalImage = toLogicalImage(width: image.width, height: image.height, rgbBytes: asRgb,);
+    // detect faces
+    final faceRects = await detectFaces(
+      image: image,
+      controllerSensorOrientation: controllerSensorOrientation,
+    );
+    projectLogger.fine('detected faces: ${faceRects.length}');
 
     // detach faces into manipulable images
-    final logicalImages = cropImage(asLogicalImage, faces.map((e) => e.boundingBox).toList(),);
+    final manipulableImage = toLogicalImage(
+      image: image,
+    );
+    final faceImages = cropImage(
+      image: manipulableImage,
+      areas: faceRects,
+    );
+
+    // create jpgs images and rgbMatrixes of detected face images
     final List<Uint8List> newFaces = [];
-
-    // samples to generate features sets
-    final List<List<List<List<double>>>> samples = [];
-    for (final i in logicalImages) {
-      final jpeg = await convertToJpg(i);
-
-      final resizedImage = resizeImage(i, 160, 160);
-
+    final List<List<List<List<int>>>> samples = [];
+    for (final i in faceImages) {
+      final jpeg = convertToJpg(i);
       newFaces.add(jpeg);
-      final imageMatrix = rgbListToMatrix(resizedImage.buffer.asUint8List().map((e) => e.toDouble()).toList(), resizedImage.width, resizedImage.height);
+
+      final resizedImage = resizeImage(image: i, width: 160, height: 160);
+      final imageMatrix = rgbListToMatrix(resizedImage);
       samples.add(imageMatrix);
     }
 
@@ -292,6 +290,8 @@ class _CameraViewState extends State<CameraView> with WidgetsBindingObserver {
       }
     }
 
+    projectLogger.fine('recognized students ${recognized.length}');
+    projectLogger.fine('not recognized students: ${notRecognized.length}');
     if (recognized.isNotEmpty) {
       for (var fdd in recognized) {
         projectLogger.fine('${fdd.distance} is the actual distance to ${fdd.student.individual.name}');
