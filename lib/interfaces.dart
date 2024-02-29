@@ -2,8 +2,8 @@ import 'dart:ui';
 
 import 'package:facial_recognition/models/domain.dart';
 
-abstract class IFaceDetector<CI, CD> {
-  Future<List<Rect>> detect(final CI image, final CD description);
+abstract class IFaceDetector<CI> {
+  Future<List<Rect>> detect(final CI image, [final int controllerSensorOrientation = 0]);
 }
 
 abstract class IImageHandler<CI, CD, I, J> {

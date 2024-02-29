@@ -2,13 +2,13 @@ import 'dart:typed_data';
 import 'dart:ui';
 
 import 'package:camera/camera.dart';
+import 'package:facial_recognition/interfaces.dart';
+import 'package:facial_recognition/utils/project_logger.dart';
+import 'package:flutter/foundation.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 
-import '../utils/project_logger.dart';
-import '../interfaces.dart';
-
 class GoogleFaceDetector
-    implements IFaceDetector<CameraImage, CameraDescription> {
+    implements IFaceDetector<CameraImage> {
   final FaceDetector _detector = FaceDetector(
     options: FaceDetectorOptions(
       performanceMode: FaceDetectorMode.fast,
@@ -25,30 +25,35 @@ class GoogleFaceDetector
 
   ///
   @override
-  Future<List<Rect>> detect(CameraImage image, CameraDescription description) {
+  Future<List<Rect>> detect (
+    final CameraImage image,
+    [final int controllerSensorOrientation = 0]
+  ) async {
     try {
-      final input = _toInputImage(image, description);
-      final faces = _detector.processImage(input);
-      final rects = faces.then(
-        (list) => list
-            .map(
-              (e) => e.boundingBox,
-            )
-            .toList(growable: false),
-      );
-      return rects;
-    } catch (e) {
+      final input = _toInputImage(image, controllerSensorOrientation);
+      final faces = await _detector.processImage(input);
+
+      return faces
+          .map(
+            (e) => e.boundingBox,
+          )
+          .toList(growable: false);
+    }
+    catch (e) {
       projectLogger.severe(e);
     }
-    return Future.value([]);
+
+    return Future.value(
+      List.empty(growable: false),
+    );
   }
 
-  ///
-  InputImage _toInputImage(CameraImage image, CameraDescription description) {
+  /// Convert a [image] from camera to an image used by the Google ML Kit
+  InputImage _toInputImage(CameraImage image, int controllerSensorOrientation) {
     final imageRotation =
-        InputImageRotationValue.fromRawValue(description.sensorOrientation);
+        InputImageRotationValue.fromRawValue(controllerSensorOrientation);
     if (imageRotation == null) {
-      throw Exception("Couldn't identify the image rotation value");
+      throw Exception("Couldn't identify the sensor orientation value");
     }
 
     final inputImageFormat =
@@ -57,7 +62,6 @@ class GoogleFaceDetector
       throw Exception("Couldn't identify the image format type");
     }
 
-    final imageSize = Size(image.width.toDouble(), image.height.toDouble());
     final planeData = image.planes
         .map(
           (Plane plane) => InputImagePlaneMetadata(
@@ -67,19 +71,26 @@ class GoogleFaceDetector
           ),
         )
         .toList(growable: false);
+
+    final imageSize = Size(image.width.toDouble(), image.height.toDouble());
     final inputImageData = InputImageData(
       size: imageSize,
       imageRotation: imageRotation,
       inputImageFormat: inputImageFormat,
       planeData: planeData,
     );
-    var nBytes = 0;
-    final Uint8List bytes = Uint8List(nBytes);
+
+    final bytes = Uint8List(
+      image.planes.fold(
+        0,
+        (previousValue, plane) => previousValue + plane.bytes.length,
+      ),
+    );
+    int start = 0;
     for (final plane in image.planes) {
-      nBytes += plane.bytes.length;
-    }
-    for (final plane in image.planes) {
-      bytes.addAll(plane.bytes);
+      int end = start + plane.bytes.length;
+      bytes.setRange(start, end, plane.bytes);
+      start = end;
     }
 
     return InputImage.fromBytes(bytes: bytes, inputImageData: inputImageData);
