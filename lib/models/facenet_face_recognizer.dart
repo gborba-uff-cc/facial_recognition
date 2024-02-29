@@ -1,5 +1,8 @@
+import 'dart:io';
 import 'dart:math';
 
+import 'package:facial_recognition/models/domain.dart';
+import 'package:facial_recognition/utils/project_logger.dart';
 import 'package:tflite_flutter/tflite_flutter.dart';
 
 import '../interfaces.dart';
@@ -19,8 +22,12 @@ class FacenetFaceRecognizer implements IFaceRecognizer {
   ///
   FacenetFaceRecognizer() {
     _interpreterOptions = InterpreterOptions();
-    _interpreterOptions.useNnApiForAndroid = true;
-    _interpreterOptions.useMetalDelegateForIOS = true;
+    if (Platform.isAndroid) {
+      _interpreterOptions.useNnApiForAndroid = true;
+    }
+    else if (Platform.isIOS) {
+      _interpreterOptions.useMetalDelegateForIOS = true;
+    }
     _interpreter = Interpreter.fromAsset(
       _modelPath,
       options: _interpreterOptions,
@@ -28,50 +35,30 @@ class FacenetFaceRecognizer implements IFaceRecognizer {
   }
 
   ///
-  void close() {
-    _interpreter.then(
-      (interpreter) {
-        interpreter.close();
-        _interpreterOptions.delete();
-      },
-    );
+  void close() async {
+    final interpreter = await _interpreter;
+    interpreter.close();
+    _interpreterOptions.delete();
   }
 
-  /// Extract a feature vector from `image`
+  /// Generate a embedding for each face in facesRpgMatrix
   ///
   /// face `image` should be preprocessed as follows: 160x160x3 width, height
   /// and colors channels (in RGB order).
   @override
-  Future<List<double>> extractFeature(List<List<List<num>>> image) async {
-    /*
-    original model input (face matrix) shape=(160, 160, 3)
-    tflite   model input (face matrix) shape=(1, 160, 160, 3)
+  Future<List<FaceEmbedding>> extractEmbedding(
+    List<List<List<List<num>>>> facesRgbMatrix,
+  ) async {
+    final interpreter = await _interpreter;
+    projectLogger.shout('inputT: ${interpreter.getInputTensors()} outputT: ${interpreter.getOutputTensors()}');
 
-    original model (multiple inputs at once):
-    input  have ndim=4, shape=(None, 160, 160, 3) where dim=(160, 160, 3) is face matrix
-    output have ndim=2, shape=(None, 512) where dim=(512,) is face matrix
-
-    tflite   model (one input):
-    input  have ndim=4, shape=(1, 160, 160, 3) where dim=(1, 160, 160, 3) is face matrix
-    output have ndim=2, shape=(512,) where dim=(512,) is feature array
-
-    tflite   model (multiple inputs at once):
-    input  have ndim=5, shape=(None, 1, 160, 160, 3) where dim=(1, 160, 160, 3) is face matrix
-    output have ndim=3, shape=(None, 1, 512) where dim=(1, 512) is feature array
-    */
-
-    return _interpreter.then<List<double>>(
-      (interpreter) {
-        final standadizedImage = _standardizeImage(image);
-        final List<double> result =
-            List<double>.filled(_modelOutputLength, 0.0);
-        final output = {0: result};
-
-        interpreter.run([standadizedImage], output);
-
-        return result;
-      },
-    );
+    final stdRgbMatrix = facesRgbMatrix.map(_standardizeImage).toList();
+    final results = <FaceEmbedding>[
+      for (int i = 0; i < facesRgbMatrix.length; i++)
+        List<double>.filled(_modelOutputLength, 0.0)
+    ];
+    interpreter.runForMultipleInputs([stdRgbMatrix], { 0: results });
+    return results;
   }
 
   ///
