@@ -1,15 +1,44 @@
 import 'dart:async';
 
 import 'package:camera/camera.dart';
-import 'package:facial_recognition/domain.dart';
 import 'package:facial_recognition/models/domain.dart';
+import 'package:facial_recognition/models/facenet_face_recognizer.dart';
+import 'package:facial_recognition/models/google_face_detector.dart';
+import 'package:facial_recognition/models/image_handler.dart';
+import 'package:facial_recognition/use_case/camera_attendance.dart';
 import 'package:facial_recognition/utils/project_logger.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 class CameraView extends StatefulWidget {
+
+  factory CameraView({key, cameras = const []}) {
+    final subject = Subject(code: 'TestingSubject', name: 'testing');
+    final individual = Individual(individualRegistration: 'individual01', name: 'TesteingIndividualName');
+    final teacher = Teacher(registration: 'teacher01', individual: individual);
+    final subjectClass = SubjectClass(subject: subject, year: 2024, semester: 01, name: 'TestingSubjectClass', teacher: teacher);
+    final lesson = Lesson(subjectClass: subjectClass, utcDateTime: DateTime(2024,01,01,07), teacher: teacher);
+
+    final useCase = CameraAttendance(
+      GoogleFaceDetector(),
+      ImageHandler(),
+      FacenetFaceRecognizer(),
+      DomainRepository(),
+      (jpegImages) {},
+      lesson,
+    );
+
+    return CameraView._private(useCase: useCase, cameras: cameras);
+  }
+
+  const CameraView._private({
+    super.key,
+    required useCase,
+    required this.cameras,
+  }) : _useCase = useCase;
+
+  final CameraAttendance _useCase;
   final List<CameraDescription> cameras;
-  const CameraView({super.key, this.cameras = const []});
 
   @override
   State<CameraView> createState() => _CameraViewState();
@@ -22,15 +51,21 @@ class _CameraViewState extends State<CameraView> with WidgetsBindingObserver {
   //  delete controller on: dispose, app is inactive, change camera source
   CameraController? cameraController;
   final List<Uint8List> facesPhotos = [];
-
   bool _finishedProcessingImage = true;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    widget._useCase.showFaceImages = (jpegImages) {
+      if (mounted) {
+        setState(() {
+          facesPhotos.addAll(jpegImages);
+        });
+      }
+    };
     if (widget.cameras.isNotEmpty) {
-      updateCameraController(widget.cameras[1]);
+      _updateCameraController(widget.cameras[1]);
     }
     // NOTE - camera controller initialized on didChangeAppLifecycleState
   }
@@ -74,6 +109,12 @@ class _CameraViewState extends State<CameraView> with WidgetsBindingObserver {
     );
   }
 
+  Future<void> _updateCameraController(CameraDescription description) async {
+    await _disposeCameraController(cameraController);
+    await _startCameraController(description);
+    return;
+  }
+
   Future<void> _disposeCameraController(CameraController? controller) {
     if (controller == null) {
       return Future.value(null);
@@ -87,12 +128,7 @@ class _CameraViewState extends State<CameraView> with WidgetsBindingObserver {
     }).then((_) => controller.dispose());
   }
 
-  Future<void> updateCameraController(CameraDescription description) {
-    _disposeCameraController(cameraController);
-    return startCameraController(description);
-  }
-
-  Future<void> startCameraController(CameraDescription description) async {
+  Future<void> _startCameraController(CameraDescription description) async {
     final controller = CameraController(
       description,
       // FIXME - as per documentation resolution limited due streaming and
@@ -104,22 +140,29 @@ class _CameraViewState extends State<CameraView> with WidgetsBindingObserver {
     );
 
     try {
-      controller.initialize().then(
-        (_) async {
-          projectLogger.fine('cameraController inicializado');
-          controller.startImageStream( (image) async {
-            if (_finishedProcessingImage) {
-              _finishedProcessingImage = false;
-              await onCameraImageAvailable(
-                image,
-                controller.description.sensorOrientation,
-              );
-              _finishedProcessingImage = true;
-            }},
+      await controller.initialize();
+      await controller.startImageStream(
+        (image) async {
+          if (!_finishedProcessingImage) {
+            return;
+          }
+
+          _finishedProcessingImage = false;
+          await widget._useCase.onNewCameraImage(
+            image,
+            controller.description.sensorOrientation,
           );
+          _finishedProcessingImage = true;
         },
       );
-    } on CameraException catch (e) {
+      cameraController = controller;
+
+      projectLogger.fine('cameraController initialized');
+    }
+    on CameraException catch (e) {
+      projectLogger.severe('cameraController could not be initialized');
+      cameraController = null;
+
       switch (e.code) {
         case 'CameraAccessDenied':
           projectLogger.severe('You have denied camera access.');
@@ -147,11 +190,7 @@ class _CameraViewState extends State<CameraView> with WidgetsBindingObserver {
           break;
         default:
           projectLogger.shout('Unknow CameraException code', e);
-          break;
       }
-    }
-    finally {
-      cameraController = controller;
     }
 
     if (mounted) {
@@ -177,7 +216,7 @@ class _CameraViewState extends State<CameraView> with WidgetsBindingObserver {
       _disposeCameraController(controller);
     }
     else if (state == AppLifecycleState.resumed) {
-      updateCameraController(controller.description);
+      _updateCameraController(controller.description);
     }
     // !SECTION
 
@@ -198,112 +237,9 @@ class _CameraViewState extends State<CameraView> with WidgetsBindingObserver {
     }
   }
 
-  Future<void> onCameraImageAvailable(
-    CameraImage image,
-    int controllerSensorOrientation,
-  ) async {
-    // detect faces
-    final faceRects = await detectFaces(
-      image: image,
-      controllerSensorOrientation: controllerSensorOrientation,
-    );
-    projectLogger.fine('detected faces: ${faceRects.length}');
-
-    // detach faces into manipulable images
-    final manipulableImage = toLogicalImage(
-      image: image,
-    );
-    final faceImages = cropImage(
-      image: manipulableImage,
-      areas: faceRects,
-    );
-
-    // create jpgs images and rgbMatrixes of detected face images
-    final List<Uint8List> newFaces = [];
-    final List<List<List<List<int>>>> samples = [];
-    for (final i in faceImages) {
-      final jpeg = convertToJpg(i);
-      newFaces.add(jpeg);
-
-      final resizedImage = resizeImage(image: i, width: 160, height: 160);
-      final imageMatrix = rgbListToMatrix(resizedImage);
-      samples.add(imageMatrix);
-    }
-
-    // update detected faces preview
-    if (mounted) {
-      setState(() {
-        facesPhotos.addAll(newFaces);
-      });
-    }
-
-    // generate faces embedding
-    List<FaceEmbedding> facesEmbedding = await extractFaceEmbedding(samples);
-    for (final fe in facesEmbedding) {
-      projectLogger.fine(fe.take(10));
-    }
-
-    final subject = Subject(code: 'TestingSubject', name: 'testing');
-    final individual = Individual(individualRegistration: 'individual01', name: 'TesteingIndividualName');
-    final teacher = Teacher(registration: 'teacher01', individual: individual);
-    final subjectClass = SubjectClass(subject: subject, year: 2024, semester: 01, name: 'TestingSubjectClass', teacher: teacher);
-    final lesson = Lesson(subjectClass: subjectClass, utcDateTime: DateTime(2024,01,01,07), teacher: teacher);
-
-    // retrieve all students in this class that have facial data added
-    final facialDataByStudent = getFacialDataFromSubjectClass(subjectClass);
-    Map<FaceEmbedding, List<FacialDataDistance>> searchResult = {};
-    bool couldSearch = true;
-    try {
-      searchResult = getFacialDataDistance(facesEmbedding, facialDataByStudent);
-    }
-    on CouldntSearchException {
-      couldSearch = false;
-    }
-
-    // handle later if it was not possible to retrieve the students
-    if (!couldSearch) {
-      deferAttendance(facesEmbedding, lesson);
-      return;
-    }
-
-    //
-    final List<FacialDataDistance> recognized = [];
-    final Map<FaceEmbedding, FacialDataDistance?> notRecognized = {};
-    for (final entry in searchResult.entries) {
-      final List<FacialDataDistance> result = entry.value;
-
-      if (result.isEmpty) {
-        notRecognized.addAll({entry.key: null});
-        projectLogger.info(
-          'This subject class has no student with facial data registered'
-        );
-      }
-      else {
-        result.sort((e1, e2) => e1.distance.compareTo(e2.distance));
-        final nearestFacialData = result.first;
-        if (nearestFacialData.distance < recognitionDistanceThreshold) {
-          recognized.add(nearestFacialData);
-        }
-        else {
-          notRecognized.addAll({entry.key: result.first});
-        }
-      }
-    }
-
-    projectLogger.fine('recognized students ${recognized.length}');
-    projectLogger.fine('not recognized students: ${notRecognized.length}');
-    if (recognized.isNotEmpty) {
-      for (var fdd in recognized) {
-        projectLogger.fine('${fdd.distance} is the actual distance to ${fdd.student.individual.name}');
-      }
-      writeStudentAttendance(
-        recognized.map((r) => r.student),
-        lesson,
-      );
-    }
-    // dismiss not recognized faces or ask to update known facial data for student
-    if (notRecognized.isNotEmpty) {
-      faceNotRecognized(notRecognized, subjectClass);
-    }
+  @override
+  void didUpdateWidget(covariant CameraView oldWidget) {
+    // TODO: implement didUpdateWidget
+    super.didUpdateWidget(oldWidget);
   }
 }
