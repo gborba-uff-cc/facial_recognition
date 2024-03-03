@@ -1,65 +1,280 @@
 import 'dart:typed_data';
 
 import 'package:camera/camera.dart';
+import 'package:facial_recognition/models/domain.dart';
 import 'package:image/image.dart';
 
-import '../models/facenet_face_recognizer.dart';
-import '../models/google_face_detector.dart';
-import '../models/image_handler.dart';
 import '../interfaces.dart';
-import '../utils/hour_glass.dart';
 import '../utils/project_logger.dart';
 
-// import 'package:flutter/material.dart';
+class CameraAttendance implements ICameraAttendance<CameraImage> {
+  CameraAttendance(
+    IFaceDetector<CameraImage> faceDetector,
+    IImageHandler<CameraImage, Image, Uint8List> imageHandler,
+    IFaceRecognizer faceRecognizer,
+    DomainRepository domainRepository,
+    this.showFaceImages,
+    this.lesson,
+  ) :
+    _detector = faceDetector,
+    _imageHandler = imageHandler,
+    _recognizer = faceRecognizer,
+    _domainRepo = domainRepository;
 
-// class CameraAttendanceScreen extends StatelessWidget {
-//   CameraAttendanceen({super.key});
+  final IFaceDetector<CameraImage> _detector;
+  final IImageHandler<CameraImage, Image, Uint8List> _imageHandler;
+  final IFaceRecognizer _recognizer;
+  final DomainRepository _domainRepo;
+  void Function(Iterable<Uint8List> jpegImages) showFaceImages;
+  final Lesson lesson;
 
-//   @override
-//   Widget build(BuildContext context) {
-//     return const Placeholder();
-//   }
-// }
-
-class CameraAttendance implements ICameraAttendance<CameraImage, CameraDescription> {
-  final IFaceDetector<CameraImage, CameraDescription> _detector = GoogleFaceDetector();
-  final IImageHandler<CameraImage, CameraDescription, Image, Uint8List> _imageHandler = ImageHandler();
-  final IFaceRecognizer _recognizer = FacenetFaceRecognizer();
-  final _handleFacesCounter = HourGlass(10);
+  final double _recognitionDistanceThreshold = 0.20;
 
   @override
-  void onNewCameraImage(CameraImage image, CameraDescription description) async {
-    /* TODO - update view to show the frame
-    view.update_camera_frame(image);
-    */
+  Future<void> onNewCameraImage(
+    final CameraImage image,
+    final int cameraSensorOrientation,
+  ) async {
+    //
+    final Iterable<_Structure2<Uint8List, FaceEmbedding>> jpegsAndEmbeddings =
+        await _detectFaceAndExtractEmbedding(image, cameraSensorOrientation);
 
-    _handleFacesCounter.dropGrain();
-    if (_handleFacesCounter.isEmpty) {
-      _handleFaces(image, description);
+    // call back the function to handle the detected faces image
+    showFaceImages(jpegsAndEmbeddings.map((e) => e.value1));
+
+    // recognize embedding now
+    final _Structure2<Iterable<_EmbeddingRecognized>, Iterable<_EmbeddingNotRecognized>> recognizedAndNot;
+    try {
+      recognizedAndNot = _recognizeEmbedding(jpegsAndEmbeddings, lesson.subjectClass);
     }
+    on _TryRecognizeLater {
+      _deferRecognizeEmbedding(jpegsAndEmbeddings, lesson);
+      return;
+    }
+    catch (e) {
+      projectLogger.severe('could not recognize embedding', e);
+      return;
+    }
+
+    final Iterable<_EmbeddingRecognized> recognized = recognizedAndNot.value1;
+    final Iterable<_EmbeddingNotRecognized> notRecognized = recognizedAndNot.value2;
+    projectLogger.fine('recognized students ${recognized.length}');
+    projectLogger.fine('not recognized students: ${notRecognized.length}');
+
+/* REVIEW
+- for recognized, would be better to ask for a human comparison before marking
+the attendance
+- for not recognized, would be better ask to update known facial data for student
+*/
+    // handle recognized students
+    _writeStudentAttendance(recognized.map((r) => r.student), lesson);
+
+    // handle not recognized faces embedding
+    _faceNotRecognized(notRecognized, lesson.subjectClass);
   }
 
-  void _handleFaces(CameraImage image, CameraDescription description) async {
-    final img = _imageHandler.fromCameraImage(image, description);
-    final rects = await _detector.detect(image, description);
-    final facesImages = rects
-        .map((rect) => _imageHandler.cropFromImage(img, rect));
-    /* TODO - update view adding the faces jpgs to view
-    final facesJpgs = facesImages
-        .map((faceImage) => _imageHandler.toJpeg(faceImage));
-    view.update_detected_faces
-    */
-    final resized = facesImages
-        .map((facePicture) => _imageHandler.resizeImage(
-              facePicture,
-              _recognizer.neededImageWidth,
-              _recognizer.neededImageHeight,
-            ));
-    final rgbMatrixes = resized
-        .map((picture) => _imageHandler.toRgbMatrix(picture));
-    final embeddings = rgbMatrixes.map((sample) => _recognizer.extractFeature(sample));
-    for (final embedding in embeddings) {
-      embedding.then((value) => projectLogger.shout(value));
+  Future<Iterable<_Structure2<Uint8List,FaceEmbedding>>> _detectFaceAndExtractEmbedding(
+    final CameraImage image,
+    final int cameraSensorOrientation
+  ) async {
+    // detect faces
+    final faceRects = await _detector.detect(image, cameraSensorOrientation);
+    projectLogger.fine('detected faces: ${faceRects.length}');
+
+    // detach faces into manipulable images
+    final manipulableImage = _imageHandler.fromCameraImage(image);
+    final faceImages = _imageHandler.cropFromImage(manipulableImage, faceRects);
+
+    // create jpegs images and rgbMatrixes of detected face images
+    final List<Uint8List> detectedFaces = [];
+    final List<List<List<List<int>>>> samples = [];
+    for (final i in faceImages) {
+      final jpeg = _imageHandler.toJpeg(i);
+      detectedFaces.add(jpeg);
+
+      final resizedImage = _imageHandler.resizeImage(i, 160, 160);
+      final imageMatrix = _imageHandler.toRgbMatrix(resizedImage);
+      samples.add(imageMatrix);
     }
+
+    // generate faces embedding
+    List<FaceEmbedding> facesEmbedding = await _recognizer.extractEmbedding(samples);
+
+    final List<_Structure2<Uint8List, FaceEmbedding>> result = [
+      for (int i=0; i<detectedFaces.length; i++)
+        _Structure2(detectedFaces[i], facesEmbedding[i])
+    ];
+    return result;
   }
+
+  void _deferRecognizeEmbedding(
+    final Iterable<_Structure2<Uint8List, FaceEmbedding>> input,
+    final Lesson lesson,
+  ) {
+    // TODO - code
+  }
+
+  _Structure2<Iterable<_EmbeddingRecognized>, Iterable<_EmbeddingNotRecognized>>
+      _recognizeEmbedding(
+    final Iterable<_Structure2<Uint8List, FaceEmbedding>> input,
+    final SubjectClass subjectClass,
+  ) {
+    // final result = _RecognizeEmbeddingResult();
+    final List<_EmbeddingRecognized> recognized = [];
+    final List<_EmbeddingNotRecognized> notRecognized = [];
+    final result =
+        _Structure2(recognized, notRecognized);
+
+    // retrieve all students in this class that have facial data added
+    final Map<Student, Iterable<FacialData>> facialDataByStudent =
+        _getFacialDataFromSubjectClass(subjectClass);
+
+    // no facial data registered
+    if(facialDataByStudent.isEmpty) {
+      notRecognized.addAll(
+        input.map(
+          (i) => _EmbeddingNotRecognized(
+              i.value1, i.value2, null, null),
+        ),
+      );
+      projectLogger.info(
+        'This subject class has no student with facial data registered'
+      );
+      return result;
+    }
+
+    // list to reduce the amount of allocations to compute the nearest embedding
+    final List<_StudentFaceEmbeddingDistance> embeddingDistances = [
+      for (final studentAndEmbeddings in facialDataByStudent.entries)
+        for (final e in studentAndEmbeddings.value)
+          _StudentFaceEmbeddingDistance(studentAndEmbeddings.key, e.data)
+    ];
+
+    // compute embedding distances for all the input
+    for (final referenceInput in input) {
+      final jpeg = referenceInput.value1;
+      final referenceEmbedding = referenceInput.value2;
+      // measure distances
+      for (final other in embeddingDistances) {
+        other.distance = _recognizer.facesDistance(
+            referenceEmbedding, other.storedEmbedding);
+      }
+
+      // decide which face feature is the nearest
+      embeddingDistances.sort((e1, e2) => e1.distance.compareTo(e2.distance));
+
+      // dicide whether the embedding could be recognized
+      projectLogger.fine('nearest distance: ${embeddingDistances.first.distance}; furtherst distance: ${embeddingDistances.last.distance}');
+      final nearest = embeddingDistances.first;
+      if (nearest.distance < _recognitionDistanceThreshold) {
+        final newEntry = _EmbeddingRecognized(jpeg, referenceEmbedding, nearest.storedEmbedding, nearest.student);
+        recognized.add(newEntry);
+      }
+      else {
+        final newEntry = _EmbeddingNotRecognized(jpeg, referenceEmbedding, nearest.storedEmbedding, nearest.student);
+        notRecognized.add(newEntry);
+      }
+    }
+
+    return result;
+  }
+
+  Map<Student, Iterable<FacialData>> _getFacialDataFromSubjectClass(
+    SubjectClass subjectClass,
+  ) {
+    final studentByClass =
+        _domainRepo.getStudentFromSubjectClass([subjectClass]);
+    final facialDataByStudent = _domainRepo
+        .getFacialDataFromStudent(studentByClass[subjectClass]!);
+    return facialDataByStudent;
+  }
+
+  void _writeStudentAttendance(
+    Iterable<Student> students,
+    Lesson lesson,
+  ) {
+    if (students.isNotEmpty) {
+      return;
+    }
+
+    final a = students.map((s) => Attendance(student: s, lesson: lesson));
+    _domainRepo.addAttendance(a);
+  }
+
+  void _faceNotRecognized(
+    Iterable<_EmbeddingNotRecognized> notRecognized,
+    SubjectClass subjectClass,
+  ) {
+    if (notRecognized.isNotEmpty) {
+      return;
+    }
+
+    // TODO - code
+  }
+
+}
+
+class _TryRecognizeLater implements Exception {}
+
+class _Structure2<T1, T2> {
+  final T1 value1;
+  final T2 value2;
+
+  _Structure2(
+    this.value1,
+    this.value2,
+  );
+}
+
+/*
+class _RecognizeEmbeddingResult {
+  final List<_EmbeddingRecognized> recognized = [];
+  final List<_EmbeddingNotRecognized> notRecognized = [];
+
+  _RecognizeEmbeddingResult();
+}
+*/
+
+class _EmbeddingNotRecognized {
+  // inputFace as a UInt8List jpeg
+  final Uint8List inputFace;
+  final FaceEmbedding inputEmbedding;
+  final FaceEmbedding? nearestEmbedding;
+  // who the nearestEmbedding belong
+  final Student? student;
+
+  _EmbeddingNotRecognized(
+    this.inputFace,
+    this.inputEmbedding,
+    this.nearestEmbedding,
+    this.student,
+  );
+}
+
+class _EmbeddingRecognized {
+  // inputFace as a UInt8List jpeg
+  final Uint8List inputFace;
+  final FaceEmbedding inputEmbedding;
+  final FaceEmbedding nearestEmbedding;
+  // who the nearestEmbedding belong
+  final Student student;
+
+  _EmbeddingRecognized(
+    this.inputFace,
+    this.inputEmbedding,
+    this.nearestEmbedding,
+    this.student,
+  );
+}
+
+class _StudentFaceEmbeddingDistance {
+  final Student student;
+  final FaceEmbedding storedEmbedding;
+  double distance;
+
+  _StudentFaceEmbeddingDistance(
+    this.student,
+    this.storedEmbedding,
+    [this.distance = 0.0,]
+  );
 }

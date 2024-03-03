@@ -21,6 +21,7 @@ abstract class IFaceRecognizer {
   double facesDistance(final FaceEmbedding face1, final FaceEmbedding face2);
 }
 
-abstract class ICameraAttendance<CI, CD> {
-  void onNewCameraImage(final CI image, final CD description);
+abstract class ICameraAttendance<CI> {
+  // void onNewCameraImage(final CI image, final int cameraSensorOrientation);
+  void onNewCameraImage(final CI image, final int cameraSensorOrientation);
 }
