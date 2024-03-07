@@ -187,6 +187,8 @@ class Attendance {
 }
 
 class DomainRepository {
+  DomainRepository();
+
   final Set<Individual> _individual = {};
   final Set<FacialData> _facialData = {};
   final Set<Student> _student = {};
@@ -196,8 +198,6 @@ class DomainRepository {
   final Set<Lesson> _lesson = {};
   final Set<Enrollment> _enrollment = {};
   final Set<Attendance> _attendance = {};
-
-  DomainRepository();
 
   void addIndividual(
     final Iterable<Individual> individual,
@@ -245,6 +245,7 @@ class DomainRepository {
     _attendance.addAll(attendance);
   }
 // ---------------------------
+
   Map<SubjectClass, List<Student>> getStudentFromSubjectClass(
     final Iterable<SubjectClass> subjectClass,
   ) {

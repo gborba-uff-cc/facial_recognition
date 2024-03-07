@@ -167,25 +167,25 @@ class _CameraViewState extends State<CameraView> with WidgetsBindingObserver {
         case 'CameraAccessDenied':
           projectLogger.severe('You have denied camera access.');
           break;
+        // iOS only
         case 'CameraAccessDeniedWithoutPrompt':
-          // iOS only
           projectLogger
               .severe('Please go to Settings app to enable camera access.');
           break;
+        // iOS only
         case 'CameraAccessRestricted':
-          // iOS only
           projectLogger.severe('Camera access is restricted.');
           break;
         case 'AudioAccessDenied':
           projectLogger.severe('You have denied audio access.');
           break;
+        // iOS only
         case 'AudioAccessDeniedWithoutPrompt':
-          // iOS only
           projectLogger
               .severe('Please go to Settings app to enable audio access.');
           break;
+        // iOS only
         case 'AudioAccessRestricted':
-          // iOS only
           projectLogger.severe('Audio access is restricted.');
           break;
         default:

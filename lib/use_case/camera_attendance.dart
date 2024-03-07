@@ -45,7 +45,8 @@ class CameraAttendance implements ICameraAttendance<CameraImage> {
     // recognize embedding now
     final _Structure2<Iterable<_EmbeddingRecognized>, Iterable<_EmbeddingNotRecognized>> recognizedAndNot;
     try {
-      recognizedAndNot = _recognizeEmbedding(jpegsAndEmbeddings, lesson.subjectClass);
+      recognizedAndNot =
+          _recognizeEmbedding(jpegsAndEmbeddings, lesson.subjectClass);
     }
     on _TryRecognizeLater {
       _deferRecognizeEmbedding(jpegsAndEmbeddings, lesson);
@@ -75,7 +76,7 @@ the attendance
 
   Future<Iterable<_Structure2<Uint8List,FaceEmbedding>>> _detectFaceAndExtractEmbedding(
     final CameraImage image,
-    final int cameraSensorOrientation
+    final int cameraSensorOrientation,
   ) async {
     // detect faces
     final faceRects = await _detector.detect(image, cameraSensorOrientation);
