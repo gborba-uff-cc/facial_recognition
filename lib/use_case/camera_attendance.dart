@@ -115,9 +115,11 @@ the attendance
     final Iterable<Duple<Uint8List, FaceEmbedding>> input,
     final Lesson lesson,
   ) {
-    // TODO - code
+    projectLogger.info('face recognition is going to be deferred');
+    _domainRepo.addFaceEmbeddingToDeferredPool(input, lesson);
   }
 
+  /// trows _TryRecognizeLater if, for some reason, can't access face embeddings
   Duple<Iterable<_EmbeddingRecognized>, Iterable<_EmbeddingNotRecognized>>
       _recognizeEmbedding(
     final Iterable<Duple<Uint8List, FaceEmbedding>> input,
@@ -128,8 +130,13 @@ the attendance
     final result = Duple(recognized, notRecognized);
 
     // retrieve all students in this class that have facial data added
-    final Map<Student, Iterable<FacialData>> facialDataByStudent =
-        _getFacialDataFromSubjectClass(subjectClass);
+    final Map<Student, Iterable<FacialData>> facialDataByStudent;
+    try {
+      facialDataByStudent = _getFacialDataFromSubjectClass(subjectClass);
+    }
+    catch (e) {  // STUB - change to the correct condition
+      throw _TryRecognizeLater();
+    }
 
     // no facial data registered
     if(facialDataByStudent.isEmpty) {

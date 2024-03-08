@@ -1,3 +1,7 @@
+import 'dart:typed_data';
+
+import 'package:facial_recognition/models/use_case.dart';
+
 class Individual {
   String individualRegistration;
   String name;
@@ -198,6 +202,9 @@ class DomainRepository {
   final Set<Lesson> _lesson = {};
   final Set<Enrollment> _enrollment = {};
   final Set<Attendance> _attendance = {};
+  // ---
+  final Map<Lesson, List<Duple<Uint8List, FaceEmbedding>>> _faceEmbeddingDeferredPool = {};
+// ---------------------------
 
   void addIndividual(
     final Iterable<Individual> individual,
@@ -243,6 +250,14 @@ class DomainRepository {
     final Iterable<Attendance> attendance,
   ) {
     _attendance.addAll(attendance);
+  }
+  // ---
+  void addFaceEmbeddingToDeferredPool(
+    final Iterable<Duple<Uint8List, FaceEmbedding>> embedding,
+    final Lesson lesson,
+  ) {
+    _faceEmbeddingDeferredPool.putIfAbsent(lesson, () => []);
+    _faceEmbeddingDeferredPool[lesson]!.addAll(embedding);
   }
 // ---------------------------
 
@@ -323,6 +338,23 @@ class DomainRepository {
         ]
       }
     };
+    return result;
+  }
+  // ---
+  Map<Lesson, Iterable> getDeferredFacesEmbedding(Iterable<Lesson>? lesson) {
+    final Map<Lesson, Iterable>result;
+    if (lesson == null) {
+      result = {
+        for (final l in _faceEmbeddingDeferredPool.keys)
+          l : _faceEmbeddingDeferredPool[l]!.toList()
+      };
+    }
+    else {
+      result = {
+        for (final l in lesson)
+          l : _faceEmbeddingDeferredPool[lesson]?.toList() ?? []
+      };
+    }
     return result;
   }
 }
