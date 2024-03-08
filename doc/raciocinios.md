@@ -4,7 +4,8 @@
 
 - [x] fazer a modelagem de dados para o banco.
 - [x] escrever a query correta para consultar os dados faciais dos alunos por turma.
-- [ ] modificar tipo de retorno nas funções em use_case/camera_attendance.
+- [x] alterar uso da classe _Structure2 to Duple.
+- [x] armazenar embeddings para manipulacao futura.
 - [ ] corrigir manipulação do controlador da camera na tela que visualiza os frames da camera.
 
 ## Comportamento da aplicação

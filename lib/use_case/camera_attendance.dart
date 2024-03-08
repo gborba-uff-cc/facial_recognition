@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import 'package:camera/camera.dart';
 import 'package:facial_recognition/models/domain.dart';
+import 'package:facial_recognition/models/use_case.dart';
 import 'package:image/image.dart';
 
 import '../interfaces.dart';
@@ -36,14 +37,15 @@ class CameraAttendance implements ICameraAttendance<CameraImage> {
     final int cameraSensorOrientation,
   ) async {
     //
-    final Iterable<_Structure2<Uint8List, FaceEmbedding>> jpegsAndEmbeddings =
+    final Iterable<Duple<Uint8List, FaceEmbedding>> jpegsAndEmbeddings =
         await _detectFaceAndExtractEmbedding(image, cameraSensorOrientation);
 
     // call back the function to handle the detected faces image
     showFaceImages(jpegsAndEmbeddings.map((e) => e.value1));
 
     // recognize embedding now
-    final _Structure2<Iterable<_EmbeddingRecognized>, Iterable<_EmbeddingNotRecognized>> recognizedAndNot;
+    final Duple<Iterable<_EmbeddingRecognized>,
+        Iterable<_EmbeddingNotRecognized>> recognizedAndNot;
     try {
       recognizedAndNot =
           _recognizeEmbedding(jpegsAndEmbeddings, lesson.subjectClass);
@@ -74,7 +76,8 @@ the attendance
     _faceNotRecognized(notRecognized, lesson.subjectClass);
   }
 
-  Future<Iterable<_Structure2<Uint8List,FaceEmbedding>>> _detectFaceAndExtractEmbedding(
+  Future<Iterable<Duple<Uint8List, FaceEmbedding>>>
+      _detectFaceAndExtractEmbedding(
     final CameraImage image,
     final int cameraSensorOrientation,
   ) async {
@@ -101,30 +104,28 @@ the attendance
     // generate faces embedding
     List<FaceEmbedding> facesEmbedding = await _recognizer.extractEmbedding(samples);
 
-    final List<_Structure2<Uint8List, FaceEmbedding>> result = [
+    final List<Duple<Uint8List, FaceEmbedding>> result = [
       for (int i=0; i<detectedFaces.length; i++)
-        _Structure2(detectedFaces[i], facesEmbedding[i])
+        Duple(detectedFaces[i], facesEmbedding[i])
     ];
     return result;
   }
 
   void _deferRecognizeEmbedding(
-    final Iterable<_Structure2<Uint8List, FaceEmbedding>> input,
+    final Iterable<Duple<Uint8List, FaceEmbedding>> input,
     final Lesson lesson,
   ) {
     // TODO - code
   }
 
-  _Structure2<Iterable<_EmbeddingRecognized>, Iterable<_EmbeddingNotRecognized>>
+  Duple<Iterable<_EmbeddingRecognized>, Iterable<_EmbeddingNotRecognized>>
       _recognizeEmbedding(
-    final Iterable<_Structure2<Uint8List, FaceEmbedding>> input,
+    final Iterable<Duple<Uint8List, FaceEmbedding>> input,
     final SubjectClass subjectClass,
   ) {
-    // final result = _RecognizeEmbeddingResult();
     final List<_EmbeddingRecognized> recognized = [];
     final List<_EmbeddingNotRecognized> notRecognized = [];
-    final result =
-        _Structure2(recognized, notRecognized);
+    final result = Duple(recognized, notRecognized);
 
     // retrieve all students in this class that have facial data added
     final Map<Student, Iterable<FacialData>> facialDataByStudent =
@@ -212,29 +213,9 @@ the attendance
 
     // TODO - code
   }
-
 }
 
 class _TryRecognizeLater implements Exception {}
-
-class _Structure2<T1, T2> {
-  final T1 value1;
-  final T2 value2;
-
-  _Structure2(
-    this.value1,
-    this.value2,
-  );
-}
-
-/*
-class _RecognizeEmbeddingResult {
-  final List<_EmbeddingRecognized> recognized = [];
-  final List<_EmbeddingNotRecognized> notRecognized = [];
-
-  _RecognizeEmbeddingResult();
-}
-*/
 
 class _EmbeddingNotRecognized {
   // inputFace as a UInt8List jpeg
