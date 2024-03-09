@@ -51,11 +51,12 @@ class CameraAttendance implements ICameraAttendance<CameraImage> {
           _recognizeEmbedding(jpegsAndEmbeddings, lesson.subjectClass);
     }
     on _TryRecognizeLater {
+      projectLogger.info('could not recognize embedding now', e);
       _deferRecognizeEmbedding(jpegsAndEmbeddings, lesson);
       return;
     }
     catch (e) {
-      projectLogger.severe('could not recognize embedding', e);
+      projectLogger.severe('for some reason, other than to try recognize later, could not recognize embedding', e);
       return;
     }
 
