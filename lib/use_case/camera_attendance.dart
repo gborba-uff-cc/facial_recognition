@@ -29,7 +29,7 @@ class CameraAttendance implements ICameraAttendance<CameraImage> {
   void Function(Iterable<Uint8List> jpegImages) showFaceImages;
   final Lesson lesson;
 
-  final double _recognitionDistanceThreshold = 0.20;
+  final double _recognitionDistanceThreshold = 20.0;
 
   @override
   Future<void> onNewCameraImage(
