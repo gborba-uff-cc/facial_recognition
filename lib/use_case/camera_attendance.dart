@@ -130,6 +130,9 @@ the attendance
     final List<_EmbeddingRecognized> recognized = [];
     final List<_EmbeddingNotRecognized> notRecognized = [];
     final result = Duple(recognized, notRecognized);
+    if (input.isEmpty) {
+      return result;
+    }
 
     // retrieve all students in this class that have facial data added
     final Map<Student, Iterable<FacialData>> facialDataByStudent;
@@ -204,7 +207,7 @@ the attendance
     Iterable<Student> students,
     Lesson lesson,
   ) {
-    if (students.isNotEmpty) {
+    if (students.isEmpty) {
       return;
     }
 
