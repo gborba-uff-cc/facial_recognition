@@ -2,27 +2,29 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 class PlaceholderScreen extends StatelessWidget {
-  final String displayText;
-  final String nextScreen;
+  const PlaceholderScreen({super.key, this.nextScreens = const []});
 
-  const PlaceholderScreen({super.key, this.displayText = '', this.nextScreen = ''});
+  final List<String> nextScreens;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(actions: const [], title: const Text('AppBar')),
-      // drawer: const Drawer(child: Text('LeftDrawer')),
-      body: Center(
-        child: Text(displayText),
+      body: ListView.builder(
+        itemBuilder: (buildContext, i) => OutlinedButton(
+          onPressed: () => GoRouter.of(context).go(nextScreens[i]),
+          child: Text(
+            'go ${nextScreens[i]}',
+            maxLines: 1,
+          ),
+        ),
+        itemCount: nextScreens.length,
       ),
       endDrawer: const Drawer(child: Text('EndDrawer')),
-      floatingActionButton: FloatingActionButton.extended(
-          onPressed: () {
-            if (nextScreen.isNotEmpty) {
-              GoRouter.of(context).go(nextScreen);
-            }
-          },
-          label: const Text('FAB Next Screen')),
+      floatingActionButton: const FloatingActionButton.extended(
+          onPressed: null,
+          label: Text('FAB'),
+      ),
       bottomNavigationBar: BottomNavigationBar(
         items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(icon: Icon(Icons.thumb_down), label: 'BNBI1'),

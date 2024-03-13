@@ -6,6 +6,7 @@
 - [x] escrever a query correta para consultar os dados faciais dos alunos por turma.
 - [x] alterar uso da classe _Structure2 to Duple.
 - [x] armazenar embeddings para manipulacao futura.
+- [x] criar tela para marcar a presença dos alunos.
 - [ ] corrigir manipulação do controlador da camera na tela que visualiza os frames da camera.
 
 ## Comportamento da aplicação

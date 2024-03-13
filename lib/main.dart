@@ -1,4 +1,5 @@
 import 'package:facial_recognition/screens/camera_view/camera_view.dart';
+import 'package:facial_recognition/screens/mark_attendance.dart';
 import 'package:facial_recognition/screens/placeholder/placeholder_screen.dart';
 import 'package:facial_recognition/utils/project_logger.dart';
 import 'package:flutter/material.dart';
@@ -35,11 +36,16 @@ class MainApp extends StatelessWidget {
           GoRoute(
             path: '/',
             builder: (context, state) => const PlaceholderScreen(
-                displayText: 'Tela principal', nextScreen: '/camera_view'),
+              nextScreens: ['/camera_view', '/mark_attendance'],
+            ),
             routes: <RouteBase>[
               GoRoute(
                 path: 'camera_view',
                 builder: (context, state) => CameraView(cameras: cameras),
+              ),
+              GoRoute(
+                path: 'mark_attendance',
+                builder: (context, state) => const MarkAttendance(),
               ),
             ],
           ),
