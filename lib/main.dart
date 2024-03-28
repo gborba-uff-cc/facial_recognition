@@ -1,6 +1,7 @@
 import 'package:facial_recognition/screens/camera_view/camera_view.dart';
 import 'package:facial_recognition/screens/mark_attendance.dart';
 import 'package:facial_recognition/screens/placeholder/placeholder_screen.dart';
+import 'package:facial_recognition/screens/select_lesson_screen.dart';
 import 'package:facial_recognition/utils/project_logger.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -35,10 +36,14 @@ class MainApp extends StatelessWidget {
         routes: [
           GoRoute(
             path: '/',
-            builder: (context, state) => const PlaceholderScreen(
-              nextScreens: ['/camera_view', '/mark_attendance'],
+            builder: (context, state) => PlaceholderScreen(
+              nextScreens: const ['/select_lesson', '/camera_view', '/mark_attendance'],
             ),
             routes: <RouteBase>[
+              GoRoute(
+                path: 'select_lesson',
+                builder: (context, state) => const SelectLessonScreen(),
+              ),
               GoRoute(
                 path: 'camera_view',
                 builder: (context, state) => CameraView(cameras: cameras),
