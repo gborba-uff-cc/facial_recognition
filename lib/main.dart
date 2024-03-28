@@ -48,6 +48,7 @@ class MainApp extends StatelessWidget {
             path: '/',
             builder: (context, state) => PlaceholderScreen(
               nextScreens: const ['/select_lesson', '/camera_view', '/mark_attendance'],
+              domainRepository: domainRepository,
             ),
             routes: <RouteBase>[
               GoRoute(
