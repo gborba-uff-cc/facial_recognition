@@ -10,28 +10,27 @@ import 'package:facial_recognition/utils/project_logger.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
-class CameraView extends StatefulWidget {
+class CameraViewScreen extends StatefulWidget {
 
-  factory CameraView({key, cameras = const []}) {
-    final subject = Subject(code: 'TestingSubject', name: 'testing');
-    final individual = Individual(individualRegistration: 'individual01', name: 'TesteingIndividualName');
-    final teacher = Teacher(registration: 'teacher01', individual: individual);
-    final subjectClass = SubjectClass(subject: subject, year: 2024, semester: 01, name: 'TestingSubjectClass', teacher: teacher);
-    final lesson = Lesson(subjectClass: subjectClass, utcDateTime: DateTime(2024,01,01,07), teacher: teacher);
-
+  factory CameraViewScreen({
+    key,
+    List<CameraDescription> cameras = const [],
+    required DomainRepository domainRepository,
+    required Lesson lesson,
+  }) {
     final useCase = CameraAttendance(
       GoogleFaceDetector(),
       ImageHandler(),
       FacenetFaceRecognizer(),
-      DomainRepository(),
+      domainRepository,
       (jpegImages) {},
       lesson,
     );
 
-    return CameraView._private(useCase: useCase, cameras: cameras);
+    return CameraViewScreen._private(useCase: useCase, cameras: cameras);
   }
 
-  const CameraView._private({
+  const CameraViewScreen._private({
     super.key,
     required useCase,
     required this.cameras,
@@ -41,10 +40,10 @@ class CameraView extends StatefulWidget {
   final List<CameraDescription> cameras;
 
   @override
-  State<CameraView> createState() => _CameraViewState();
+  State<CameraViewScreen> createState() => _CameraViewScreenState();
 }
 
-class _CameraViewState extends State<CameraView> with WidgetsBindingObserver {
+class _CameraViewScreenState extends State<CameraViewScreen> with WidgetsBindingObserver {
   // NOTE - a new controller is needed after a dispose (dispose can be called
   // more than once), so...
   //  create controller on: initState, app is resumed, change camera source
@@ -237,9 +236,4 @@ class _CameraViewState extends State<CameraView> with WidgetsBindingObserver {
     }
   }
 
-  @override
-  void didUpdateWidget(covariant CameraView oldWidget) {
-    // TODO: implement didUpdateWidget
-    super.didUpdateWidget(oldWidget);
-  }
 }

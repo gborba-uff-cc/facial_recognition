@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:facial_recognition/models/use_case.dart';
+import 'package:facial_recognition/utils/project_logger.dart';
 
 class Individual {
   String individualRegistration;
@@ -204,6 +205,8 @@ class DomainRepository {
   final Set<Attendance> _attendance = {};
   // ---
   final Map<Lesson, List<Duple<Uint8List, FaceEmbedding>>> _faceEmbeddingDeferredPool = {};
+  final Map<Lesson, List<EmbeddingRecognized>> _faceRecognizedFromCamera = {};
+  final Map<Lesson, List<EmbeddingNotRecognized>> _faceNotRecognizedFromCamera = {};
 // ---------------------------
 
   void addIndividual(
@@ -258,6 +261,20 @@ class DomainRepository {
   ) {
     _faceEmbeddingDeferredPool.putIfAbsent(lesson, () => []);
     _faceEmbeddingDeferredPool[lesson]!.addAll(embedding);
+  }
+  void addFaceEmbeddingToCameraRecognized(
+    Iterable<EmbeddingRecognized> recognized,
+    Lesson lesson,
+  ) {
+    _faceRecognizedFromCamera.putIfAbsent(lesson, () => []);
+    _faceRecognizedFromCamera[lesson]!.addAll(recognized);
+  }
+  void addFaceEmbeddingToCameraNotRecognized(
+    Iterable<EmbeddingNotRecognized> notRecognized,
+    Lesson lesson,
+  ) {
+    _faceNotRecognizedFromCamera.putIfAbsent(lesson, () => []);
+    _faceNotRecognizedFromCamera[lesson]!.addAll(notRecognized);
   }
 // ---------------------------
 
@@ -340,21 +357,136 @@ class DomainRepository {
     };
     return result;
   }
+  Map<SubjectClass, Iterable<Lesson>> getLessonFromSubjectClass(
+    Iterable<SubjectClass> subjectClass
+  ) {
+    final result = <SubjectClass, List<Lesson>>{ for (final sc in subjectClass) sc : [] };
+    for (final sc in subjectClass) {
+      for (final l in _lesson) {
+        if (l.subjectClass == sc) {
+          result[sc]?.add(l);
+        }
+      }
+    }
+    return result;
+  }
+  // TODO
+  Map<String, Subject?> getSubjectFromCode(
+    Iterable<String> code,
+  ) {
+    final result = <String, Subject?>{ for (final c in code) c : null };
+    projectLogger.fine('n subjects: ${_subject.length}');
+    for (final s in _subject) {
+      for (final c in code) {
+        if (c == s.code) {
+          result[c] = s;
+        }
+      }
+    }
+    return result;
+  }
+
   // ---
-  Map<Lesson, Iterable> getDeferredFacesEmbedding(Iterable<Lesson>? lesson) {
-    final Map<Lesson, Iterable>result;
+  Map<Lesson, Iterable<Duple<Uint8List, FaceEmbedding>>> getDeferredFacesEmbedding(Iterable<Lesson>? lesson) {
+    final Map<Lesson, Iterable<Duple<Uint8List, FaceEmbedding>>>result;
     if (lesson == null) {
       result = {
         for (final l in _faceEmbeddingDeferredPool.keys)
-          l : _faceEmbeddingDeferredPool[l]!.toList()
+          l : _faceEmbeddingDeferredPool[l]!.toList(growable: false)
       };
     }
     else {
       result = {
         for (final l in lesson)
-          l : _faceEmbeddingDeferredPool[lesson]?.toList() ?? []
+          l : _faceEmbeddingDeferredPool[lesson]?.toList(growable: false) ?? []
       };
     }
     return result;
   }
+  Map<Lesson, Iterable<EmbeddingRecognized>> getCameraRecognized(
+    Iterable<Lesson>? lesson,
+  ) {
+    final Map<Lesson, Iterable<EmbeddingRecognized>> result;
+    if (lesson == null) {
+      result = {
+        for (final l in _faceRecognizedFromCamera.keys)
+          l : _faceRecognizedFromCamera[l]!.toList(growable: false)
+      };
+    }
+    else {
+      result = {
+        for (final l in lesson)
+          l : _faceRecognizedFromCamera[lesson]?.toList(growable: false) ?? []
+      };
+    }
+    return result;
+  }
+  Map<Lesson, Iterable<EmbeddingNotRecognized>> getCameraNotRecognized(
+    Iterable<Lesson>? lesson,
+  ) {
+    final Map<Lesson, Iterable<EmbeddingNotRecognized>> result;
+    if (lesson == null) {
+      result = {
+        for (final l in _faceNotRecognizedFromCamera.keys)
+          l : _faceNotRecognizedFromCamera[l]!.toList(growable: false)
+      };
+    }
+    else {
+      result = {
+        for (final l in lesson)
+          l : _faceNotRecognizedFromCamera[lesson]?.toList(growable: false) ?? []
+      };
+    }
+    return result;
+  }
+}
+
+class DomainRepositoryForTests extends DomainRepository {
+  factory DomainRepositoryForTests() {
+    final d = DomainRepositoryForTests._private();
+
+    final individuals = List<Individual>.unmodifiable(<Individual>[
+      Individual(individualRegistration: 'cpf0', name: 'Individuo1'),
+    ]);
+    final facialsData = List<FacialData>.unmodifiable(<FacialData>[]);
+    final students = List<Student>.unmodifiable(<Student>[]);
+    final teachers = List<Teacher>.unmodifiable(<Teacher>[
+      Teacher(registration: 'tReg0', individual: individuals[0]),
+    ]);
+    final subjects = List<Subject>.unmodifiable(<Subject>[
+      Subject(code: 'sCode0', name: 'Materia para teste'),
+    ]);
+    final subjectClasses = List<SubjectClass>.unmodifiable(<SubjectClass>[
+      SubjectClass(
+        subject: subjects[0],
+        year: 2024,
+        semester: 01,
+        name: 'Turma A da materia para teste',
+        teacher: teachers[0],
+      )
+    ]);
+    final lessons = List<Lesson>.unmodifiable(<Lesson>[
+      Lesson(
+        subjectClass: subjectClasses[0],
+        utcDateTime: DateTime(2024, 01, 01, 07, 00),
+        teacher: teachers[0],
+      ),
+    ]);
+    final enrollments = List<Enrollment>.unmodifiable(<Enrollment>[]);
+    final attendances = List<Attendance>.unmodifiable(<Attendance>[]);
+
+    d.addIndividual(individuals);
+    d.addFacialData(facialsData);
+    d.addStudent(students);
+    d.addTeacher(teachers);
+    d.addSubject(subjects);
+    d.addSubjectClass(subjectClasses);
+    d.addLesson(lessons);
+    d.addEnrollment(enrollments);
+    d.addAttendance(attendances);
+
+    return d;
+  }
+
+  DomainRepositoryForTests._private();
 }

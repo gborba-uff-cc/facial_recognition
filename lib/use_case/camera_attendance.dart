@@ -45,8 +45,8 @@ class CameraAttendance implements ICameraAttendance<CameraImage> {
     showFaceImages(jpegsAndEmbeddings.map((e) => e.value1));
 
     // recognize embedding now
-    final Duple<Iterable<_EmbeddingRecognized>,
-        Iterable<_EmbeddingNotRecognized>> recognizedAndNot;
+    final Duple<Iterable<EmbeddingRecognized>,
+        Iterable<EmbeddingNotRecognized>> recognizedAndNot;
     try {
       recognizedAndNot =
           _recognizeEmbedding(jpegsAndEmbeddings, lesson.subjectClass);
@@ -61,8 +61,8 @@ class CameraAttendance implements ICameraAttendance<CameraImage> {
       return;
     }
 
-    final Iterable<_EmbeddingRecognized> recognized = recognizedAndNot.value1;
-    final Iterable<_EmbeddingNotRecognized> notRecognized = recognizedAndNot.value2;
+    final Iterable<EmbeddingRecognized> recognized = recognizedAndNot.value1;
+    final Iterable<EmbeddingNotRecognized> notRecognized = recognizedAndNot.value2;
     projectLogger.fine('recognized students ${recognized.length}');
     projectLogger.fine('not recognized students: ${notRecognized.length}');
 
@@ -122,13 +122,13 @@ the attendance
   }
 
   /// trows _TryRecognizeLater if, for some reason, can't access face embeddings
-  Duple<Iterable<_EmbeddingRecognized>, Iterable<_EmbeddingNotRecognized>>
+  Duple<Iterable<EmbeddingRecognized>, Iterable<EmbeddingNotRecognized>>
       _recognizeEmbedding(
     final Iterable<Duple<Uint8List, FaceEmbedding>> input,
     final SubjectClass subjectClass,
   ) {
-    final List<_EmbeddingRecognized> recognized = [];
-    final List<_EmbeddingNotRecognized> notRecognized = [];
+    final List<EmbeddingRecognized> recognized = [];
+    final List<EmbeddingNotRecognized> notRecognized = [];
     final result = Duple(recognized, notRecognized);
     if (input.isEmpty) {
       return result;
@@ -147,8 +147,8 @@ the attendance
     if(facialDataByStudent.isEmpty) {
       notRecognized.addAll(
         input.map(
-          (i) => _EmbeddingNotRecognized(
-              i.value1, i.value2, null, null),
+          (i) => EmbeddingNotRecognized(
+              i.value1, i.value2, null, null, double.nan),
         ),
       );
       projectLogger.info(
@@ -181,11 +181,23 @@ the attendance
       projectLogger.fine('nearest distance: ${embeddingDistances.first.distance}; furtherst distance: ${embeddingDistances.last.distance}');
       final nearest = embeddingDistances.first;
       if (nearest.distance < _recognitionDistanceThreshold) {
-        final newEntry = _EmbeddingRecognized(jpeg, referenceEmbedding, nearest.storedEmbedding, nearest.student);
+        final newEntry = EmbeddingRecognized(
+          jpeg,
+          referenceEmbedding,
+          nearest.storedEmbedding,
+          nearest.student,
+          nearest.distance,
+        );
         recognized.add(newEntry);
       }
       else {
-        final newEntry = _EmbeddingNotRecognized(jpeg, referenceEmbedding, nearest.storedEmbedding, nearest.student);
+        final newEntry = EmbeddingNotRecognized(
+          jpeg,
+          referenceEmbedding,
+          nearest.storedEmbedding,
+          nearest.student,
+          nearest.distance,
+        );
         notRecognized.add(newEntry);
       }
     }
@@ -203,6 +215,32 @@ the attendance
     return facialDataByStudent;
   }
 
+  void _faceRecognized(
+    Iterable<EmbeddingRecognized> recognized,
+    Lesson lesson,
+  ) {
+    if (recognized.isEmpty) {
+      return;
+    }
+
+    _domainRepo.addFaceEmbeddingToCameraRecognized(recognized, lesson);
+    // _writeStudentAttendance(recognized.map((e) => e.nearestStudent), lesson);
+    // _getAndShowSubjectClassAttendance(lesson.subjectClass);
+  }
+
+  void _faceNotRecognized(
+    Iterable<EmbeddingNotRecognized> notRecognized,
+    Lesson lesson,
+  ) {
+    if (notRecognized.isEmpty) {
+      return;
+    }
+
+    _domainRepo.addFaceEmbeddingToCameraNotRecognized(notRecognized, lesson);
+    _saveEmbeddingAsNewStudent(notRecognized, lesson);
+  }
+
+  /// STUB - only for development -
   void _writeStudentAttendance(
     Iterable<Student> students,
     Lesson lesson,
@@ -215,30 +253,7 @@ the attendance
     _domainRepo.addAttendance(a);
   }
 
-  void _faceRecognized(
-    Iterable<_EmbeddingRecognized> recognized,
-    Lesson lesson,
-  ) {
-    if (recognized.isEmpty) {
-      return;
-    }
-
-    _writeStudentAttendance(recognized.map((e) => e.nearestStudent), lesson);
-    _getAndShowSubjectClassAttendance(lesson.subjectClass);
-  }
-
-  void _faceNotRecognized(
-    Iterable<_EmbeddingNotRecognized> notRecognized,
-    Lesson lesson,
-  ) {
-    if (notRecognized.isEmpty) {
-      return;
-    }
-
-    _saveEmbeddingAsNewStudent(notRecognized, lesson);
-  }
-
-  // STUB - only for development - show attendance for a class
+  /// STUB - only for development - show attendance for a class
   void _getAndShowSubjectClassAttendance(
     SubjectClass subjectClass
   ) {
@@ -251,9 +266,9 @@ the attendance
     projectLogger.fine('after registering attendance: $txt');
   }
 
-  // STUB - only for development - register a new student for a face embedding
+  /// STUB - only for development - register a new student for a face embedding
   void _saveEmbeddingAsNewStudent(
-    Iterable<_EmbeddingNotRecognized> notRecognized,
+    Iterable<EmbeddingNotRecognized> notRecognized,
     Lesson lesson,
   ) {
     final individual = <Individual>[];
@@ -292,38 +307,6 @@ the attendance
 }
 
 class _TryRecognizeLater implements Exception {}
-
-class _EmbeddingNotRecognized {
-  // inputFace as a UInt8List jpeg
-  final Uint8List inputFace;
-  final FaceEmbedding inputFaceEmbedding;
-  final FaceEmbedding? nearestEmbedding;
-  // who the nearestEmbedding belong
-  final Student? nearestStudent;
-
-  _EmbeddingNotRecognized(
-    this.inputFace,
-    this.inputFaceEmbedding,
-    this.nearestEmbedding,
-    this.nearestStudent,
-  );
-}
-
-class _EmbeddingRecognized {
-  // inputFace as a UInt8List jpeg
-  final Uint8List inputFace;
-  final FaceEmbedding inputFaceEmbedding;
-  final FaceEmbedding nearestEmbedding;
-  // who the nearestEmbedding belong
-  final Student nearestStudent;
-
-  _EmbeddingRecognized(
-    this.inputFace,
-    this.inputFaceEmbedding,
-    this.nearestEmbedding,
-    this.nearestStudent,
-  );
-}
 
 class _StudentFaceEmbeddingDistance {
   final Student student;

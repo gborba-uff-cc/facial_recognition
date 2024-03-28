@@ -1,6 +1,7 @@
 import 'package:camera/camera.dart';
+import 'package:facial_recognition/models/domain.dart';
 import 'package:facial_recognition/screens/camera_view/camera_view.dart';
-import 'package:facial_recognition/screens/mark_attendance.dart';
+import 'package:facial_recognition/screens/mark_attendance_screen.dart';
 import 'package:facial_recognition/screens/placeholder/placeholder_screen.dart';
 import 'package:facial_recognition/screens/select_lesson_screen.dart';
 import 'package:facial_recognition/utils/project_logger.dart';
@@ -57,11 +58,18 @@ class MainApp extends StatelessWidget {
               ),
               GoRoute(
                 path: 'camera_view',
-                builder: (context, state) => CameraView(cameras: cameras),
+                builder: (context, state) => CameraViewScreen(
+                  cameras: cameras,
+                  domainRepository: domainRepository,
+                  lesson: state.extra as Lesson,
+                ),
               ),
               GoRoute(
                 path: 'mark_attendance',
-                builder: (context, state) => const MarkAttendance(),
+                builder: (context, state) => MarkAttendanceScreen(
+                  domainRepository: domainRepository,
+                  lesson: state.extra as Lesson,
+                ),
               ),
             ],
           ),
