@@ -1,3 +1,4 @@
+import 'package:camera/camera.dart';
 import 'package:facial_recognition/screens/camera_view/camera_view.dart';
 import 'package:facial_recognition/screens/mark_attendance.dart';
 import 'package:facial_recognition/screens/placeholder/placeholder_screen.dart';
@@ -5,7 +6,6 @@ import 'package:facial_recognition/screens/select_lesson_screen.dart';
 import 'package:facial_recognition/utils/project_logger.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:camera/camera.dart';
 
 void main() async {
   // hide async code with a splash screen
@@ -17,22 +17,32 @@ void main() async {
     ],
   );
   final availableCams = futures[0];
+  final domainRepository = DomainRepositoryForTests();
   // sync code goes under here
   projectLogger.fine(availableCams);
   //
-  runApp(MainApp(cameras: availableCams));
+  runApp(MainApp(
+    cameras: availableCams,
+    domainRepository: domainRepository,
+  ));
 }
 
 class MainApp extends StatelessWidget {
-  final List<CameraDescription> cameras;
+  const MainApp({
+    super.key,
+    required this.cameras,
+    required this.domainRepository,
+  });
 
-  const MainApp({super.key, required this.cameras});
+  final List<CameraDescription> cameras;
+  final DomainRepository domainRepository;
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp.router(
       theme: ThemeData(useMaterial3: true),
       routerConfig: GoRouter(
+        initialLocation: '/',
         routes: [
           GoRoute(
             path: '/',
