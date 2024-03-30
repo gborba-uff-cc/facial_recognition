@@ -3,7 +3,7 @@ import 'package:facial_recognition/models/domain.dart';
 import 'package:facial_recognition/screens/attendance_summary_screen.dart';
 import 'package:facial_recognition/screens/camera_view_screen.dart';
 import 'package:facial_recognition/screens/mark_attendance_screen.dart';
-import 'package:facial_recognition/screens/placeholder/placeholder_screen.dart';
+import 'package:facial_recognition/screens/placeholder_screen.dart';
 import 'package:facial_recognition/screens/select_lesson_screen.dart';
 import 'package:facial_recognition/use_case/attendance_summary.dart';
 import 'package:facial_recognition/use_case/mark_attendance.dart';
