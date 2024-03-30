@@ -400,7 +400,7 @@ class DomainRepository {
     else {
       result = {
         for (final l in lesson)
-          l : _faceEmbeddingDeferredPool[lesson]?.toList(growable: false) ?? []
+          l : _faceEmbeddingDeferredPool[l]?.toList(growable: false) ?? []
       };
     }
     return result;
@@ -418,7 +418,7 @@ class DomainRepository {
     else {
       result = {
         for (final l in lesson)
-          l : _faceRecognizedFromCamera[lesson]?.toList(growable: false) ?? []
+          l : _faceRecognizedFromCamera[l]?.toList(growable: false) ?? []
       };
     }
     return result;
@@ -436,7 +436,7 @@ class DomainRepository {
     else {
       result = {
         for (final l in lesson)
-          l : _faceNotRecognizedFromCamera[lesson]?.toList(growable: false) ?? []
+          l : _faceNotRecognizedFromCamera[l]?.toList(growable: false) ?? []
       };
     }
     return result;
