@@ -1,42 +1,19 @@
 import 'dart:async';
 
 import 'package:camera/camera.dart';
-import 'package:facial_recognition/models/domain.dart';
-import 'package:facial_recognition/models/facenet_face_recognizer.dart';
-import 'package:facial_recognition/models/google_face_detector.dart';
-import 'package:facial_recognition/models/image_handler.dart';
 import 'package:facial_recognition/use_case/camera_attendance.dart';
 import 'package:facial_recognition/utils/project_logger.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 class CameraViewScreen extends StatefulWidget {
-
-  factory CameraViewScreen({
-    key,
-    List<CameraDescription> cameras = const [],
-    required DomainRepository domainRepository,
-    required Lesson lesson,
-  }) {
-    final useCase = CameraAttendance(
-      GoogleFaceDetector(),
-      ImageHandler(),
-      FacenetFaceRecognizer(),
-      domainRepository,
-      (jpegImages) {},
-      lesson,
-    );
-
-    return CameraViewScreen._private(useCase: useCase, cameras: cameras);
-  }
-
-  const CameraViewScreen._private({
+  const CameraViewScreen({
     super.key,
-    required useCase,
     required this.cameras,
-  }) : _useCase = useCase;
+    required this.useCase,
+  });
 
-  final CameraAttendance _useCase;
+  final CameraAttendance useCase;
   final List<CameraDescription> cameras;
 
   @override
@@ -56,7 +33,7 @@ class _CameraViewScreenState extends State<CameraViewScreen> with WidgetsBinding
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    widget._useCase.showFaceImages = (jpegImages) {
+    widget.useCase.showFaceImages = (jpegImages) {
       if (mounted) {
         setState(() {
           facesPhotos.addAll(jpegImages);
@@ -147,7 +124,7 @@ class _CameraViewScreenState extends State<CameraViewScreen> with WidgetsBinding
           }
 
           _finishedProcessingImage = false;
-          await widget._useCase.onNewCameraImage(
+          await widget.useCase.onNewCameraImage(
             image,
             controller.description.sensorOrientation,
           );

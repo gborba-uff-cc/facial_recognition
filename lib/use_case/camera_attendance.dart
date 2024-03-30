@@ -27,7 +27,7 @@ class CameraAttendance implements ICameraAttendance<CameraImage> {
   final IImageHandler<CameraImage, Image, Uint8List> _imageHandler;
   final IFaceRecognizer _recognizer;
   final DomainRepository _domainRepo;
-  void Function(Iterable<Uint8List> jpegImages) showFaceImages;
+  void Function(Iterable<Uint8List> jpegImages)? showFaceImages;
   final Lesson lesson;
 
   final double _recognitionDistanceThreshold = 20.0;
@@ -42,7 +42,10 @@ class CameraAttendance implements ICameraAttendance<CameraImage> {
         await _detectFaceAndExtractEmbedding(image, cameraSensorOrientation);
 
     // call back the function to handle the detected faces image
-    showFaceImages(jpegsAndEmbeddings.map((e) => e.value1));
+    final localShowFaceImages = showFaceImages;
+    if (localShowFaceImages != null) {
+      localShowFaceImages(jpegsAndEmbeddings.map((e) => e.value1));
+    }
 
     // recognize embedding now
     final Duple<Iterable<EmbeddingRecognized>,

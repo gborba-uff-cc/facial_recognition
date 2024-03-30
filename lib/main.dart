@@ -1,11 +1,15 @@
 import 'package:camera/camera.dart';
 import 'package:facial_recognition/models/domain.dart';
+import 'package:facial_recognition/models/facenet_face_recognizer.dart';
+import 'package:facial_recognition/models/google_face_detector.dart';
+import 'package:facial_recognition/models/image_handler.dart';
 import 'package:facial_recognition/screens/attendance_summary_screen.dart';
 import 'package:facial_recognition/screens/camera_view_screen.dart';
 import 'package:facial_recognition/screens/mark_attendance_screen.dart';
 import 'package:facial_recognition/screens/placeholder_screen.dart';
 import 'package:facial_recognition/screens/select_lesson_screen.dart';
 import 'package:facial_recognition/use_case/attendance_summary.dart';
+import 'package:facial_recognition/use_case/camera_attendance.dart';
 import 'package:facial_recognition/use_case/mark_attendance.dart';
 import 'package:facial_recognition/utils/project_logger.dart';
 import 'package:flutter/material.dart';
@@ -63,8 +67,14 @@ class MainApp extends StatelessWidget {
                 path: 'camera_view',
                 builder: (context, state) => CameraViewScreen(
                   cameras: cameras,
-                  domainRepository: domainRepository,
-                  lesson: state.extra as Lesson,
+                  useCase: CameraAttendance(
+                    GoogleFaceDetector(),
+                    ImageHandler(),
+                    FacenetFaceRecognizer(),
+                    domainRepository,
+                    null,
+                    state.extra as Lesson,
+                  ),
                 ),
               ),
               GoRoute(
