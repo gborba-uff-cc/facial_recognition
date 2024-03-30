@@ -240,32 +240,6 @@ the attendance
     _saveEmbeddingAsNewStudent(notRecognized, lesson);
   }
 
-  /// STUB - only for development -
-  void _writeStudentAttendance(
-    Iterable<Student> students,
-    Lesson lesson,
-  ) {
-    if (students.isEmpty) {
-      return;
-    }
-
-    final a = students.map((s) => Attendance(student: s, lesson: lesson));
-    _domainRepo.addAttendance(a);
-  }
-
-  /// STUB - only for development - show attendance for a class
-  void _getAndShowSubjectClassAttendance(
-    SubjectClass subjectClass
-  ) {
-    final result = _domainRepo.getSubjectClassAttendance([subjectClass]);
-    final classAttendance = result[subjectClass]!;
-    String txt = '';
-    for (final studentAndattendance in classAttendance.entries) {
-      txt += '${studentAndattendance.key.registration}:${studentAndattendance.value.length};';
-    }
-    projectLogger.fine('after registering attendance: $txt');
-  }
-
   /// STUB - only for development - register a new student for a face embedding
   void _saveEmbeddingAsNewStudent(
     Iterable<EmbeddingNotRecognized> notRecognized,
