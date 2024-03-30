@@ -100,6 +100,7 @@ class _PlaceholderScreenState extends State<PlaceholderScreen> {
                   if (!{
                     '/camera_view',
                     '/mark_attendance',
+                    '/attendance_summary',
                   }.contains(nextScreen)) {
                     GoRouter.of(context).go(nextScreen);
                   } else {
