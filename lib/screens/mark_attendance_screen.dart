@@ -1,44 +1,73 @@
-import 'package:facial_recognition/models/domain.dart';
 import 'package:facial_recognition/models/use_case.dart';
 import 'package:facial_recognition/use_case/mark_attendance.dart';
 import 'package:flutter/material.dart';
 
 class MarkAttendanceScreen extends StatelessWidget {
-  factory MarkAttendanceScreen({
-    Key? key,
-    required DomainRepository domainRepository,
-    required Lesson lesson,
-  }) =>
-      MarkAttendanceScreen._private(
-        key: key,
-        useCase: MarkAttendance(
-          domainRepository,
-          lesson,
-        ),
-      );
 
-  const MarkAttendanceScreen._private({
+  const MarkAttendanceScreen({
     super.key,
-    required MarkAttendance useCase,
-  }) : _useCase = useCase;
+    required this.useCase,
+  });
 
-  final MarkAttendance _useCase;
+  final MarkAttendance useCase;
 
   @override
   Widget build(BuildContext context) {
     final Iterable<EmbeddingRecognized> cameraRecognized =
-        _useCase.getFaceRecognizedFromCamera();
+        useCase.getFaceRecognizedFromCamera();
+    final Iterable<EmbeddingNotRecognized> cameraNotRecognized =
+        useCase.getFaceNotRecognizedFromCamera();
 
     return Scaffold(
       appBar: AppBar(),
-      body: ListView.builder(
-        itemBuilder: (buildContext, i) => LimitedBox(
-          maxHeight: 150,
-          child: MarkAttendanceFacialCard(
-            item: cameraRecognized.elementAt(i),
+      body: Column(
+        children: [
+          Text(
+            'Manual',
+            maxLines: 1,
+            style: Theme.of(context).textTheme.titleLarge,
           ),
-        ),
-        itemCount: cameraRecognized.length,
+          const Divider(),
+          Text(
+            'Reconhecido',
+            maxLines: 1,
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
+          Flexible(
+            fit: FlexFit.tight,
+            child: ListView.builder(
+              itemCount: cameraRecognized.length,
+              itemBuilder: (buildContext, i) => LimitedBox(
+                maxHeight: 150,
+                child: MarkAttendanceFacialCard(
+                  item: cameraRecognized.elementAt(i),
+                  onCorrectRecognition: (recognizedEmbedding) => useCase.writeStudentAttendance([recognizedEmbedding.nearestStudent]),
+                  onIncorrectRecognition: null,
+                ),
+              ),
+            ),
+          ),
+          const Divider(),
+          Text(
+            'Não reconhecido',
+            maxLines: 1,
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
+          Flexible(
+            fit: FlexFit.tight,
+            child: ListView.builder(
+              itemCount: cameraNotRecognized.length,
+              itemBuilder: (buildContext, i) => LimitedBox(
+                maxHeight: 150,
+                child: MarkAttendanceFacialCard(
+                  item: cameraRecognized.elementAt(i),
+                  onCorrectRecognition: null,
+                  onIncorrectRecognition: null,
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -53,8 +82,8 @@ class MarkAttendanceFacialCard extends StatelessWidget {
   });
 
   final EmbeddingRecognized item;
-  final void Function(EmbeddingRecognized)? onCorrectRecognition;
-  final void Function(EmbeddingRecognized)? onIncorrectRecognition;
+  final void Function(EmbeddingRecognized recognizedEmbedding)? onCorrectRecognition;
+  final void Function(EmbeddingRecognized recognizedEmbedding)? onIncorrectRecognition;
 
   @override
   Widget build(BuildContext context) {
@@ -93,7 +122,7 @@ class MarkAttendanceFacialCard extends StatelessWidget {
       children: [
         Flexible(
           child: Text(
-            '${item.nearestStudent.individual.name} ${item.nearestStudent.individual.surname}?',
+            'É ${item.nearestStudent.individual.displayFullName}?',
             maxLines: 1,
           ),
         ),

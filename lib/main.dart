@@ -4,6 +4,7 @@ import 'package:facial_recognition/screens/camera_view_screen.dart';
 import 'package:facial_recognition/screens/mark_attendance_screen.dart';
 import 'package:facial_recognition/screens/placeholder/placeholder_screen.dart';
 import 'package:facial_recognition/screens/select_lesson_screen.dart';
+import 'package:facial_recognition/use_case/mark_attendance.dart';
 import 'package:facial_recognition/utils/project_logger.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -67,8 +68,10 @@ class MainApp extends StatelessWidget {
               GoRoute(
                 path: 'mark_attendance',
                 builder: (context, state) => MarkAttendanceScreen(
-                  domainRepository: domainRepository,
-                  lesson: state.extra as Lesson,
+                  useCase: MarkAttendance(
+                    domainRepository,
+                    state.extra as Lesson,
+                  ),
                 ),
               ),
             ],

@@ -2,12 +2,32 @@ import 'package:facial_recognition/models/domain.dart';
 import 'package:facial_recognition/models/use_case.dart';
 
 class MarkAttendance {
-  MarkAttendance(this.domainRepository, this.lesson);
+  MarkAttendance(
+    this.domainRepository,
+    this.lesson,
+  );
 
   final Lesson lesson;
   final DomainRepository domainRepository;
 
   Iterable<EmbeddingRecognized> getFaceRecognizedFromCamera() {
-    return domainRepository.getCameraRecognized([lesson])[lesson] ?? [];
+    final result = domainRepository.getCameraRecognized([lesson]);
+    return result[lesson] ?? [];
+  }
+
+  Iterable<EmbeddingNotRecognized> getFaceNotRecognizedFromCamera() {
+    final result = domainRepository.getCameraNotRecognized([lesson]);
+    return result[lesson] ?? [];
+  }
+
+  void writeStudentAttendance(
+    Iterable<Student> students,
+  ) {
+    if (students.isEmpty) {
+      return;
+    }
+
+    final a = students.map((s) => Attendance(student: s, lesson: lesson));
+    domainRepository.addAttendance(a);
   }
 }
