@@ -14,6 +14,8 @@ class Individual {
     this.surname,
   });
 
+  String get displayFullName => '$name${surname!=null?' $surname':''}';
+
   @override
   int get hashCode => Object.hash(individualRegistration, name, surname);
 
