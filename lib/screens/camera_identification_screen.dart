@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:camera/camera.dart';
-import 'package:facial_recognition/use_case/camera_attendance.dart';
+import 'package:facial_recognition/use_case/camera_identification.dart';
 import 'package:facial_recognition/utils/project_logger.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -88,7 +88,6 @@ class _CameraIdentificationScreenState extends State<CameraIdentificationScreen>
     final controller = cameraController;
     if (controller == null) {
       return const Center(
-        child: Text('Couldn\'t find a camera controller.'),
       );
     }
     // what need to be visible
