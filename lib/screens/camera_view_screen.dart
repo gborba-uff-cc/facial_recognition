@@ -6,33 +6,39 @@ import 'package:facial_recognition/utils/project_logger.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
-class CameraViewScreen extends StatefulWidget {
-  const CameraViewScreen({
+class CameraIdentificationScreen extends StatefulWidget {
+  const CameraIdentificationScreen({
     super.key,
     required this.cameras,
     required this.useCase,
   });
 
-  final CameraAttendance useCase;
+  final CameraIdentification useCase;
   final List<CameraDescription> cameras;
 
   @override
-  State<CameraViewScreen> createState() => _CameraViewScreenState();
+  State<CameraIdentificationScreen> createState() => _CameraIdentificationScreenState();
 }
 
-class _CameraViewScreenState extends State<CameraViewScreen> with WidgetsBindingObserver {
+class _CameraIdentificationScreenState extends State<CameraIdentificationScreen> with WidgetsBindingObserver {
+  late CameraDescription _selectedCamera;
   // NOTE - a new controller is needed after a dispose (dispose can be called
   // more than once), so...
   //  create controller on: initState, app is resumed, change camera source
   //  delete controller on: dispose, app is inactive, change camera source
   CameraController? cameraController;
   final List<Uint8List> facesPhotos = [];
-  bool _finishedProcessingImage = true;
+  // controll the frequency and which what images are processed
+  final StreamController<CameraImage> _cameraImageStreamController = StreamController();
+  StreamSubscription<CameraImage>? _cameraImageStreamSubscription;
+  final _imageCounterFilter = _ModularCounter(30);
 
   @override
   void initState() {
     super.initState();
+    // Register this object as a binding observer to receive application events
     WidgetsBinding.instance.addObserver(this);
+    // update useCase.showFaceImages callback with how to show detected faces
     widget.useCase.showFaceImages = (jpegImages) {
       if (mounted) {
         setState(() {
@@ -40,16 +46,40 @@ class _CameraViewScreenState extends State<CameraViewScreen> with WidgetsBinding
         });
       }
     };
+    // controller life cycle is handled here and on didChangeAppLifecycleState
     if (widget.cameras.isNotEmpty) {
-      _updateCameraController(widget.cameras[1]);
+      _selectedCamera = widget.cameras[1];
+      projectLogger.fine(_selectedCamera);
+      _startCameraController(_selectedCamera).then((value) {
+        if (mounted && value != null) {
+          setState(() {
+            cameraController = value;
+          });
+        }
+      });
     }
-    // NOTE - camera controller initialized on didChangeAppLifecycleState
+    // tie together the 'camera images acquirement' to the 'image processing'
+    _cameraImageStreamSubscription = _cameraImageStreamController.stream
+        .where((cameraImage) {
+          final isZero = _imageCounterFilter.current == 0;
+          _imageCounterFilter.tick();
+          return isZero ? true : false;
+        })
+        .listen((cameraImage) {
+      widget.useCase.onNewCameraImage(
+        cameraImage,
+        cameraController!.description.sensorOrientation,
+      );
+    });
   }
 
   @override
   void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
+    _cameraImageStreamSubscription?.cancel();
+    _cameraImageStreamController.close();
     _disposeCameraController(cameraController);
+    cameraController = null;
+    WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 
@@ -85,26 +115,19 @@ class _CameraViewScreenState extends State<CameraViewScreen> with WidgetsBinding
     );
   }
 
-  Future<void> _updateCameraController(CameraDescription description) async {
-    await _disposeCameraController(cameraController);
-    await _startCameraController(description);
-    return;
-  }
-
-  Future<void> _disposeCameraController(CameraController? controller) {
+  void _disposeCameraController(CameraController? controller) async {
     if (controller == null) {
-      return Future.value(null);
+      return;
     }
-    return Future(() {
-      controller.removeListener(onCameraControllerValueChange);
-      if (controller.value.isStreamingImages) {
-        return controller.stopImageStream();
-      }
-      return null;
-    }).then((_) => controller.dispose());
+
+    if (controller.value.isStreamingImages) {
+      await controller.stopImageStream();
+    }
+    await controller.dispose();
+    projectLogger.fine('camera controller disposed.');
   }
 
-  Future<void> _startCameraController(CameraDescription description) async {
+  Future<CameraController?> _startCameraController(CameraDescription description) async {
     final controller = CameraController(
       description,
       // FIXME - as per documentation resolution limited due streaming and
@@ -117,23 +140,11 @@ class _CameraViewScreenState extends State<CameraViewScreen> with WidgetsBinding
 
     try {
       await controller.initialize();
+      // create a stream of camera images
       await controller.startImageStream(
-        (image) async {
-          if (!_finishedProcessingImage) {
-            return;
-          }
-
-          _finishedProcessingImage = false;
-          await widget.useCase.onNewCameraImage(
-            image,
-            controller.description.sensorOrientation,
-          );
-          _finishedProcessingImage = true;
-        },
+        (image) => _cameraImageStreamController.add(image),
       );
-      cameraController = controller;
-
-      projectLogger.fine('cameraController initialized');
+      return controller;
     }
     on CameraException catch (e) {
       projectLogger.severe('cameraController could not be initialized');
@@ -168,14 +179,13 @@ class _CameraViewScreenState extends State<CameraViewScreen> with WidgetsBinding
           projectLogger.shout('Unknow CameraException code', e);
       }
     }
-
-    if (mounted) {
-      setState(() {});
-    }
+    return null;
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+
     // LINK - https://docs.flutter.dev/get-started/flutter-for/android-devs#how-do-i-listen-to-android-activity-lifecycle-events
     // LINK - https://api.flutter.dev/flutter/dart-ui/AppLifecycleState.html
     projectLogger.fine('#camera_view #app_changed_state #$state');
@@ -183,20 +193,37 @@ class _CameraViewScreenState extends State<CameraViewScreen> with WidgetsBinding
     // SECTION - manage camera resources.
     final controller = cameraController;
 
-    // nothing to manage or controller not initialized
-    if (controller == null || !controller.value.isInitialized) {
-      return;
-    }
+    // // nothing to manage or controller not initialized
+    // if (controller == null || !controller.value.isInitialized) {
+    //   return;
+    // }
 
-    if (state == AppLifecycleState.inactive) {
-      _disposeCameraController(controller);
-    }
-    else if (state == AppLifecycleState.resumed) {
-      _updateCameraController(controller.description);
+    switch (state) {
+      // start the camera controller
+      case AppLifecycleState.resumed: // visible and focused
+        _startCameraController(_selectedCamera).then((value) {
+          projectLogger.fine('camera controller $value');
+          if (mounted && value != null) {
+            setState(() {
+              cameraController = value;
+            });
+          }
+        });
+        break;
+      // stop the camera controller
+      // visible (or obscured by a system view) and not focused
+      case AppLifecycleState.inactive:
+      // not visible and not focused
+      case AppLifecycleState.paused:
+      //
+      case AppLifecycleState.detached:
+        _disposeCameraController(controller);
+        cameraController = null;
+        break;
+      default:
+        null;
     }
     // !SECTION
-
-    super.didChangeAppLifecycleState(state);
   }
 
   // when there is a change on cameraController.value
@@ -212,5 +239,17 @@ class _CameraViewScreenState extends State<CameraViewScreen> with WidgetsBinding
           .severe('Camera error: ${controller.value.errorDescription}');
     }
   }
+}
 
+class _ModularCounter {
+  _ModularCounter(this.module);
+
+  final int module;
+  int _current = 0;
+
+  int get current => _current;
+
+  void tick() {
+    _current = (_current+1) % module;
+  }
 }

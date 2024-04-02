@@ -2,15 +2,14 @@ import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:camera/camera.dart';
+import 'package:facial_recognition/interfaces.dart';
 import 'package:facial_recognition/models/domain.dart';
 import 'package:facial_recognition/models/use_case.dart';
+import 'package:facial_recognition/utils/project_logger.dart';
 import 'package:image/image.dart';
 
-import '../interfaces.dart';
-import '../utils/project_logger.dart';
-
-class CameraAttendance implements ICameraAttendance<CameraImage> {
-  CameraAttendance(
+class CameraIdentification implements ICameraAttendance<CameraImage> {
+  CameraIdentification(
     IFaceDetector<CameraImage> faceDetector,
     IImageHandler<CameraImage, Image, Uint8List> imageHandler,
     IFaceRecognizer faceRecognizer,

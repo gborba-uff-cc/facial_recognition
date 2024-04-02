@@ -65,9 +65,9 @@ class MainApp extends StatelessWidget {
               ),
               GoRoute(
                 path: 'camera_view',
-                builder: (context, state) => CameraViewScreen(
+                builder: (context, state) => CameraIdentificationScreen(
                   cameras: cameras,
-                  useCase: CameraAttendance(
+                  useCase: CameraIdentification(
                     GoogleFaceDetector(),
                     ImageHandler(),
                     FacenetFaceRecognizer(),
