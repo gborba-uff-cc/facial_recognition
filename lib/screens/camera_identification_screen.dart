@@ -86,31 +86,36 @@ class _CameraIdentificationScreenState extends State<CameraIdentificationScreen>
   @override
   Widget build(BuildContext context) {
     final controller = cameraController;
+
+    Widget body;
     if (controller == null) {
-      return const Center(
+      body = const Center(
+        child: Text('Iniciando a camera'),
       );
     }
-    // what need to be visible
-    final widgets = <Widget>[];
-    widgets.add(CameraPreview(
-      controller,
-      child: const Icon(
-        Icons.arrow_upward,
-      ),
-    ));
-    widgets.add(Expanded(
-      child: ListView.builder(
-        itemCount: facesPhotos.length,
-        itemBuilder: (context, index) => Image.memory(facesPhotos[index]),
-        scrollDirection: Axis.horizontal,
-      ),
-    ));
+    else {
+      body = Column(
+        children: [
+          CameraPreview(
+            controller,
+            child: const Icon(
+              Icons.arrow_upward,
+            ),
+          ),
+          Expanded(
+            child: ListView.builder(
+              itemCount: facesPhotos.length,
+              itemBuilder: (context, index) => Image.memory(facesPhotos[index]),
+              scrollDirection: Axis.horizontal,
+            ),
+          )
+        ],
+      );
+    }
 
     return Scaffold(
       appBar: AppBar(),
-      body: Column(
-        children: widgets,
-      ),
+      body: body,
     );
   }
 
