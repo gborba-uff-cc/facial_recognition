@@ -2,16 +2,18 @@ import 'package:facial_recognition/utils/project_logger.dart';
 import 'package:flutter/material.dart';
 
 class SelectLessonScreen extends StatefulWidget {
-  const SelectLessonScreen({super.key});
+  const SelectLessonScreen({
+    super.key,
+  });
 
   @override
   State<SelectLessonScreen> createState() => _SelectLessonScreenState();
 }
 
 class _SelectLessonScreenState extends State<SelectLessonScreen> {
-  final List<String?> lessons = ['l1', 'l2', 'l3'];
-  final List<String?> teachers = ['t1', 't2', 't3'];
-  final List<String?> subjectClasses = ['sc1', 'sc2', 'sc3'];
+  final List<String> lessons = ['l1', 'l2', 'l3'];
+  final List<String> teachers = ['t1', 't2', 't3'];
+  final List<String> subjectClasses = ['sc1', 'sc2', 'sc3'];
   final _formKey = GlobalKey<FormState>();
   final _lessonFormFieldKey = GlobalKey<FormFieldState>();
   final _teacherFormFieldKey = GlobalKey<FormFieldState>();
@@ -23,12 +25,6 @@ class _SelectLessonScreenState extends State<SelectLessonScreen> {
   @override
   void initState() {
     super.initState();
-    lessons.insert(0, null);
-    teachers.insert(0, null);
-    subjectClasses.insert(0, null);
-    _selectedLesson = lessons.first;
-    _selectedTeacher = teachers.first;
-    _selectedSubjectClass = subjectClasses.first;
   }
 
   @override
@@ -41,26 +37,70 @@ class _SelectLessonScreenState extends State<SelectLessonScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final confirmButton = FilledButton(
-      onPressed: () {
-        final s = _formKey.currentState;
-        String msg = '';
-        if (s != null && s.validate()) {
-          msg = 'Válido';
-          s.save();
-        }
-        else {
-          msg = 'Não válido';
-        }
-
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(msg, maxLines: 2)));
-      },
-      child: const Text('Confirmar', maxLines: 1),
-    );
-
     const selectTitle = 'Selecionar existente';
     const createTitle = 'Adicionar';
+
+    final lesson = SelectOrCreate(
+      title: 'Aula',
+      selectTitle: selectTitle,
+      createTitle: createTitle,
+      selector: Selector(
+        options: lessons,
+        onChanged: (item) {
+          if (mounted) {
+            setState(() {
+              _selectedLesson = item;
+            });
+          }
+          projectLogger.fine(_selectedLesson);
+        },
+      ),
+      creator: const CreateLesson(),
+    );
+    final lessonTeacher = SelectOrCreate(
+      title: 'Professor da aula',
+      selectTitle: selectTitle,
+      createTitle: createTitle,
+      selector: Selector(
+        options: teachers,
+        onChanged: (item) {
+          _selectedTeacher = item;
+        },
+      ),
+      creator: const CreateTeacher(),
+    );
+    final sujectClass = SelectOrCreate(
+      title: 'Turma',
+      selectTitle: selectTitle,
+      createTitle: createTitle,
+      selector: Selector(
+        options: subjectClasses,
+        onChanged: (item) {
+          _selectedSubjectClass = item;
+        },
+      ),
+      creator: const CreateSubjectClass(),
+    );
+    final subjectClassTeacher = SelectOrCreate(
+      title: 'Professor da turma',
+      selectTitle: selectTitle,
+      createTitle: createTitle,
+      selector: Selector(
+        options: teachers,
+        onChanged: (item) {},
+      ),
+      creator: const CreateTeacher(),
+    );
+    final subject = SelectOrCreate(
+      title: 'Disciplina',
+      selectTitle: selectTitle,
+      createTitle: createTitle,
+      selector: Selector(
+        options: const ['a', 'b', 'c', 'd', 'e', 'f', 'g'],
+        onChanged: (item) {},
+      ),
+      creator: const CreateSubject(),
+    );
 
     return Scaffold(
       appBar: AppBar(title: const Text('Selecione a aula'),),
@@ -74,67 +114,47 @@ class _SelectLessonScreenState extends State<SelectLessonScreen> {
                 key: _formKey,
                 child: ListView(
                   children: [
-                    SelectOrCreate(
-                      title: 'Aula',
-                      selectTitle: selectTitle,
-                      createTitle: createTitle,
-                      selector: Selector(
-                        options: const ['a', 'b', 'c', 'd', 'e', 'f', 'g'],
-                      ),
-                      creator: const CreateLesson(),
-                    ),
+                    lesson,
                     const Divider(),
-                    SelectOrCreate(
-                      title: 'Professor da aula',
-                      selectTitle: selectTitle,
-                      createTitle: createTitle,
-                      selector: Selector(
-                        options: const ['a', 'b', 'c', 'd', 'e', 'f', 'g'],
-                      ),
-                      creator: const CreateTeacher(),
-                    ),
+                    lessonTeacher,
                     const Divider(),
-                    SelectOrCreate(
-                      title: 'Turma',
-                      selectTitle: selectTitle,
-                      createTitle: createTitle,
-                      selector: Selector(
-                        options: const ['a', 'b', 'c', 'd', 'e', 'f', 'g'],
-                      ),
-                      creator: const CreateSubjectClass(),
-                    ),
+                    sujectClass,
                     const Divider(),
-                    SelectOrCreate(
-                      title: 'Professor da turma',
-                      selectTitle: selectTitle,
-                      createTitle: createTitle,
-                      selector: Selector(
-                        options: const ['a', 'b', 'c', 'd', 'e', 'f', 'g'],
-                      ),
-                      creator: const CreateTeacher(),
-                    ),
+                    subjectClassTeacher,
                     const Divider(),
-                    SelectOrCreate(
-                      title: 'Disciplina',
-                      selectTitle: selectTitle,
-                      createTitle: createTitle,
-                      selector: Selector(
-                        options: const ['a', 'b', 'c', 'd', 'e', 'f', 'g'],
-                      ),
-                      creator: const CreateSubject(),
-                    ),
+                    subject,
                   ],
                 ),
               ),
             ),
             Padding(
               padding: const EdgeInsets.only(top: 8.0),
-              child: SizedBox(width: double.infinity, child: confirmButton),
+              child: SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed: _confirmButtonAction,
+                  child: const Text('Confirmar', maxLines: 1),
+                ),
+              ),
             ),
           ],
         ),
       ),
     );
+  }
+
+  void _confirmButtonAction() {
+    final fs = _formKey.currentState;
+    String msg = '';
+    if (fs != null && fs.validate()) {
+      msg = 'Válido';
+      fs.save();
+    } else {
+      msg = 'Não válido';
+    }
+
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(msg, maxLines: 2)));
   }
 }
 
