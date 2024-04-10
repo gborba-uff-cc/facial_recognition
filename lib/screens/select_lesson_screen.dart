@@ -46,6 +46,7 @@ class _SelectLessonScreenState extends State<SelectLessonScreen> {
       createTitle: createTitle,
       selector: Selector(
         options: lessons,
+        selectedOption: _selectedLesson,
         onChanged: (item) {
           if (mounted) {
             setState(() {
@@ -63,6 +64,7 @@ class _SelectLessonScreenState extends State<SelectLessonScreen> {
       createTitle: createTitle,
       selector: Selector(
         options: teachers,
+        selectedOption: _selectedTeacher,
         onChanged: (item) {
           _selectedTeacher = item;
         },
@@ -75,6 +77,7 @@ class _SelectLessonScreenState extends State<SelectLessonScreen> {
       createTitle: createTitle,
       selector: Selector(
         options: subjectClasses,
+        selectedOption: _selectedSubjectClass,
         onChanged: (item) {
           _selectedSubjectClass = item;
         },
@@ -87,6 +90,7 @@ class _SelectLessonScreenState extends State<SelectLessonScreen> {
       createTitle: createTitle,
       selector: Selector(
         options: teachers,
+        selectedOption: null,
         onChanged: (item) {},
       ),
       creator: const CreateTeacher(),
@@ -97,6 +101,7 @@ class _SelectLessonScreenState extends State<SelectLessonScreen> {
       createTitle: createTitle,
       selector: Selector(
         options: const ['a', 'b', 'c', 'd', 'e', 'f', 'g'],
+        selectedOption: null,
         onChanged: (item) {},
       ),
       creator: const CreateSubject(),
@@ -158,44 +163,84 @@ class _SelectLessonScreenState extends State<SelectLessonScreen> {
   }
 }
 
-class Selector extends StatelessWidget {
+class Selector<T> extends StatelessWidget {
   factory Selector({
     Key? key,
     String? label,
-    required List options,
+    required List<T> options,
+    required T? selectedOption,
+    String? hint,
+    String? disabledHint,
+    String? Function(T? item)? validator,
+    void Function(T? item)? onChanged,
+    void Function(T? item)? onSaved,
   }) =>
-      Selector._private(key: key, label: label, options: [null, ...options]);
+      Selector._private(
+        key: key,
+        label: label,
+        options: [null, ...options],
+        selectedOption: selectedOption,
+        hint: hint,
+        disabledHint: disabledHint,
+        validator: validator,
+        onChanged: onChanged,
+        onSaved: onSaved,
+      );
 
   const Selector._private({
-    super.key,
-    this.label,
-    required this.options,
-  });
+    key,
+    String? label,
+    required List<T?> options,
+    required T? selectedOption,
+    String? hint,
+    String? disabledHint,
+    String? Function(T?)? validator,
+    void Function(T?)? onChanged,
+    void Function(T?)? onSaved,
+  })  : _key = key,
+        _label = label,
+        _selectedOption = selectedOption,
+        _options = options,
+        _hint = hint,
+        _disabledHint = disabledHint,
+        _validator = validator,
+        _onChanged = onChanged,
+        _onSaved = onSaved;
 
-  final String? label;
-  final List options;
+  final Key? _key;
+  final String? _label;
+  final List<T?> _options;
+  final T? _selectedOption;
+  final String? _hint;
+  final String? _disabledHint;
+  final String? Function(T? item)? _validator;
+  final void Function(T? item)? _onChanged;
+  final void Function(T? item)? _onSaved;
 
   @override
   Widget build(BuildContext context) {
+    final items = _options
+        .map((item) => DropdownMenuItem(
+              key: ValueKey(item),
+              value: item,
+              child: Text(
+                item?.toString() ?? '',
+                maxLines: 1,
+              ),
+            ))
+        .toList();
+
     return DropdownButtonFormField(
-      // key: super.key,
-      hint: const Text('hint when enabled'),
-      disabledHint: const Text('hint when disabled'),
-      value: options.first,
-      items: options
-          .map((e) => DropdownMenuItem(
-                key: ValueKey(e),
-                value: e,
-                child: Text(
-                  e?.toString() ?? '',
-                  maxLines: 1,
-                ),
-              ))
-          .toList(),
-      validator: (value) => 'null',
-      onChanged: (value) {},
+      key: _key,
+      hint: _hint == null ? null : Text(_hint!),
+      disabledHint: _disabledHint == null ? null : Text(_disabledHint!),
+      value: _selectedOption,
+      items: items,
+      validator: _validator,
+      onChanged: _onChanged,
+      onSaved: _onSaved,
       decoration: InputDecoration(
-        label: label == null ? null : Text(label!),
+        label: _label == null ? null : Text(_label!),
         helperText: '',
         helperMaxLines: 1,
       ),
@@ -348,7 +393,7 @@ class CreateSubjectClass extends StatelessWidget {
         return null;
       },
     );
-    final inputSemester = Selector(options: const [1, 2]);
+    final inputSemester = Selector(options: const [1, 2], selectedOption: null,);
 
     return Row(
       children: [
