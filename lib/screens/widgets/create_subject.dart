@@ -3,17 +3,18 @@ import "package:flutter/material.dart";
 class CreateSubject extends StatelessWidget {
   const CreateSubject({
     super.key,
-    required void Function(String? code) onCodeSaved,
-    required void Function(String? name) onNameSaved,
-  })  : _onCodeSaved = onCodeSaved,
-        _onNameSaved = onNameSaved;
+    required TextEditingController codeController,
+    required TextEditingController nameController,
+  })  : _codeController = codeController,
+        _nameController = nameController;
 
-  final void Function(String? code) _onCodeSaved;
-  final void Function(String? name) _onNameSaved;
+  final TextEditingController _codeController;
+  final TextEditingController _nameController;
 
   @override
   Widget build(BuildContext context) {
     final inputCode = TextFormField(
+      controller: _codeController,
       decoration: const InputDecoration(
         labelText: 'Código',
         helperText: '',
@@ -21,14 +22,14 @@ class CreateSubject extends StatelessWidget {
       validator: (input) {
         final value = input?.trim();
         if (value == null || value.characters.isEmpty) {
-          return 'não pode ser vazio';
+          return 'Não pode ser vazio';
         }
         return null;
       },
-      onSaved: _onCodeSaved,
     );
 
     final inputName = TextFormField(
+      controller: _nameController,
       decoration: const InputDecoration(
         labelText: 'Nome',
         helperText: '',
@@ -36,11 +37,10 @@ class CreateSubject extends StatelessWidget {
       validator: (input) {
         final value = input?.trim();
         if (value == null || value.characters.isEmpty) {
-          return 'não pode ser vazio';
+          return 'Não pode ser vazio';
         }
         return null;
       },
-      onSaved: _onNameSaved,
     );
 
     return Column(

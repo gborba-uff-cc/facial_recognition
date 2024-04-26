@@ -1,8 +1,7 @@
-import "package:facial_recognition/screens/widgets/form_fields.dart";
 import "package:flutter/material.dart";
 
-class CreateTeacher extends StatelessWidget {
-  const CreateTeacher({
+class CreateStudent extends StatelessWidget {
+  const CreateStudent({
     super.key,
     required TextEditingController individualRegistrationController,
     required TextEditingController registrationController,
@@ -20,6 +19,21 @@ class CreateTeacher extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final inputRegistration = TextFormField(
+      controller: _registrationController,
+      decoration: const InputDecoration(
+        labelText: 'Matrícula',
+        helperText: '',
+      ),
+      validator: (input) {
+        final value = input?.trim();
+        if (value == null || value.characters.isEmpty) {
+          return 'Não pode ser vazio';
+        }
+        return null;
+      },
+    );
+
     final inputIndividualRegistration = TextFormField(
       controller: _individualRegistrationController,
       decoration: const InputDecoration(
@@ -60,11 +74,7 @@ class CreateTeacher extends StatelessWidget {
 
     return Column(
       children: [
-        TeacherFieldRegistration(
-          controller: _registrationController,
-          labelText: 'Matrícula',
-          helperText: '',
-        ),
+        inputRegistration,
         inputName,
         inputSurname,
         inputIndividualRegistration,

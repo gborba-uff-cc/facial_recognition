@@ -1,4 +1,3 @@
-import 'package:facial_recognition/models/domain.dart';
 import 'package:facial_recognition/screens/widgets/create_lesson.dart';
 import 'package:facial_recognition/screens/widgets/create_subject.dart';
 import 'package:facial_recognition/screens/widgets/create_subject_class.dart';
@@ -46,6 +45,42 @@ class _SelectLessonScreenState extends State<SelectLessonScreen> {
     const selectTitle = 'Selecionar existente';
     const createTitle = 'Adicionar';
 
+    final List<Widget> widgets = [
+      // subject selector
+      Text('Disciplina', maxLines: 1, style: Theme.of(context).textTheme.titleLarge,),
+      Selector(
+        options: const ['a', 'b', 'c', 'd', 'e', 'f', 'g'],
+        selectedOption: null,
+        onChanged: (item) {},
+      ),
+      const Divider(),
+      // subject class selector
+      Text('Turma', maxLines: 1, style: Theme.of(context).textTheme.titleLarge,),
+      Selector(
+        options: subjectClasses,
+        selectedOption: _selectedSubjectClass,
+        onChanged: (item) {
+          _selectedSubjectClass = item;
+        },
+      ),
+      const Divider(),
+      // lesson selector
+      Text('Aula', maxLines: 1, style: Theme.of(context).textTheme.titleLarge,),
+      Selector(
+        options: lessons,
+        selectedOption: _selectedLesson,
+        onChanged: (item) {
+          if (mounted) {
+            setState(() {
+              _selectedLesson = item;
+            });
+          }
+          projectLogger.fine(_selectedLesson);
+        },
+      ),
+      const Divider(),
+    ];
+/*
     final lesson = SelectOrCreate(
       title: 'Aula',
       selectTitle: selectTitle,
@@ -63,8 +98,8 @@ class _SelectLessonScreenState extends State<SelectLessonScreen> {
         },
       ),
       creator: CreateLesson(
-        onDateSaved: (DateTime date) {},
-        onTimeSaved: (DateTime time) {},
+        date: TextEditingController(),
+        time: TextEditingController(),
       ),
     );
     final lessonTeacher = SelectOrCreate(
@@ -79,10 +114,6 @@ class _SelectLessonScreenState extends State<SelectLessonScreen> {
         },
       ),
       creator: CreateTeacher(
-        onIndividualRegistrationSaved: (String? individualRegistration) {},
-        onRegistrationSaved: (String? registration) {},
-        onNameSaved: (String? name) {},
-        onSurnameSaved: (String? surname) {},
       ),
     );
     final sujectClass = SelectOrCreate(
@@ -97,8 +128,6 @@ class _SelectLessonScreenState extends State<SelectLessonScreen> {
         },
       ),
       creator: CreateSubjectClass(
-        onYearSaved: (String? year) {},
-        onSemesterSaved: (String? semester) {},
       ),
     );
     final subjectClassTeacher = SelectOrCreate(
@@ -111,10 +140,6 @@ class _SelectLessonScreenState extends State<SelectLessonScreen> {
         onChanged: (item) {},
       ),
       creator: CreateTeacher(
-        onIndividualRegistrationSaved: (String? individualRegistration) {},
-        onRegistrationSaved: (String? registration) {},
-        onNameSaved: (String? name) {},
-        onSurnameSaved: (String? surname) {},
       ),
     );
     final subject = SelectOrCreate(
@@ -127,11 +152,9 @@ class _SelectLessonScreenState extends State<SelectLessonScreen> {
         onChanged: (item) {},
       ),
       creator: CreateSubject(
-        onCodeSaved: (String? code) {},
-        onNameSaved: (String? name) {},
       ),
     );
-
+*/
     return Scaffold(
       appBar: AppBar(title: const Text('Selecione a aula'),),
       body: Padding(
@@ -143,6 +166,8 @@ class _SelectLessonScreenState extends State<SelectLessonScreen> {
               child: Form(
                 key: _formKey,
                 child: ListView(
+                  children: widgets,
+/*
                   children: [
                     lesson,
                     const Divider(),
@@ -154,6 +179,7 @@ class _SelectLessonScreenState extends State<SelectLessonScreen> {
                     const Divider(),
                     subject,
                   ],
+*/
                 ),
               ),
             ),
