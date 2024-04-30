@@ -12,6 +12,11 @@
 
 ## Comportamento da aplicação
 
+### Objetivo
+
+- ~~aplicação para gerenciar a presença de alunos em uma aula, com a opção de marcar a preseça dos mesmos atraves de reconhecimento facial.~~
+- mudar o foco do desenvolvimento da aplicação, como o todo, para o reconhecimento facial.
+
 ### Observações
 
 - pricipal caso de uso da aplicação:
