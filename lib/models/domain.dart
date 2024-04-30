@@ -280,6 +280,19 @@ class DomainRepository {
   }
 // ---------------------------
 
+  Map<String, Individual?> getIndividualFromRegistration(
+    final Iterable<String> individualRegistration,
+  ) {
+    final result = <String, Individual?>{ for (final iR in individualRegistration) iR : null };
+    for (final i in _individual) {
+      for (final reg in individualRegistration) {
+        if (reg == i.individualRegistration) {
+          result[reg] = i;
+        }
+      }
+    }
+    return result;
+  }
   Map<SubjectClass, List<Student>> getStudentFromSubjectClass(
     final Iterable<SubjectClass> subjectClass,
   ) {
@@ -359,7 +372,7 @@ class DomainRepository {
     };
     return result;
   }
-  Map<SubjectClass, Iterable<Lesson>> getLessonFromSubjectClass(
+  Map<SubjectClass, List<Lesson>> getLessonFromSubjectClass(
     Iterable<SubjectClass> subjectClass
   ) {
     final result = <SubjectClass, List<Lesson>>{ for (final sc in subjectClass) sc : [] };
@@ -377,11 +390,28 @@ class DomainRepository {
     Iterable<String> code,
   ) {
     final result = <String, Subject?>{ for (final c in code) c : null };
-    projectLogger.fine('n subjects: ${_subject.length}');
     for (final s in _subject) {
       for (final c in code) {
         if (c == s.code) {
           result[c] = s;
+        }
+      }
+    }
+    return result;
+  }
+
+  List<Subject> getAllSubjects() {
+    return _subject.toList(growable: false);
+  }
+
+  Map<Subject, List<SubjectClass>> getSubjectClassFromSubject(
+    Iterable<Subject> subject,
+  ) {
+    final result = <Subject, List<SubjectClass>>{ for (final s in subject) s : [] };
+    for (final sC in _subjectClass) {
+      for (final s in subject) {
+        if (s == sC.subject) {
+          result[s]!.add(sC);
         }
       }
     }

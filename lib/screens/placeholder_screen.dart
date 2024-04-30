@@ -33,37 +33,13 @@ class _PlaceholderScreenState extends State<PlaceholderScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // SECTION - STUB
-    final subject = widget.domainRepository
-        .getSubjectFromCode(['sCode0'])
-        .entries
-        .first
-        .value;
-    final teacher = widget.domainRepository
-        .getTeacherFromRegistration(['tReg0'])
-        .entries
-        .first
-        .value;
-    final subjectClass = SubjectClass(
-        subject: subject!,
-        year: 2024,
-        semester: 01,
-        name: 'Turma A da materia para teste',
-        teacher: teacher!);
-    lesson = widget.domainRepository
-        .getLessonFromSubjectClass([subjectClass])
-        .entries
-        .first
-        .value
-        .last;
-    // !SECTION
 
     return Scaffold(
       appBar: AppBar(actions: const [], title: const Text('AppBar')),
       body: Column(
         children: [
           Text('Aula', style: Theme.of(context).textTheme.titleMedium,),
-          if (lesson == null) Text('Selecione uma aula'),
+          if (lesson == null) const Text('Selecione uma aula'),
           if (lesson != null)
             Text.rich(
               TextSpan(
@@ -95,15 +71,15 @@ class _PlaceholderScreenState extends State<PlaceholderScreen> {
                   'go ${widget.nextScreens[i]}',
                   maxLines: 1,
                 ),
-                onPressed: () {
+                onPressed: () async {
                   final nextScreen = widget.nextScreens[i];
-                  if (!{
+                  // next screen is in the set
+                  if ({
                     '/camera_view',
                     '/mark_attendance',
                     '/attendance_summary',
                   }.contains(nextScreen)) {
-                    GoRouter.of(context).go(nextScreen);
-                  } else {
+                    // and a lesson is selected
                     if (lesson != null) {
                       GoRouter.of(context).go(nextScreen, extra: lesson);
                     } else {
@@ -117,6 +93,12 @@ class _PlaceholderScreenState extends State<PlaceholderScreen> {
                           ),
                         );
                     }
+                  }
+                  else if('/select_lesson' == nextScreen) {
+                    lesson = await GoRouter.of(context).push<Lesson?>(nextScreen);
+                  }
+                  else {
+                    GoRouter.of(context).go(nextScreen);
                   }
                 },
               ),

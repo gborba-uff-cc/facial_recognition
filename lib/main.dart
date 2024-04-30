@@ -13,6 +13,7 @@ import 'package:facial_recognition/use_case/attendance_summary.dart';
 import 'package:facial_recognition/use_case/camera_identification.dart';
 import 'package:facial_recognition/use_case/create_models.dart';
 import 'package:facial_recognition/use_case/mark_attendance.dart';
+import 'package:facial_recognition/use_case/select_lesson.dart';
 import 'package:facial_recognition/utils/project_logger.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -63,7 +64,10 @@ class MainApp extends StatelessWidget {
             routes: <RouteBase>[
               GoRoute(
                 path: 'select_lesson',
-                builder: (context, state) => const SelectLessonScreen(),
+                builder: (context, state) => SelectLessonScreen(
+                    useCase: SelectLesson(
+                  domainRepository,
+                )),
               ),
               GoRoute(
                 path: 'camera_view',

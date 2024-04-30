@@ -11,14 +11,14 @@ class CreateLesson extends StatelessWidget {
     required TextEditingController nameOfSubjectClass,
     required TextEditingController date,
     required TextEditingController time,
-    required TextEditingController teacher,
+    required TextEditingController registrationOfTeacher,
   })  : _codeOfSubject = codeOfSubject,
         _yearOfSubjectClass = yearOfSubjectClass,
         _semesterOfSubjectClass = semesterOfSubjectClass,
         _nameOfSubjectClass = nameOfSubjectClass,
         _date = date,
         _time = time,
-        _teacher = teacher;
+        _teacher = registrationOfTeacher;
 
   final TextEditingController _codeOfSubject;
   final TextEditingController _yearOfSubjectClass;
@@ -70,7 +70,7 @@ class CreateLesson extends StatelessWidget {
         if (valueClear == null || valueClear.characters.isEmpty) {
           return "Entre um horário";
         }
-        //REVIEW - final time = TimeOfDay.fromDateTime(DateTime.parse('${now.year}-${now.month>=10?now.month:'0${now.month}'}-${now.day}T$valueClear'));
+        _time.text = valueClear;
         return null;
       },
     );

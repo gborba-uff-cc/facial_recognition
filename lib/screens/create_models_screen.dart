@@ -1,4 +1,3 @@
-import 'package:facial_recognition/models/domain.dart';
 import 'package:facial_recognition/screens/widgets/create_lesson.dart';
 import 'package:facial_recognition/screens/widgets/create_student.dart';
 import 'package:facial_recognition/screens/widgets/create_subject.dart';
@@ -39,7 +38,7 @@ class _CreateModelsScreenState extends State<CreateModelsScreen> {
     TextEditingController.fromValue(null);
   final TextEditingController _lessonTime =
     TextEditingController.fromValue(null);
-  final TextEditingController _lessonTeacher =
+  final TextEditingController _lessonRegistrationOfTeacher =
     TextEditingController.fromValue(null);
 
   final TextEditingController _subjectCode =
@@ -47,9 +46,9 @@ class _CreateModelsScreenState extends State<CreateModelsScreen> {
   final TextEditingController _subjectName =
       TextEditingController.fromValue(null);
 
-  final TextEditingController _subjectClassSubjectCode =
+  final TextEditingController _subjectClassCodeOfSubject =
       TextEditingController.fromValue(null);
-  final TextEditingController _subjectClassTeacherRegistration =
+  final TextEditingController _subjectClassRegistrationOfTeacher =
       TextEditingController.fromValue(null);
   final TextEditingController _subjectClassYear =
       TextEditingController.fromValue(null);
@@ -84,13 +83,13 @@ class _CreateModelsScreenState extends State<CreateModelsScreen> {
     _lessonNameOfSubjectClass.dispose();
     _lessonDate.dispose();
     _lessonTime.dispose();
-    _lessonTeacher.dispose();
+    _lessonRegistrationOfTeacher.dispose();
 
     _subjectCode.dispose();
     _subjectName.dispose();
 
-    _subjectClassSubjectCode.dispose();
-    _subjectClassTeacherRegistration.dispose();
+    _subjectClassCodeOfSubject.dispose();
+    _subjectClassRegistrationOfTeacher.dispose();
     _subjectClassYear.dispose();
     _subjectClassSemester.dispose();
     _subjectClassName.dispose();
@@ -130,7 +129,7 @@ class _CreateModelsScreenState extends State<CreateModelsScreen> {
                 yearOfSubjectClass: _lessonYearOfSubjectClass,
                 semesterOfSubjectClass: _lessonSemesterOfSubjectClass,
                 nameOfSubjectClass: _lessonNameOfSubjectClass,
-                teacher: _lessonTeacher,
+                registrationOfTeacher: _lessonRegistrationOfTeacher,
                 date: _lessonDate,
                 time: _lessonTime,
               ),
@@ -140,16 +139,24 @@ class _CreateModelsScreenState extends State<CreateModelsScreen> {
               action: () {
                 final date = MaterialLocalizations.of(context)
                     .parseCompactDate(_lessonDate.text);
-                final time = MaterialLocalizations.of(context)
-                    .parseCompactDate(_lessonTime.text);
-                if (date == null || time == null) {
+                final time = TimeOfDay.fromDateTime(
+                  DateTime.parse('0000-00-00T${_lessonTime.text}'),
+                );
+                if (date == null) {
                   projectLogger.fine('date or time is null');
                   return;
                 }
                 final dateTime = DateTime(date.year, date.month, date.day,
-                    time.hour, time.minute, time.second);
-                projectLogger.fine(
-                    '[lesson] subjectClass:, dateTime: $dateTime, teacher: -, subjectClass: -');
+                    time.hour, time.minute).toUtc().toIso8601String();
+
+                widget.useCase.createLesson(
+                  codeOfSubject: _lessonCodeOfSubjectClass.text,
+                  yearOfSubjectClass: _lessonYearOfSubjectClass.text,
+                  semesterOfSubjectClass: _lessonSemesterOfSubjectClass.text,
+                  nameOfSubjectClass: _lessonNameOfSubjectClass.text,
+                  registrationOfTeacher: _lessonRegistrationOfTeacher.text,
+                  utcDateTime: dateTime,
+                );
               },
             ),
             const Divider(),
@@ -169,9 +176,10 @@ class _CreateModelsScreenState extends State<CreateModelsScreen> {
             SubmitButton(
               formKey: _subjectForm,
               action: () {
-                final code = _subjectCode.text;
-                final name = _subjectName.text;
-                projectLogger.fine('[subject] code: $code, name: $name');
+                widget.useCase.createSubject(
+                  code: _subjectCode.text,
+                  name: _subjectName.text,
+                );
               },
             ),
             const Divider(),
@@ -184,8 +192,8 @@ class _CreateModelsScreenState extends State<CreateModelsScreen> {
             Form(
               key: _subjectClassForm,
               child: CreateSubjectClass(
-                codeOfSubject: _subjectClassSubjectCode,
-                registrationOfTeacher: _subjectClassTeacherRegistration,
+                codeOfSubject: _subjectClassCodeOfSubject,
+                registrationOfTeacher: _subjectClassRegistrationOfTeacher,
                 year: _subjectClassYear,
                 semester: _subjectClassSemester,
                 name: _subjectClassName,
@@ -196,6 +204,13 @@ class _CreateModelsScreenState extends State<CreateModelsScreen> {
               action: () {
                 final year = _subjectClassYear;
                 final semester = _subjectClassSemester;
+                widget.useCase.createSubjectClass(
+                  codeOfSubject: _subjectClassCodeOfSubject.text,
+                  registrationOfTeacher: _subjectClassRegistrationOfTeacher.text,
+                  year: _subjectClassYear.text,
+                  semester: _subjectClassSemester.text,
+                  name: _subjectClassName.text,
+                );
                 projectLogger
                     .fine('[subjectClass] year: $year, semester: $semester');
               },
@@ -219,13 +234,12 @@ class _CreateModelsScreenState extends State<CreateModelsScreen> {
             SubmitButton(
               formKey: _teacherForm,
               action: () {
-                final individualRegistration =
-                    _teacherIndividualRegistration.text;
-                final registration = _teacherRegistration.text;
-                final name = _teacherName.text;
-                final surname = _teacherSurname.text;
-                projectLogger.fine(
-                    '[teacher] individualRegistration: $individualRegistration, registration: $registration, name: $name, surname: $surname');
+                widget.useCase.createTeacher(
+                  individualRegistration: _teacherIndividualRegistration.text,
+                  registration: _teacherRegistration.text,
+                  name: _teacherName.text,
+                  surname: _teacherSurname.text,
+                );
               },
             ),
             const Divider(),
@@ -247,8 +261,12 @@ class _CreateModelsScreenState extends State<CreateModelsScreen> {
             SubmitButton(
               formKey: _studentForm,
               action: () {
-                projectLogger.fine(
-                    '[student] individualRegistration: $_studentIndividualRegistration, registration: $_studentRegistration, name: $_studentName, surname: $_studentSurname');
+                widget.useCase.createStudent(
+                  individualRegistration: _teacherIndividualRegistration.text,
+                  registration: _teacherRegistration.text,
+                  name: _teacherName.text,
+                  surname: _teacherSurname.text,
+                );
               },
             ),
           ],

@@ -1,160 +1,121 @@
-import 'package:facial_recognition/screens/widgets/create_lesson.dart';
-import 'package:facial_recognition/screens/widgets/create_subject.dart';
-import 'package:facial_recognition/screens/widgets/create_subject_class.dart';
-import 'package:facial_recognition/screens/widgets/create_teacher.dart';
+import 'package:facial_recognition/models/domain.dart';
 import 'package:facial_recognition/screens/widgets/selector.dart';
+import 'package:facial_recognition/use_case/select_lesson.dart';
 import 'package:facial_recognition/utils/project_logger.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 class SelectLessonScreen extends StatefulWidget {
   const SelectLessonScreen({
     super.key,
+    required this.useCase,
   });
+
+  final SelectLesson useCase;
 
   @override
   State<SelectLessonScreen> createState() => _SelectLessonScreenState();
 }
 
 class _SelectLessonScreenState extends State<SelectLessonScreen> {
-  final List<String> lessons = ['l1', 'l2', 'l3'];
-  final List<String> teachers = ['t1', 't2', 't3'];
-  final List<String> subjectClasses = ['sc1', 'sc2', 'sc3'];
+  List<Subject> subjects = [];
+  List<SubjectClass> subjectClasses = [];
+  List<Lesson> lessons = [];
   final _formKey = GlobalKey<FormState>();
-  final _lessonFormFieldKey = GlobalKey<FormFieldState>();
-  final _teacherFormFieldKey = GlobalKey<FormFieldState>();
-  final _subjectClassFormFieldKey = GlobalKey<FormFieldState>();
-  String? _selectedLesson;
-  String? _selectedTeacher;
-  String? _selectedSubjectClass;
+  Subject? _selectedSubject;
+  SubjectClass? _selectedSubjectClass;
+  Lesson? _selectedLesson;
 
   @override
   void initState() {
     super.initState();
+    subjects = widget.useCase.getSubjects();
   }
 
   @override
   void didUpdateWidget(SelectLessonScreen oldWidget) {
     projectLogger.fine('did update SelectLesson');
-    // DomainRepository.of(context).getSubjectClass();
-    // DomainRepository.of(context).getLessonFromSubjectClass(subjectClass);
     super.didUpdateWidget(oldWidget);
   }
 
   @override
   Widget build(BuildContext context) {
-    const selectTitle = 'Selecionar existente';
-    const createTitle = 'Adicionar';
-
     final List<Widget> widgets = [
       // subject selector
       Text('Disciplina', maxLines: 1, style: Theme.of(context).textTheme.titleLarge,),
-      Selector(
-        options: const ['a', 'b', 'c', 'd', 'e', 'f', 'g'],
-        selectedOption: null,
-        onChanged: (item) {},
+      Selector<Subject>(
+        options: subjects,
+        toWidget: (item) => item == null
+            ? const Text('selecione uma disciplina')
+            : Text('${item.code} ${item.name}'),
+        selectedOption: _selectedSubject,
+        onChanged: (item) {
+          if (item == _selectedSubject) {
+            return;
+          }
+          _selectedSubject = item;
+          if (item == null) {
+            return;
+          }
+          if (mounted) {
+          setState(() {
+            subjectClasses = widget.useCase.getSubjectClasses(item);
+          });
+          }
+        },
       ),
       const Divider(),
       // subject class selector
       Text('Turma', maxLines: 1, style: Theme.of(context).textTheme.titleLarge,),
-      Selector(
+      Selector<SubjectClass>(
         options: subjectClasses,
+        toWidget: (item) => item == null
+            ? const Text('selecione uma turma')
+            : Text('${item.year} ${item.semester} ${item.name}'),
         selectedOption: _selectedSubjectClass,
         onChanged: (item) {
+          if (item == _selectedSubjectClass) {
+            return;
+          }
           _selectedSubjectClass = item;
+          if (item == null) {
+            return;
+          }
+          if (mounted) {
+            setState(() {
+              lessons = widget.useCase.getLessons(item);
+            });
+          }
         },
       ),
       const Divider(),
       // lesson selector
       Text('Aula', maxLines: 1, style: Theme.of(context).textTheme.titleLarge,),
-      Selector(
+      Selector<Lesson>(
         options: lessons,
+        toWidget: (item) {
+          if (item == null) {
+            return const Text('selecione uma aula');
+          } else {
+            final localDateTime = item.utcDateTime;
+            final showDateTime = MaterialLocalizations.of(context)
+                .formatCompactDate(localDateTime);
+            return Text(showDateTime);
+          }
+        },
         selectedOption: _selectedLesson,
         onChanged: (item) {
-          if (mounted) {
-            setState(() {
-              _selectedLesson = item;
-            });
+          if (item == _selectedLesson) {
+            return;
           }
-          projectLogger.fine(_selectedLesson);
+          _selectedLesson = item;
+          if (item == null) {
+            return;
+          }
         },
       ),
       const Divider(),
     ];
-/*
-    final lesson = SelectOrCreate(
-      title: 'Aula',
-      selectTitle: selectTitle,
-      createTitle: createTitle,
-      selector: Selector(
-        options: lessons,
-        selectedOption: _selectedLesson,
-        onChanged: (item) {
-          if (mounted) {
-            setState(() {
-              _selectedLesson = item;
-            });
-          }
-          projectLogger.fine(_selectedLesson);
-        },
-      ),
-      creator: CreateLesson(
-        date: TextEditingController(),
-        time: TextEditingController(),
-      ),
-    );
-    final lessonTeacher = SelectOrCreate(
-      title: 'Professor da aula',
-      selectTitle: selectTitle,
-      createTitle: createTitle,
-      selector: Selector(
-        options: teachers,
-        selectedOption: _selectedTeacher,
-        onChanged: (item) {
-          _selectedTeacher = item;
-        },
-      ),
-      creator: CreateTeacher(
-      ),
-    );
-    final sujectClass = SelectOrCreate(
-      title: 'Turma',
-      selectTitle: selectTitle,
-      createTitle: createTitle,
-      selector: Selector(
-        options: subjectClasses,
-        selectedOption: _selectedSubjectClass,
-        onChanged: (item) {
-          _selectedSubjectClass = item;
-        },
-      ),
-      creator: CreateSubjectClass(
-      ),
-    );
-    final subjectClassTeacher = SelectOrCreate(
-      title: 'Professor da turma',
-      selectTitle: selectTitle,
-      createTitle: createTitle,
-      selector: Selector(
-        options: teachers,
-        selectedOption: null,
-        onChanged: (item) {},
-      ),
-      creator: CreateTeacher(
-      ),
-    );
-    final subject = SelectOrCreate(
-      title: 'Disciplina',
-      selectTitle: selectTitle,
-      createTitle: createTitle,
-      selector: Selector(
-        options: const ['a', 'b', 'c', 'd', 'e', 'f', 'g'],
-        selectedOption: null,
-        onChanged: (item) {},
-      ),
-      creator: CreateSubject(
-      ),
-    );
-*/
     return Scaffold(
       appBar: AppBar(title: const Text('Selecione a aula'),),
       body: Padding(
@@ -167,19 +128,6 @@ class _SelectLessonScreenState extends State<SelectLessonScreen> {
                 key: _formKey,
                 child: ListView(
                   children: widgets,
-/*
-                  children: [
-                    lesson,
-                    const Divider(),
-                    lessonTeacher,
-                    const Divider(),
-                    sujectClass,
-                    const Divider(),
-                    subjectClassTeacher,
-                    const Divider(),
-                    subject,
-                  ],
-*/
                 ),
               ),
             ),
@@ -202,15 +150,31 @@ class _SelectLessonScreenState extends State<SelectLessonScreen> {
   void _confirmButtonAction() {
     final fs = _formKey.currentState;
     String msg = '';
-    if (fs != null && fs.validate()) {
-      msg = 'Válido';
-      fs.save();
-    } else {
-      msg = 'Não válido';
+    // state not null
+    if (fs != null) {
+      final valid = fs.validate();
+      msg = 'Não Válido';
+      // form is valid
+      if (valid) {
+        msg = 'Válido';
+        fs.save();
+      }
+      if (valid && _selectedLesson != null) {
+        msg = 'Aula selecionada';
+      }
+      else {
+        msg = 'Aula não selecionada';
+      }
     }
+    projectLogger.fine('Subject: $_selectedSubject; SubjectClass: $_selectedSubjectClass; Lesson: $_selectedLesson');
 
     ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(msg, maxLines: 2)));
+        ..clearSnackBars()
+        ..showSnackBar(SnackBar(content: Text(msg, maxLines: 2)));
+    final canPop = GoRouter.of(context).canPop();
+    if (canPop) {
+      GoRouter.of(context).pop(_selectedLesson);
+    }
   }
 }
 

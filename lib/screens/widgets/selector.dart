@@ -8,6 +8,7 @@ class Selector<T> extends StatelessWidget {
     required T? selectedOption,
     String? hint,
     String? disabledHint,
+    required Function(T? item) toWidget,
     String? Function(T? item)? validator,
     void Function(T? item)? onChanged,
     void Function(T? item)? onSaved,
@@ -19,6 +20,7 @@ class Selector<T> extends StatelessWidget {
         selectedOption: selectedOption,
         hint: hint,
         disabledHint: disabledHint,
+        toWidget: toWidget,
         validator: validator,
         onChanged: onChanged,
         onSaved: onSaved,
@@ -31,6 +33,7 @@ class Selector<T> extends StatelessWidget {
     required T? selectedOption,
     String? hint,
     String? disabledHint,
+    required Function(T? item) toWidget,
     String? Function(T?)? validator,
     void Function(T?)? onChanged,
     void Function(T?)? onSaved,
@@ -40,6 +43,7 @@ class Selector<T> extends StatelessWidget {
         _options = options,
         _hint = hint,
         _disabledHint = disabledHint,
+        _toWidget = toWidget,
         _validator = validator,
         _onChanged = onChanged,
         _onSaved = onSaved;
@@ -50,23 +54,23 @@ class Selector<T> extends StatelessWidget {
   final T? _selectedOption;
   final String? _hint;
   final String? _disabledHint;
+  final Function(T? item) _toWidget;
   final String? Function(T? item)? _validator;
   final void Function(T? item)? _onChanged;
   final void Function(T? item)? _onSaved;
 
   @override
   Widget build(BuildContext context) {
-    final items = _options
-        .map((item) => DropdownMenuItem(
-              key: ValueKey(item),
-              value: item,
-              child: Text(
-                item?.toString() ?? '',
-                maxLines: 1,
-              ),
-            ))
-        .toList();
-
+    final List<DropdownMenuItem<T>> items = [];
+    for (var i=0; i<_options.length; i++) {
+      final option = _options[i];
+      final dropdownOption = DropdownMenuItem(
+        key: ValueKey(option),
+        value: option,
+        child: _toWidget(option),
+      );
+      items.add(dropdownOption);
+    }
     return DropdownButtonFormField(
       key: _key,
       hint: _hint == null ? null : Text(_hint!),
