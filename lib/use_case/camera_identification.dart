@@ -12,24 +12,25 @@ class CameraIdentification implements ICameraAttendance<CameraImage> {
   CameraIdentification(
     IFaceDetector<CameraImage> faceDetector,
     IImageHandler<CameraImage, Image, Uint8List> imageHandler,
-    IFaceRecognizer faceRecognizer,
+    IFaceEmbedder faceEmbedder,
+    IFaceRecognizer<FaceEmbedding, Student> faceRecognizer,
     DomainRepository domainRepository,
     this.showFaceImages,
     this.lesson,
   ) :
     _detector = faceDetector,
     _imageHandler = imageHandler,
+    _embedder = faceEmbedder,
     _recognizer = faceRecognizer,
     _domainRepo = domainRepository;
 
   final IFaceDetector<CameraImage> _detector;
   final IImageHandler<CameraImage, Image, Uint8List> _imageHandler;
-  final IFaceRecognizer _recognizer;
+  final IFaceEmbedder _embedder;
+  final IFaceRecognizer<FaceEmbedding, Student> _recognizer;
   final DomainRepository _domainRepo;
   void Function(Iterable<Uint8List> jpegImages)? showFaceImages;
   final Lesson lesson;
-
-  final double _recognitionDistanceThreshold = 20.0;
 
   @override
   Future<void> onNewCameraImage(
@@ -106,7 +107,7 @@ the attendance
     }
 
     // generate faces embedding
-    List<FaceEmbedding> facesEmbedding = await _recognizer.extractEmbedding(samples);
+    List<FaceEmbedding> facesEmbedding = await _embedder.extractEmbedding(samples);
 
     final List<Duple<Uint8List, FaceEmbedding>> result = [
       for (int i=0; i<detectedFaces.length; i++)
@@ -150,7 +151,7 @@ the attendance
       notRecognized.addAll(
         input.map(
           (i) => EmbeddingNotRecognized(
-              i.value1, i.value2, null, null, double.nan),
+              i.value1, i.value2, /*null,*/ null, double.nan),
         ),
       );
       projectLogger.info(
@@ -158,47 +159,38 @@ the attendance
       );
       return result;
     }
-
-    // list to reduce the amount of allocations to compute the nearest embedding
-    final List<_StudentFaceEmbeddingDistance> embeddingDistances = [
-      for (final studentAndEmbeddings in facialDataByStudent.entries)
-        for (final e in studentAndEmbeddings.value)
-          _StudentFaceEmbeddingDistance(studentAndEmbeddings.key, e.data)
-    ];
-
-    // compute embedding distances for all the input
-    for (final referenceInput in input) {
-      final jpeg = referenceInput.value1;
-      final referenceEmbedding = referenceInput.value2;
-      // measure distances
-      for (final other in embeddingDistances) {
-        other.distance = _recognizer.facesDistance(
-            referenceEmbedding, other.storedEmbedding);
-      }
-
-      // decide which face feature is the nearest
-      embeddingDistances.sort((e1, e2) => e1.distance.compareTo(e2.distance));
-
-      // dicide whether the embedding could be recognized
-      projectLogger.fine('nearest distance: ${embeddingDistances.first.distance}; furtherst distance: ${embeddingDistances.last.distance}');
-      final nearest = embeddingDistances.first;
-      if (nearest.distance < _recognitionDistanceThreshold) {
+    final recognizeResult = _recognizer.recognize(
+      input.map((e) => e.value2),
+      facialDataByStudent.map(
+        (student, iterableFacialData) => MapEntry(
+          student,
+          iterableFacialData.map((facialData) => facialData.data),
+        ),
+      ),
+    );
+    for (final inputElement in input) {
+      final jpeg = inputElement.value1;
+      final inputEmbedding = inputElement.value2;
+      final r = recognizeResult[inputElement.value2];
+      // final recognizedEmbedding = r.;
+      final studentRecognized = r!.value1;
+      final recognitionValue = r.value2;
+      // decide whether or not the embedding was recognized
+      // REVIEW - necessity of different classes to recognized?
+      if (recognitionValue > _recognizer.recognitionThreshold) {
         final newEntry = EmbeddingRecognized(
           jpeg,
-          referenceEmbedding,
-          nearest.storedEmbedding,
-          nearest.student,
-          nearest.distance,
+          studentRecognized,
+          recognitionValue,
         );
         recognized.add(newEntry);
       }
       else {
         final newEntry = EmbeddingNotRecognized(
           jpeg,
-          referenceEmbedding,
-          nearest.storedEmbedding,
-          nearest.student,
-          nearest.distance,
+          inputEmbedding,
+          studentRecognized,
+          recognitionValue,
         );
         notRecognized.add(newEntry);
       }

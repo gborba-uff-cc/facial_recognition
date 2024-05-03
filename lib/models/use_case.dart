@@ -16,7 +16,7 @@ class EmbeddingNotRecognized {
   // inputFace as a UInt8List jpeg
   final Uint8List inputFace;
   final FaceEmbedding inputFaceEmbedding;
-  final FaceEmbedding? nearestEmbedding;
+  // REVIEW - final FaceEmbedding? nearestEmbedding;
   // who the nearestEmbedding belong
   final Student? nearestStudent;
   final double distance;
@@ -24,7 +24,7 @@ class EmbeddingNotRecognized {
   EmbeddingNotRecognized(
     this.inputFace,
     this.inputFaceEmbedding,
-    this.nearestEmbedding,
+    // REVIEW - this.nearestEmbedding,
     this.nearestStudent,
     this.distance,
   );
@@ -33,16 +33,16 @@ class EmbeddingNotRecognized {
 class EmbeddingRecognized {
   // inputFace as a UInt8List jpeg
   final Uint8List inputFace;
-  final FaceEmbedding inputFaceEmbedding;
-  final FaceEmbedding nearestEmbedding;
+  // REVIEW - final FaceEmbedding inputFaceEmbedding;
+  // REVIEW -  final FaceEmbedding nearestEmbedding;
   // who the nearestEmbedding belong
   final Student nearestStudent;
   final double distance;
 
   EmbeddingRecognized(
     this.inputFace,
-    this.inputFaceEmbedding,
-    this.nearestEmbedding,
+    // REVIEW - this.inputFaceEmbedding,
+    // REVIEW - this.nearestEmbedding,
     this.nearestStudent,
     this.distance,
   );

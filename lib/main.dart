@@ -1,5 +1,6 @@
 import 'package:camera/camera.dart';
 import 'package:facial_recognition/models/domain.dart';
+import 'package:facial_recognition/models/face_recognizer.dart';
 import 'package:facial_recognition/models/facenet_face_recognizer.dart';
 import 'package:facial_recognition/models/google_face_detector.dart';
 import 'package:facial_recognition/models/image_handler.dart';
@@ -14,6 +15,7 @@ import 'package:facial_recognition/use_case/camera_identification.dart';
 import 'package:facial_recognition/use_case/create_models.dart';
 import 'package:facial_recognition/use_case/mark_attendance.dart';
 import 'package:facial_recognition/use_case/select_lesson.dart';
+import 'package:facial_recognition/utils/distance.dart';
 import 'package:facial_recognition/utils/project_logger.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -76,7 +78,8 @@ class MainApp extends StatelessWidget {
                   useCase: CameraIdentification(
                     GoogleFaceDetector(),
                     ImageHandler(),
-                    FacenetFaceRecognizer(),
+                    FacenetFaceEmbedder(),
+                    DistanceClassifier(distanceFunction: euclideanDistance),
                     domainRepository,
                     null,
                     state.extra as Lesson,

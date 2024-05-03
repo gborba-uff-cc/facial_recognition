@@ -7,7 +7,7 @@ import 'package:tflite_flutter/tflite_flutter.dart';
 
 import '../interfaces.dart';
 
-class FacenetFaceRecognizer implements IFaceRecognizer {
+class FacenetFaceEmbedder implements IFaceEmbedder {
   static const _modelPath = 'assets/facenet512_00d21808fc7d.tflite';
   static const _modelOutputLength = 512;
   late final InterpreterOptions _interpreterOptions;
@@ -20,7 +20,7 @@ class FacenetFaceRecognizer implements IFaceRecognizer {
   int get neededImageWidth => 160;
 
   ///
-  FacenetFaceRecognizer() {
+  FacenetFaceEmbedder() {
     _interpreterOptions = InterpreterOptions();
     if (Platform.isAndroid) {
       _interpreterOptions.useNnApiForAndroid = true;
@@ -65,11 +65,6 @@ class FacenetFaceRecognizer implements IFaceRecognizer {
     return results;
   }
 
-  ///
-  @override
-  double facesDistance(List<double> face1, List<double> face2) {
-    return _euclideanDistance(face1, face2);
-  }
 
   ///
   List<List<List<double>>> _standardizeImage(List<List<List<num>>> image) {
@@ -102,18 +97,5 @@ class FacenetFaceRecognizer implements IFaceRecognizer {
         ).toList(growable: false),
       ).toList(growable: false),
     ).toList(growable: false);
-  }
-
-  ///
-  double _euclideanDistance<T extends num>(List<T> list1, List<T> list2) {
-    if (list1.length != list2.length) {
-      throw ArgumentError('expected both lists to have the same length');
-    }
-
-    double res = 0.0;
-    for (var i = 0; i < list1.length; i++) {
-      res += pow(list2[i] - list1[i], 2);
-    }
-    return sqrt(res);
   }
 }

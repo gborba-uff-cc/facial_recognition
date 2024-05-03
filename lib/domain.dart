@@ -7,6 +7,7 @@ import 'package:facial_recognition/models/domain.dart';
 import 'package:facial_recognition/models/facenet_face_recognizer.dart';
 import 'package:facial_recognition/models/google_face_detector.dart';
 import 'package:facial_recognition/models/image_handler.dart';
+import 'package:facial_recognition/utils/distance.dart';
 import 'package:flutter/foundation.dart';
 import 'package:image/image.dart' as pkg_image;
 
@@ -50,7 +51,7 @@ List<List<List<int>>> rgbListToMatrix(
 ) => _imageHandler.toRgbMatrix(image);
 
 // -----------------------------------------------------------------------------
-final _faceRecognizer = FacenetFaceRecognizer();
+final _faceRecognizer = FacenetFaceEmbedder();
 
 Future<List<FaceEmbedding>> extractFaceEmbedding(
   List<List<List<List<num>>>> facesRgbMatrix,
@@ -59,7 +60,7 @@ Future<List<FaceEmbedding>> extractFaceEmbedding(
 double faceEmbeddingDistance(
   FaceEmbedding embedding1,
   FaceEmbedding embedding2,
-) => _faceRecognizer.facesDistance(embedding1, embedding2);
+) => euclideanDistance(embedding1, embedding2);
 
 // -----------------------------------------------------------------------------
 DomainRepository domainRepository = DomainRepository();

@@ -1,6 +1,7 @@
 import 'dart:ui';
 
 import 'package:facial_recognition/models/domain.dart';
+import 'package:facial_recognition/models/use_case.dart';
 
 abstract class IFaceDetector<CI> {
   Future<List<Rect>> detect(final CI image, [final int controllerSensorOrientation = 0]);
@@ -14,14 +15,24 @@ abstract class IImageHandler<CI, I, J> {
   List<List<List<int>>> toRgbMatrix(final I image);
 }
 
-abstract class IFaceRecognizer {
+abstract class IFaceEmbedder {
   int get neededImageWidth;
   int get neededImageHeight;
   Future<List<FaceEmbedding>> extractEmbedding(final List<List<List<List<num>>>> facesRgbMatrix);
-  double facesDistance(final FaceEmbedding face1, final FaceEmbedding face2);
+}
+
+abstract class IFaceRecognizer<TElement, TLabel> {
+  Map<TElement, Duple<TLabel, double>> recognize(
+    final Iterable<TElement> unknown,
+    final Map<TLabel, Iterable<TElement>> dataSet,
+  );
+
+  double get recognitionThreshold;
 }
 
 abstract class ICameraAttendance<CI> {
   // void onNewCameraImage(final CI image, final int cameraSensorOrientation);
   void onNewCameraImage(final CI image, final int cameraSensorOrientation);
 }
+
+typedef DistanceFunction<TElement> = double Function(TElement a, TElement b);
