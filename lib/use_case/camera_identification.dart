@@ -146,12 +146,15 @@ the attendance
       throw _TryRecognizeLater();
     }
 
-    // no facial data registered
+    // no facial data registered for students in the subject class
     if(facialDataByStudent.isEmpty) {
       notRecognized.addAll(
         input.map(
           (i) => EmbeddingNotRecognized(
-              i.value1, i.value2, /*null,*/ null, double.nan),
+            inputFace: i.value1,
+            inputFaceEmbedding: i.value2,
+            nearestStudent: null,
+          ),
         ),
       );
       projectLogger.info(
@@ -159,6 +162,7 @@ the attendance
       );
       return result;
     }
+    //
     final recognizeResult = _recognizer.recognize(
       input.map((e) => e.value2),
       facialDataByStudent.map(
@@ -168,29 +172,26 @@ the attendance
         ),
       ),
     );
+    // split the recognition data between recognized and not
     for (final inputElement in input) {
       final jpeg = inputElement.value1;
       final inputEmbedding = inputElement.value2;
-      final r = recognizeResult[inputElement.value2];
-      // final recognizedEmbedding = r.;
-      final studentRecognized = r!.value1;
-      final recognitionValue = r.value2;
+      final r = recognizeResult[inputElement.value2]!;
       // decide whether or not the embedding was recognized
       // REVIEW - necessity of different classes to recognized?
-      if (recognitionValue > _recognizer.recognitionThreshold) {
+      if (r.status == FaceRecognitionStatus.recognized) {
         final newEntry = EmbeddingRecognized(
-          jpeg,
-          studentRecognized,
-          recognitionValue,
+          inputFace: jpeg,
+          inputFaceEmbedding: inputEmbedding,
+          identifiedStudent: r.label,
         );
         recognized.add(newEntry);
       }
       else {
         final newEntry = EmbeddingNotRecognized(
-          jpeg,
-          inputEmbedding,
-          studentRecognized,
-          recognitionValue,
+          inputFace: jpeg,
+          inputFaceEmbedding: inputEmbedding,
+          nearestStudent: r.label,
         );
         notRecognized.add(newEntry);
       }
@@ -275,15 +276,3 @@ the attendance
 }
 
 class _TryRecognizeLater implements Exception {}
-
-class _StudentFaceEmbeddingDistance {
-  final Student student;
-  final FaceEmbedding storedEmbedding;
-  double distance;
-
-  _StudentFaceEmbeddingDistance(
-    this.student,
-    this.storedEmbedding,
-    [this.distance = 0.0,]
-  );
-}

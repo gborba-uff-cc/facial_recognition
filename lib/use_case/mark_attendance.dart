@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:facial_recognition/models/domain.dart';
 import 'package:facial_recognition/models/use_case.dart';
 
@@ -30,4 +32,6 @@ class MarkAttendance {
     final a = students.map((s) => Attendance(student: s, lesson: lesson));
     domainRepository.addAttendance(a);
   }
+
+  Uint8List? getFaceImage(Individual individual) => null;
 }

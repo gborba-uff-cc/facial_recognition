@@ -22,12 +22,24 @@ abstract class IFaceEmbedder {
 }
 
 abstract class IFaceRecognizer<TElement, TLabel> {
-  Map<TElement, Duple<TLabel, double>> recognize(
+  /// return the most alike label among the data set and the a recognition value
+  Map<TElement, IFaceRecognitionResult<TLabel>> recognize(
     final Iterable<TElement> unknown,
     final Map<TLabel, Iterable<TElement>> dataSet,
   );
 
   double get recognitionThreshold;
+}
+
+abstract class IFaceRecognitionResult<TLabel> {
+  double get recognitionValue;
+  FaceRecognitionStatus get status;
+  TLabel get label;
+}
+
+enum FaceRecognitionStatus {
+  recognized,
+  notRecognized,
 }
 
 abstract class ICameraAttendance<CI> {

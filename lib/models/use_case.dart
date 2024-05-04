@@ -13,37 +13,27 @@ class Duple<T1, T2> {
 }
 
 class EmbeddingNotRecognized {
-  // inputFace as a UInt8List jpeg
+  /// [inputFace] is a jpeg image as UInt8List
   final Uint8List inputFace;
   final FaceEmbedding inputFaceEmbedding;
-  // REVIEW - final FaceEmbedding? nearestEmbedding;
-  // who the nearestEmbedding belong
   final Student? nearestStudent;
-  final double distance;
 
-  EmbeddingNotRecognized(
-    this.inputFace,
-    this.inputFaceEmbedding,
-    // REVIEW - this.nearestEmbedding,
-    this.nearestStudent,
-    this.distance,
-  );
+  EmbeddingNotRecognized({
+    required this.inputFace,
+    required this.inputFaceEmbedding,
+    required this.nearestStudent,
+  });
 }
 
 class EmbeddingRecognized {
-  // inputFace as a UInt8List jpeg
+  /// [inputFace] is a jpeg image as UInt8List
   final Uint8List inputFace;
-  // REVIEW - final FaceEmbedding inputFaceEmbedding;
-  // REVIEW -  final FaceEmbedding nearestEmbedding;
-  // who the nearestEmbedding belong
-  final Student nearestStudent;
-  final double distance;
+  final FaceEmbedding inputFaceEmbedding;
+  final Student identifiedStudent;
 
-  EmbeddingRecognized(
-    this.inputFace,
-    // REVIEW - this.inputFaceEmbedding,
-    // REVIEW - this.nearestEmbedding,
-    this.nearestStudent,
-    this.distance,
-  );
+  EmbeddingRecognized({
+    required this.inputFace,
+    required this.inputFaceEmbedding,
+    required this.identifiedStudent,
+  });
 }

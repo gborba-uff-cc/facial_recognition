@@ -1,9 +1,12 @@
+import 'dart:typed_data';
+
+import 'package:facial_recognition/models/domain.dart';
 import 'package:facial_recognition/models/use_case.dart';
 import 'package:facial_recognition/use_case/mark_attendance.dart';
+import 'package:facial_recognition/utils/project_logger.dart';
 import 'package:flutter/material.dart';
 
 class MarkAttendanceScreen extends StatelessWidget {
-
   const MarkAttendanceScreen({
     super.key,
     required this.useCase,
@@ -37,14 +40,20 @@ class MarkAttendanceScreen extends StatelessWidget {
             fit: FlexFit.tight,
             child: ListView.builder(
               itemCount: cameraRecognized.length,
-              itemBuilder: (buildContext, i) => LimitedBox(
-                maxHeight: 150,
-                child: MarkAttendanceFacialCard(
-                  item: cameraRecognized.elementAt(i),
-                  onCorrectRecognition: (recognizedEmbedding) => useCase.writeStudentAttendance([recognizedEmbedding.nearestStudent]),
-                  onIncorrectRecognition: null,
-                ),
-              ),
+              itemBuilder: (buildContext, i) {
+                final embeddingItem = cameraRecognized.elementAt(i);
+                return LimitedBox(
+                  maxHeight: 150,
+                  child: MarkAttendanceFacialCard(
+                    detectedFaceImage: embeddingItem.inputFace,
+                    identifiedStudent: embeddingItem.identifiedStudent,
+                    onCorrectRecognition: (student) => student == null
+                        ? null
+                        : useCase.writeStudentAttendance([student]),
+                    onIncorrectRecognition: null,
+                  ),
+                );
+              },
             ),
           ),
           const Divider(),
@@ -57,14 +66,19 @@ class MarkAttendanceScreen extends StatelessWidget {
             fit: FlexFit.tight,
             child: ListView.builder(
               itemCount: cameraNotRecognized.length,
-              itemBuilder: (buildContext, i) => LimitedBox(
-                maxHeight: 150,
-                child: MarkAttendanceFacialCard(
-                  item: cameraRecognized.elementAt(i),
-                  onCorrectRecognition: null,
-                  onIncorrectRecognition: null,
-                ),
-              ),
+              itemBuilder: (buildContext, i) {
+                final embeddingItem = cameraNotRecognized.elementAt(i);
+                return LimitedBox(
+                  maxHeight: 150,
+                  child: MarkAttendanceFacialCard(
+                    detectedFaceImage: embeddingItem.inputFace,
+                    identifiedStudent: null,
+                    onCorrectRecognition: null,
+                    onEditRecognition: (student) => projectLogger.fine(student),
+                    onIncorrectRecognition: null,
+                  ),
+                );
+              },
             ),
           ),
         ],
@@ -76,17 +90,23 @@ class MarkAttendanceScreen extends StatelessWidget {
 class MarkAttendanceFacialCard extends StatelessWidget {
   const MarkAttendanceFacialCard({
     super.key,
-    required this.item,
+    required this.detectedFaceImage,
+    this.identifiedStudent,
     this.onCorrectRecognition,
+    this.onEditRecognition,
     this.onIncorrectRecognition,
   });
 
-  final EmbeddingRecognized item;
-  final void Function(EmbeddingRecognized recognizedEmbedding)? onCorrectRecognition;
-  final void Function(EmbeddingRecognized recognizedEmbedding)? onIncorrectRecognition;
+  final Uint8List detectedFaceImage;
+  final Student? identifiedStudent;
+  final void Function(Student? student)? onCorrectRecognition;
+  final void Function(Student? student)? onEditRecognition;
+  final void Function(Student? student)? onIncorrectRecognition;
 
   @override
   Widget build(BuildContext context) {
+    final studentFullName =
+        identifiedStudent?.individual.displayFullName;
     final columnDetected = Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -98,7 +118,7 @@ class MarkAttendanceFacialCard extends StatelessWidget {
         ),
         Flexible(
           fit: FlexFit.tight,
-          child: Image.memory(item.inputFace),
+          child: Image.memory(detectedFaceImage),
         ),
       ],
     );
@@ -122,7 +142,7 @@ class MarkAttendanceFacialCard extends StatelessWidget {
       children: [
         Flexible(
           child: Text(
-            'É ${item.nearestStudent.individual.displayFullName}?',
+            studentFullName != null ? 'É $studentFullName?' : '',
             maxLines: 1,
           ),
         ),
@@ -132,26 +152,21 @@ class MarkAttendanceFacialCard extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Flexible(
-                child: TextButton(
-                  onPressed: () {
-                    if (onCorrectRecognition != null) {
-                      onCorrectRecognition!(item);
-                    }
-                  },
-                  child: const Text('Sim'),
+              if (onCorrectRecognition != null)
+                IconButton(
+                  onPressed: () => onCorrectRecognition!(identifiedStudent),
+                  icon: const Icon(Icons.done),
                 ),
-              ),
-              Flexible(
-                child: TextButton(
-                  onPressed: () {
-                    if (onIncorrectRecognition != null) {
-                      onIncorrectRecognition!(item);
-                    }
-                  },
-                  child: const Text('Não'),
+              if (onIncorrectRecognition != null)
+                IconButton(
+                  onPressed: () => onIncorrectRecognition!(identifiedStudent),
+                  icon: const Icon(Icons.clear),
                 ),
-              ),
+              if (onEditRecognition != null)
+                IconButton(
+                  onPressed: () => onEditRecognition!(identifiedStudent),
+                  icon: const Icon(Icons.person_add),
+                ),
             ],
           ),
         )

@@ -5,6 +5,23 @@ import 'package:facial_recognition/models/use_case.dart';
 typedef TConfidence = double;
 typedef TDistance = double;
 
+class FaceRecognitionResult<TLabel> implements IFaceRecognitionResult<TLabel> {
+  FaceRecognitionResult({
+    required this.label,
+    required this.recognitionValue,
+    required this.status,
+  });
+
+  @override
+  final TLabel label;
+
+  @override
+  final double recognitionValue;
+
+  @override
+  final FaceRecognitionStatus status;
+}
+
 class DistanceClassifier<TElement extends List<num>, TLabel>
     implements IFaceRecognizer<TElement, TLabel> {
   DistanceClassifier({
@@ -19,7 +36,7 @@ class DistanceClassifier<TElement extends List<num>, TLabel>
   double get recognitionThreshold => _recognitionThreshold;
 
   @override
-  Map<TElement, Duple<TLabel, TConfidence>> recognize(
+  Map<TElement, IFaceRecognitionResult<TLabel>> recognize(
     final Iterable<TElement> unknown,
     final Map<TLabel, Iterable<TElement>> dataSet,
   ) {
@@ -33,8 +50,12 @@ class DistanceClassifier<TElement extends List<num>, TLabel>
 
     // the result mapping an unknown element to the new category and the
     // confidence value of the category
-    final aux = Duple<TLabel, TConfidence>(dataSet.entries.first.key, 0);
-    final result = { for (final u in unknown) u : aux };
+    final tmp = FaceRecognitionResult(
+      label: dataSet.entries.first.key,
+      recognitionValue: 0.0,
+      status: FaceRecognitionStatus.notRecognized,
+    );
+    final result = { for (final u in unknown) u : tmp };
 
     // compute for all the inputs
     for (final anInput in unknown) {
@@ -50,10 +71,16 @@ class DistanceClassifier<TElement extends List<num>, TLabel>
 
       // get the nearest
       final nearest = distanceStructure.first;
-      result[anInput] = Duple(nearest.label, nearest.distance);
+      result[anInput] = FaceRecognitionResult(
+        label: nearest.label,
+        recognitionValue: nearest.distance,
+        status: _recognitionStatus(nearest.distance) ? FaceRecognitionStatus.recognized : FaceRecognitionStatus.notRecognized,
+      );
     }
     return result;
   }
+
+  bool _recognitionStatus(double distance) => distance > recognitionThreshold ? false : true;
 }
 
 class KnnClassifier<TElement extends List<num>, TLabel>
@@ -80,7 +107,7 @@ class KnnClassifier<TElement extends List<num>, TLabel>
   /// [unknown] is an iterable of unknown elements\
   /// [dataSet] are the labeled data
   @override
-  Map<TElement, Duple<TLabel, TConfidence>> recognize(
+  Map<TElement, IFaceRecognitionResult<TLabel>> recognize(
     final Iterable<TElement> unknown,
     final Map<TLabel, Iterable<TElement>> dataSet,
   ) {
@@ -102,8 +129,12 @@ class KnnClassifier<TElement extends List<num>, TLabel>
 
     // the result mapping an unknown element to the new category and the
     // confidence value of the category
-    final aux = Duple<TLabel, TConfidence>(dataSet.entries.first.key, 0);
-    final result = { for (final u in unknown) u : aux };
+    final tmp = FaceRecognitionResult(
+      label: dataSet.entries.first.key,
+      recognitionValue: 0.0,
+      status: FaceRecognitionStatus.notRecognized,
+    );
+    final result = {for (final u in unknown) u: tmp};
 
     // compute for all the inputs
     for (final anInput in unknown) {
@@ -135,10 +166,16 @@ class KnnClassifier<TElement extends List<num>, TLabel>
       final mostOccurring = occurrencyAndLabel.first;
       final label = mostOccurring.value2;
       final probability = mostOccurring.value1/kNeighbors;
-      result[anInput] = Duple(label, probability);
+      result[anInput] = FaceRecognitionResult(
+        label: label,
+        recognitionValue: probability,
+        status: _recognitionStatus(probability) ? FaceRecognitionStatus.recognized : FaceRecognitionStatus.notRecognized,
+      );
     }
     return result;
   }
+
+  bool _recognitionStatus(double probability) => probability > recognitionThreshold ? true : false;
 }
 
 class _LabelValueDistance<TLabel, TElement>{
