@@ -1,7 +1,7 @@
 import 'package:camera/camera.dart';
 import 'package:facial_recognition/models/domain.dart';
 import 'package:facial_recognition/models/face_recognizer.dart';
-import 'package:facial_recognition/models/facenet_face_recognizer.dart';
+import 'package:facial_recognition/models/facenet_face_embedder.dart';
 import 'package:facial_recognition/models/google_face_detector.dart';
 import 'package:facial_recognition/models/image_handler.dart';
 import 'package:facial_recognition/screens/attendance_summary_screen.dart';
