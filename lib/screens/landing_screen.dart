@@ -1,4 +1,6 @@
 import 'package:facial_recognition/models/domain.dart';
+import 'package:facial_recognition/screens/select_lesson_return.dart';
+import 'package:facial_recognition/utils/project_logger.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -20,6 +22,7 @@ class LandingScreen extends StatefulWidget {
 }
 
 class _LandingScreenState extends State<LandingScreen> {
+  Subject? subject;
   SubjectClass? subjectClass;
   Lesson? lesson;
 
@@ -54,18 +57,23 @@ class _LandingScreenState extends State<LandingScreen> {
                         InkWell(
                           onTap: () async {
                             final aux = await GoRouter.of(context)
-                                .push<Lesson?>('/select_lesson');
+                                .push<SelectLessonReturn>('/select_lesson');
                             setState(() {
-                              lesson = aux;
+                              if (aux == null) {
+                                projectLogger.severe("a value weren't returned from /select_lesson");
+                              }
+                              subject = aux?.subject;
+                              subjectClass = aux?.subjectClass;
+                              lesson = aux?.lesson;
                             });
                           },
                           child: SelectedInfos(
-                            subject: (lesson == null)
+                            subject: (subject == null)
                                 ? '--'
-                                : lesson!.subjectClass.subject.name,
-                            subjectClass: (lesson == null)
+                                : subject!.name,
+                            subjectClass: (subjectClass == null)
                                 ? '--'
-                                : lesson!.subjectClass.name,
+                                : subjectClass!.name,
                             lesson: (lesson == null)
                                 ? '--'
                                 : lesson!.utcDateTime.toLocal().toString(),
@@ -74,7 +82,13 @@ class _LandingScreenState extends State<LandingScreen> {
                         _menuSpacer,
                         MenuItem(
                           onTap: () => (lesson == null)
-                              ? _showLessonRequired(context)
+                              ? _showAlert(
+                                  context,
+                                  Text('Selecione uma aula antes de continuar',
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodyLarge),
+                                )
                               : GoRouter.of(context)
                                   .go('/camera_view', extra: lesson),
                           child: const Padding(
@@ -85,7 +99,13 @@ class _LandingScreenState extends State<LandingScreen> {
                         _menuSpacer,
                         MenuItem(
                           onTap: () => (lesson == null)
-                              ? _showLessonRequired(context)
+                              ? _showAlert(
+                                  context,
+                                  Text('Selecione uma aula antes de continuar',
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodyLarge),
+                                )
                               : GoRouter.of(context)
                                   .go('/mark_attendance', extra: lesson),
                           child: const Padding(
@@ -95,10 +115,16 @@ class _LandingScreenState extends State<LandingScreen> {
                         ),
                         _menuSpacer,
                         MenuItem(
-                          onTap: () => (lesson == null)
-                              ? _showLessonRequired(context)
+                          onTap: () => (subjectClass == null)
+                              ? _showAlert(
+                                  context,
+                                  Text('Selecione uma turma antes de continuar',
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodyLarge),
+                                )
                               : GoRouter.of(context)
-                                  .go('/attendance_summary', extra: lesson),
+                                  .go('/attendance_summary', extra: subjectClass),
                           child: const Padding(
                             padding: EdgeInsets.only(left: 24.0),
                             child: Text('Resumo das presenças'),
@@ -169,16 +195,25 @@ class _LandingScreenState extends State<LandingScreen> {
     );
   }
 
-  void _showLessonRequired(BuildContext context) =>
-      ScaffoldMessenger.of(context)
-        ..removeCurrentSnackBar()
-        ..showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Selecione uma aula e turma para continuar',
+  void _showAlert(BuildContext context, Widget child) => showDialog(
+        context: context,
+        barrierDismissible: true,
+        builder: (context) => AlertDialog(
+          title: const Text('Ops...'),
+          content: child,
+          actions: [
+            TextButton(
+              onPressed: () {
+                final router = GoRouter.of(context);
+                if (router.canPop()) {
+                  router.pop();
+                }
+              },
+              child: const Text('Ok'),
             ),
-          ),
-        );
+          ],
+        ),
+      );
 }
 
 class SelectedInfos extends StatelessWidget {

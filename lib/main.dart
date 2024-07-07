@@ -106,7 +106,7 @@ class MainApp extends StatelessWidget {
                 builder: (context, state) => AttendanceSummaryScreen(
                   useCase: AttendanceSummary(
                     domainRepository,
-                    state.extra as Lesson,
+                    state.extra as SubjectClass,
                   ),
                 ),
               ),
