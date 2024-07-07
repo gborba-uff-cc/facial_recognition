@@ -1,4 +1,5 @@
 import 'package:facial_recognition/models/domain.dart';
+import 'package:facial_recognition/screens/select_lesson_return.dart';
 import 'package:facial_recognition/screens/widgets/selector.dart';
 import 'package:facial_recognition/use_case/select_lesson.dart';
 import 'package:facial_recognition/utils/project_logger.dart';
@@ -42,7 +43,11 @@ class _SelectLessonScreenState extends State<SelectLessonScreen> {
   Widget build(BuildContext context) {
     final List<Widget> widgets = [
       // subject selector
-      Text('Disciplina', maxLines: 1, style: Theme.of(context).textTheme.titleLarge,),
+      Text(
+        'Disciplina',
+        maxLines: 1,
+        style: Theme.of(context).textTheme.headlineLarge,
+      ),
       Selector<Subject>(
         options: subjects,
         toWidget: (item) => item == null
@@ -66,7 +71,11 @@ class _SelectLessonScreenState extends State<SelectLessonScreen> {
       ),
       const Divider(),
       // subject class selector
-      Text('Turma', maxLines: 1, style: Theme.of(context).textTheme.titleLarge,),
+      Text(
+        'Turma',
+        maxLines: 1,
+        style: Theme.of(context).textTheme.headlineLarge,
+      ),
       Selector<SubjectClass>(
         options: subjectClasses,
         toWidget: (item) => item == null
@@ -90,7 +99,11 @@ class _SelectLessonScreenState extends State<SelectLessonScreen> {
       ),
       const Divider(),
       // lesson selector
-      Text('Aula', maxLines: 1, style: Theme.of(context).textTheme.titleLarge,),
+      Text(
+        'Aula',
+        maxLines: 1,
+        style: Theme.of(context).textTheme.headlineLarge,
+      ),
       Selector<Lesson>(
         options: lessons,
         toWidget: (item) {
@@ -149,31 +162,22 @@ class _SelectLessonScreenState extends State<SelectLessonScreen> {
 
   void _confirmButtonAction() {
     final fs = _formKey.currentState;
-    String msg = '';
-    // state not null
     if (fs != null) {
       final valid = fs.validate();
-      msg = 'Não Válido';
-      // form is valid
       if (valid) {
-        msg = 'Válido';
         fs.save();
-      }
-      if (valid && _selectedLesson != null) {
-        msg = 'Aula selecionada';
-      }
-      else {
-        msg = 'Aula não selecionada';
       }
     }
     projectLogger.fine('Subject: $_selectedSubject; SubjectClass: $_selectedSubjectClass; Lesson: $_selectedLesson');
 
-    ScaffoldMessenger.of(context)
-        ..clearSnackBars()
-        ..showSnackBar(SnackBar(content: Text(msg, maxLines: 2)));
-    final canPop = GoRouter.of(context).canPop();
-    if (canPop) {
-      GoRouter.of(context).pop(_selectedLesson);
+    final aux = SelectLessonReturn(
+      subject: _selectedSubject,
+      subjectClass: _selectedSubjectClass,
+      lesson: _selectedLesson,
+    );
+    final router = GoRouter.of(context);
+    if (router.canPop()) {
+      router.pop(aux);
     }
   }
 }
