@@ -14,8 +14,15 @@ class AttendanceSummaryScreen extends StatelessWidget {
     final attendance = useCase.getSubjectClassAttendance()?.entries;
 
     return Scaffold(
-      appBar: AppBar(),
-      body: attendance == null
+      appBar: AppBar(
+        title: Text(
+          'Resumo',
+          maxLines: 1,
+          style: Theme.of(context).textTheme.headlineLarge,
+          overflow: TextOverflow.fade,
+        ),
+      ),
+      body: attendance == null || attendance.isEmpty
           ? const Center(
               child: Text('Não há alunos na turma'),
             )
