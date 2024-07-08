@@ -10,7 +10,7 @@ import 'package:facial_recognition/screens/create_models_screen.dart';
 import 'package:facial_recognition/screens/mark_attendance_screen.dart';
 import 'package:facial_recognition/screens/landing_screen.dart';
 // import 'package:facial_recognition/screens/placeholder_screen.dart';
-import 'package:facial_recognition/screens/select_lesson_screen.dart';
+import 'package:facial_recognition/screens/select_information_screen.dart';
 import 'package:facial_recognition/use_case/attendance_summary.dart';
 import 'package:facial_recognition/use_case/camera_identification.dart';
 import 'package:facial_recognition/use_case/create_models.dart';
@@ -71,8 +71,8 @@ class MainApp extends StatelessWidget {
             ),
             routes: <RouteBase>[
               GoRoute(
-                path: 'select_lesson',
-                builder: (context, state) => SelectLessonScreen(
+                path: 'select_information',
+                builder: (context, state) => SelectInformationScreen(
                     useCase: SelectLesson(
                   domainRepository,
                 )),

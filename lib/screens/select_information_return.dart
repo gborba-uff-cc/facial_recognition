@@ -1,7 +1,7 @@
 import 'package:facial_recognition/models/domain.dart';
 
-class SelectLessonReturn {
-  const SelectLessonReturn({
+class SelectInformationReturn {
+  const SelectInformationReturn({
     this.subject,
     this.subjectClass,
     this.lesson,

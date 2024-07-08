@@ -1,13 +1,13 @@
 import 'package:facial_recognition/models/domain.dart';
-import 'package:facial_recognition/screens/select_lesson_return.dart';
+import 'package:facial_recognition/screens/select_information_return.dart';
 import 'package:facial_recognition/screens/widgets/selector.dart';
 import 'package:facial_recognition/use_case/select_lesson.dart';
 import 'package:facial_recognition/utils/project_logger.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-class SelectLessonScreen extends StatefulWidget {
-  const SelectLessonScreen({
+class SelectInformationScreen extends StatefulWidget {
+  const SelectInformationScreen({
     super.key,
     required this.useCase,
   });
@@ -15,10 +15,10 @@ class SelectLessonScreen extends StatefulWidget {
   final SelectLesson useCase;
 
   @override
-  State<SelectLessonScreen> createState() => _SelectLessonScreenState();
+  State<SelectInformationScreen> createState() => _SelectInformationScreenState();
 }
 
-class _SelectLessonScreenState extends State<SelectLessonScreen> {
+class _SelectInformationScreenState extends State<SelectInformationScreen> {
   List<Subject> subjects = [];
   List<SubjectClass> subjectClasses = [];
   List<Lesson> lessons = [];
@@ -34,7 +34,7 @@ class _SelectLessonScreenState extends State<SelectLessonScreen> {
   }
 
   @override
-  void didUpdateWidget(SelectLessonScreen oldWidget) {
+  void didUpdateWidget(SelectInformationScreen oldWidget) {
     projectLogger.fine('did update SelectLesson');
     super.didUpdateWidget(oldWidget);
   }
@@ -170,7 +170,7 @@ class _SelectLessonScreenState extends State<SelectLessonScreen> {
     }
     projectLogger.fine('Subject: $_selectedSubject; SubjectClass: $_selectedSubjectClass; Lesson: $_selectedLesson');
 
-    final aux = SelectLessonReturn(
+    final aux = SelectInformationReturn(
       subject: _selectedSubject,
       subjectClass: _selectedSubjectClass,
       lesson: _selectedLesson,

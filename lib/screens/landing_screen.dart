@@ -1,5 +1,5 @@
 import 'package:facial_recognition/models/domain.dart';
-import 'package:facial_recognition/screens/select_lesson_return.dart';
+import 'package:facial_recognition/screens/select_information_return.dart';
 import 'package:facial_recognition/utils/project_logger.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -57,7 +57,7 @@ class _LandingScreenState extends State<LandingScreen> {
                         InkWell(
                           onTap: () async {
                             final aux = await GoRouter.of(context)
-                                .push<SelectLessonReturn>('/select_lesson');
+                                .push<SelectInformationReturn>('/select_information');
                             setState(() {
                               if (aux == null) {
                                 projectLogger.severe("a value weren't returned from /select_lesson");
