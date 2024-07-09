@@ -6,9 +6,13 @@ import 'package:facial_recognition/models/google_face_detector.dart';
 import 'package:facial_recognition/models/image_handler.dart';
 import 'package:facial_recognition/screens/attendance_summary_screen.dart';
 import 'package:facial_recognition/screens/camera_identification_screen.dart';
-import 'package:facial_recognition/screens/create_models_screen.dart';
-import 'package:facial_recognition/screens/mark_attendance_screen.dart';
+import 'package:facial_recognition/screens/create_lesson_screen.dart';
+import 'package:facial_recognition/screens/create_student_screen.dart';
+import 'package:facial_recognition/screens/create_subject_class_screen.dart';
+import 'package:facial_recognition/screens/create_subject_screen.dart';
+import 'package:facial_recognition/screens/create_teacher_screen.dart';
 import 'package:facial_recognition/screens/landing_screen.dart';
+import 'package:facial_recognition/screens/mark_attendance_screen.dart';
 // import 'package:facial_recognition/screens/placeholder_screen.dart';
 import 'package:facial_recognition/screens/select_information_screen.dart';
 import 'package:facial_recognition/use_case/attendance_summary.dart';
@@ -110,9 +114,41 @@ class MainApp extends StatelessWidget {
                   ),
                 ),
               ),
+/*
               GoRoute(
                 path: 'create_models',
                 builder: (context, state) => CreateModelsScreen(
+                  useCase: CreateModels(domainRepository),
+                ),
+              ),
+*/
+              GoRoute(
+                path: 'create_subject',
+                builder: (context, state) => CreateSubjectScreen(
+                  useCase: CreateModels(domainRepository),
+                ),
+              ),
+              GoRoute(
+                path: 'create_subject_class',
+                builder: (context, state) => CreateSubjectClassScreen(
+                  useCase: CreateModels(domainRepository),
+                ),
+              ),
+              GoRoute(
+                path: 'create_lesson',
+                builder: (context, state) => CreateLessonScreen(
+                  useCase: CreateModels(domainRepository),
+                ),
+              ),
+              GoRoute(
+                path: 'create_student',
+                builder: (context, state) => CreateStudentScreen(
+                  useCase: CreateModels(domainRepository),
+                ),
+              ),
+              GoRoute(
+                path: 'create_teacher',
+                builder: (context, state) => CreateTeacherScreen(
                   useCase: CreateModels(domainRepository),
                 ),
               ),

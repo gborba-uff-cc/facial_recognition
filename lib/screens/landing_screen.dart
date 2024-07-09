@@ -130,6 +130,7 @@ class _LandingScreenState extends State<LandingScreen> {
                             child: Text('Resumo das presenças'),
                           ),
                         ),
+// -----------------------------------------------------------------------------
                         _menuDivider,
                         Text(
                           'Adicionar',
@@ -140,7 +141,7 @@ class _LandingScreenState extends State<LandingScreen> {
                         _menuSpacer,
                         MenuItem(
                           onTap: () =>
-                              GoRouter.of(context).go('/create_models'),
+                              GoRouter.of(context).go('/create_subject'),
                           child: const Padding(
                             padding: EdgeInsets.only(left: 24.0),
                             child: Text('Disciplina'),
@@ -149,7 +150,7 @@ class _LandingScreenState extends State<LandingScreen> {
                         _menuSpacer,
                         MenuItem(
                           onTap: () =>
-                              GoRouter.of(context).go('/create_models'),
+                              GoRouter.of(context).go('/create_subject_class'),
                           child: const Padding(
                             padding: EdgeInsets.only(left: 24.0),
                             child: Text('Turma'),
@@ -158,7 +159,7 @@ class _LandingScreenState extends State<LandingScreen> {
                         _menuSpacer,
                         MenuItem(
                           onTap: () =>
-                              GoRouter.of(context).go('/create_models'),
+                              GoRouter.of(context).go('/create_lesson'),
                           child: const Padding(
                             padding: EdgeInsets.only(left: 24.0),
                             child: Text('Aula'),
@@ -167,19 +168,19 @@ class _LandingScreenState extends State<LandingScreen> {
                         _menuSpacer,
                         MenuItem(
                           onTap: () =>
-                              GoRouter.of(context).go('/create_models'),
+                              GoRouter.of(context).go('/create_student'),
                           child: const Padding(
                             padding: EdgeInsets.only(left: 24.0),
-                            child: Text('Aluno'),
+                            child: Text('Aluno(a)'),
                           ),
                         ),
                         _menuSpacer,
                         MenuItem(
                           onTap: () =>
-                              GoRouter.of(context).go('/create_models'),
+                              GoRouter.of(context).go('/create_teacher'),
                           child: const Padding(
                             padding: EdgeInsets.only(left: 24.0),
-                            child: Text('Professor'),
+                            child: Text('Professor(a)'),
                           ),
                         ),
                         _menuSpacer,

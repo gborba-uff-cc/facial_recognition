@@ -27,8 +27,8 @@ class CreateSubjectClass extends StatelessWidget {
       children: [
         SubjectFieldCode(
           controller: _codeOfSubject,
-          labelText: '',
-          helperText: '',
+          labelText: 'Código',
+          helperText: 'Identificador da disciplina',
         ),
         TeacherFieldRegistration(
             controller: _registrationOfTeacher,
