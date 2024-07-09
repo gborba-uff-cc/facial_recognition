@@ -22,7 +22,14 @@ class MarkAttendanceScreen extends StatelessWidget {
         useCase.getFaceNotRecognizedFromCamera();
 
     return Scaffold(
-      appBar: AppBar(),
+      appBar: AppBar(
+        title: Text(
+          'Revisão',
+          maxLines: 1,
+          style: Theme.of(context).textTheme.headlineLarge,
+          overflow: TextOverflow.fade,
+        ),
+      ),
       body: Column(
         children: [
           Text(
