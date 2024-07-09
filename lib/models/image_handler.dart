@@ -58,6 +58,9 @@ class ImageHandler
         final cbV = cbBytes[cbCrIndex];
         final crV = crBytes[cbCrIndex];
 
+// identifying which standard to use when converting the YCbCr color to RGB
+/*
+// unknown - work, found on internet but no rationale
         final r = (yV + crV * 1436 / 1024 - 179)
           .round()
           .clamp(0, 255);
@@ -67,7 +70,56 @@ class ImageHandler
         final b = (yV + cbV * 1814 / 1024 - 227)
           .round()
           .clamp(0, 255);
-
+*/
+// JFIF modified Rec.601 with Y,Cb and Cr with full 8-bit range - working
+        final cbAux = cbV-128;
+        final crAux = crV-128;
+        final r = (yV +1.402*(crAux))
+          .round()
+          .clamp(0, 255);
+        final g = (yV -0.344136*(cbAux) -0.714136*(crAux))
+          .round()
+          .clamp(0, 255);
+        final b = (yV +1.772*(cbAux))
+          .round()
+          .clamp(0, 255);
+/**/
+/*
+// ITU-R BT.601 - working
+        final int r = ( (255/219)*(yV-16) +(255/224)*1.402*(crV-128) )
+          .round()
+          .clamp(0, 255);
+        final int g = ( (255/219)*(yV-16) -(255/224)*1.772*(0.114/0.587)*(cbV-128) -(255/224)*1.402*(0.299/0.587)*(crV-128) )
+          .round()
+          .clamp(0, 255);
+        final int b = ( (255/219)*(yV-16) +(255/224)*1.772*(cbV-128) )
+          .round()
+          .clamp(0, 255);
+*/
+/*
+// ITU-R BT.709 - don't work
+        final r = (yV + 1.5748*crV)
+          .round()
+          .clamp(0, 255);
+        final g = (yV - 0.1873*cbV -0.4681*crV)
+            .round()
+            .clamp(0, 255);
+        final b = (yV + 1.8556*cbV)
+          .round()
+          .clamp(0, 255);
+*/
+/*
+// ITU-R BT.2020 - don't work
+        final r = (yV + 1.4746*crV)
+          .round()
+          .clamp(0, 255);
+        final g = (yV - 0.16455312684366*cbV -0.57135312684366*crV)
+            .round()
+            .clamp(0, 255);
+        final b = (yV + 1.8814*cbV)
+          .round()
+          .clamp(0, 255);
+*/
         rgbBytes.putUint8(r);
         rgbBytes.putUint8(g);
         rgbBytes.putUint8(b);
