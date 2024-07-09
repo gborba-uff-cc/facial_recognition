@@ -79,7 +79,8 @@ class ImageHandler
 
   /// Find the coord for the element that hold information about the element at coord ([x], [y]).
   ///
-  /// 1 element on unidimensional space represent a group of [xGroup] by [yGroup]
+  /// 1 element on unidimensional space represent a group of [xGroup] by [yGroup].
+  ///
   /// [elementSize] and [xSize] serve to virtualy split the unidimensinal
   /// dimension.
   int _biToUniDimCoord(int x, int y, int xGroup, int yGroup, int elementSize, int xSize) {
