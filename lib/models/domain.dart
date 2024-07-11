@@ -48,6 +48,25 @@ class FacialData {
     other.individual == individual;
 }
 
+class FacePicture {
+  Uint8List faceJpeg;
+  Individual individual;
+
+  FacePicture({
+    required this.faceJpeg,
+    required this.individual,
+  });
+
+  @override
+  int get hashCode => Object.hash(individual, faceJpeg);
+
+  @override
+  bool operator ==(Object other) =>
+    other is FacePicture &&
+    other.individual == individual &&
+    other.faceJpeg == faceJpeg;
+}
+
 class Student {
   String registration;
   Individual individual;
