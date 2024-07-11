@@ -33,5 +33,8 @@ class MarkAttendance {
     domainRepository.addAttendance(a);
   }
 
-  Uint8List? getFaceImage(Individual individual) => null;
+  Map<Student, FacePicture?> getStudentFaceImage() {
+    final students = domainRepository.getStudentFromSubjectClass([lesson.subjectClass])[lesson.subjectClass]!;
+    return domainRepository.getFacePictureFromStudent(students);
+  }
 }

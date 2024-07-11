@@ -235,13 +235,14 @@ the attendance
     _saveEmbeddingAsNewStudent(notRecognized, lesson);
   }
 
-  /// STUB - only for development - register a new student for a face embedding
+  /// FIXME - only for development - register a new student for a face embedding
   void _saveEmbeddingAsNewStudent(
     Iterable<EmbeddingNotRecognized> notRecognized,
     Lesson lesson,
   ) {
     final individual = <Individual>[];
     final facialData = <FacialData>[];
+    final facePicture = <FacePicture>[];
     final student = <Student>[];
     final enrollment = <Enrollment>[];
 
@@ -258,17 +259,20 @@ the attendance
           .join();
 
       final anIndividual = Individual(individualRegistration: i, name: n);
+      final aFacePicture = FacePicture(faceJpeg: elem.inputFace, individual: anIndividual);
       final aFacialData = FacialData(data: elem.inputFaceEmbedding, individual: anIndividual);
       final aStudent = Student(registration: r, individual: anIndividual);
       final anEnrollment = Enrollment(student: aStudent, subjectClass: lesson.subjectClass);
 
       individual.add(anIndividual);
+      facePicture.add(aFacePicture);
       facialData.add(aFacialData);
       student.add(aStudent);
       enrollment.add(anEnrollment);
     }
 
     _domainRepo.addIndividual(individual);
+    _domainRepo.addFacePicture(facePicture);
     _domainRepo.addFacialData(facialData);
     _domainRepo.addStudent(student);
     _domainRepo.addEnrollment(enrollment);

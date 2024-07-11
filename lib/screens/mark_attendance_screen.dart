@@ -20,6 +20,7 @@ class MarkAttendanceScreen extends StatelessWidget {
         useCase.getFaceRecognizedFromCamera();
     final Iterable<EmbeddingNotRecognized> cameraNotRecognized =
         useCase.getFaceNotRecognizedFromCamera();
+    final Map<Student, FacePicture?> studentFacePicture = useCase.getStudentFaceImage();
 
     return Scaffold(
       appBar: AppBar(
@@ -54,6 +55,7 @@ class MarkAttendanceScreen extends StatelessWidget {
                   child: MarkAttendanceFacialCard(
                     detectedFaceImage: embeddingItem.inputFace,
                     identifiedStudent: embeddingItem.identifiedStudent,
+                    identifiedStudentFacePicture: studentFacePicture[embeddingItem.identifiedStudent]?.faceJpeg,
                     onCorrectRecognition: (student) => student == null
                         ? null
                         : useCase.writeStudentAttendance([student]),
@@ -99,6 +101,7 @@ class MarkAttendanceFacialCard extends StatelessWidget {
     super.key,
     required this.detectedFaceImage,
     this.identifiedStudent,
+    this.identifiedStudentFacePicture,
     this.onCorrectRecognition,
     this.onEditRecognition,
     this.onIncorrectRecognition,
@@ -106,6 +109,7 @@ class MarkAttendanceFacialCard extends StatelessWidget {
 
   final Uint8List detectedFaceImage;
   final Student? identifiedStudent;
+  final Uint8List? identifiedStudentFacePicture;
   final void Function(Student? student)? onCorrectRecognition;
   final void Function(Student? student)? onEditRecognition;
   final void Function(Student? student)? onIncorrectRecognition;
@@ -131,8 +135,8 @@ class MarkAttendanceFacialCard extends StatelessWidget {
     );
     final columnRegistered = Column(
       mainAxisSize: MainAxisSize.min,
-      children: const [
-        Flexible(
+      children: [
+        const Flexible(
           child: Text(
             'cadastrado',
             maxLines: 1,
@@ -140,7 +144,9 @@ class MarkAttendanceFacialCard extends StatelessWidget {
         ),
         Flexible(
           fit: FlexFit.tight,
-          child: Icon(Icons.person),
+          child: identifiedStudentFacePicture != null
+              ? Image.memory(identifiedStudentFacePicture!)
+              : const Icon(Icons.person),
         ),
       ],
     );
