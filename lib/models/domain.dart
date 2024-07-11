@@ -217,6 +217,7 @@ class DomainRepository {
 
   final Set<Individual> _individual = {};
   final Set<FacialData> _facialData = {};
+  final Set<FacePicture> _facePicture = {};
   final Set<Student> _student = {};
   final Set<Teacher> _teacher = {};
   final Set<Subject> _subject = {};
@@ -239,6 +240,11 @@ class DomainRepository {
     final Iterable<FacialData> facialData,
   ) {
     _facialData.addAll(facialData);
+  }
+  void addFacePicture(
+    final Iterable<FacePicture> facePicture,
+  ) {
+    _facePicture.addAll(facePicture);
   }
   void addStudent(
     final Iterable<Student> student,
