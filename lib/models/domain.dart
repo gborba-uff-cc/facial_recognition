@@ -344,6 +344,32 @@ class DomainRepository {
     }
     return result;
   }
+    Map<Student, FacePicture?> getFacePictureFromStudent(
+    final Iterable<Student> student,
+  ) {
+    final result = <Student, FacePicture?>{ for (final s in student) s : null };
+    for (final fp in _facePicture) {
+      for (final s in student) {
+        if (s.individual == fp.individual) {
+          result[s] = fp;
+        }
+      }
+    }
+    return result;
+  }
+  Map<Teacher, FacePicture?> getFacePictureFromTeacher(
+    final Iterable<Teacher> teacher,
+  ) {
+    final result = <Teacher, FacePicture?>{ for (final t in teacher) t : null };
+    for (final fp in _facePicture) {
+      for (final t in teacher) {
+        if (t.individual == fp.individual) {
+          result[t] = fp;
+        }
+      }
+    }
+    return result;
+  }
   Map<String, Student?> getStudentFromRegistration(
     final Iterable<String> registration,
   ) {
