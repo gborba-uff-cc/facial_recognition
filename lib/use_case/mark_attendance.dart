@@ -17,6 +17,12 @@ class MarkAttendance {
     return result[lesson] ?? [];
   }
 
+  void removeFaceRecognizedFromCamera(
+    Iterable<EmbeddingRecognized> recognition,
+  ) {
+    domainRepository.removeFaceEmbeddingRecognizedFromCamera(recognition, lesson);
+  }
+
   Iterable<EmbeddingNotRecognized> getFaceNotRecognizedFromCamera() {
     final result = domainRepository.getCameraNotRecognized([lesson]);
     return result[lesson] ?? [];

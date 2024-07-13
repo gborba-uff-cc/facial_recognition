@@ -11,6 +11,7 @@ import 'package:facial_recognition/screens/create_student_screen.dart';
 import 'package:facial_recognition/screens/create_subject_class_screen.dart';
 import 'package:facial_recognition/screens/create_subject_screen.dart';
 import 'package:facial_recognition/screens/create_teacher_screen.dart';
+import 'package:facial_recognition/screens/fast_view.dart';
 import 'package:facial_recognition/screens/landing_screen.dart';
 import 'package:facial_recognition/screens/mark_attendance_screen.dart';
 // import 'package:facial_recognition/screens/placeholder_screen.dart';
@@ -65,11 +66,15 @@ class MainApp extends StatelessWidget {
           GoRoute(
             path: '/',
 /*
+            // fast view
+            builder: (context, state) => FastView(),
+            // dev menu
             builder: (context, state) => PlaceholderScreen(
               nextScreens: const ['/select_lesson', '/camera_view', '/mark_attendance', '/attendance_summary', '/create_models'],
               domainRepository: domainRepository,
             ),
 */
+            // landing screen
             builder: (context, state) => LandingScreen(
               domainRepository: domainRepository,
             ),

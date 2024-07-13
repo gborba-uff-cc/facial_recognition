@@ -16,12 +16,6 @@ class MarkAttendanceScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Iterable<EmbeddingRecognized> cameraRecognized =
-        useCase.getFaceRecognizedFromCamera();
-    final Iterable<EmbeddingNotRecognized> cameraNotRecognized =
-        useCase.getFaceNotRecognizedFromCamera();
-    final Map<Student, FacePicture?> studentFacePicture = useCase.getStudentFaceImage();
-
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -31,169 +25,241 @@ class MarkAttendanceScreen extends StatelessWidget {
           overflow: TextOverflow.fade,
         ),
       ),
-      body: Column(
-        children: [
-          Text(
-            'Manual',
-            maxLines: 1,
-            style: Theme.of(context).textTheme.titleLarge,
-          ),
-          const Divider(),
-          Text(
-            'Reconhecido',
-            maxLines: 1,
-            style: Theme.of(context).textTheme.titleLarge,
-          ),
-          Flexible(
-            fit: FlexFit.tight,
-            child: ListView.builder(
-              itemCount: cameraRecognized.length,
-              itemBuilder: (buildContext, i) {
-                final embeddingItem = cameraRecognized.elementAt(i);
-                return LimitedBox(
-                  maxHeight: 150,
-                  child: MarkAttendanceFacialCard(
-                    detectedFaceImage: embeddingItem.inputFace,
-                    identifiedStudent: embeddingItem.identifiedStudent,
-                    identifiedStudentFacePicture: studentFacePicture[embeddingItem.identifiedStudent]?.faceJpeg,
-                    onCorrectRecognition: (student) => student == null
-                        ? null
-                        : useCase.writeStudentAttendance([student]),
-                    onIncorrectRecognition: null,
-                  ),
-                );
-              },
-            ),
-          ),
-          const Divider(),
-          Text(
-            'Não reconhecido',
-            maxLines: 1,
-            style: Theme.of(context).textTheme.titleLarge,
-          ),
-          Flexible(
-            fit: FlexFit.tight,
-            child: ListView.builder(
-              itemCount: cameraNotRecognized.length,
-              itemBuilder: (buildContext, i) {
-                final embeddingItem = cameraNotRecognized.elementAt(i);
-                return LimitedBox(
-                  maxHeight: 150,
-                  child: MarkAttendanceFacialCard(
-                    detectedFaceImage: embeddingItem.inputFace,
-                    identifiedStudent: null,
-                    onCorrectRecognition: null,
-                    onEditRecognition: (student) => projectLogger.fine(student),
-                    onIncorrectRecognition: null,
-                  ),
-                );
-              },
-            ),
-          ),
-        ],
+      body: Center(
+        child: RecognitionReviewer(useCase: useCase),
       ),
     );
   }
 }
 
-class MarkAttendanceFacialCard extends StatelessWidget {
-  const MarkAttendanceFacialCard({
+class RecognitionReviewer extends StatefulWidget {
+  const RecognitionReviewer({
     super.key,
-    required this.detectedFaceImage,
-    this.identifiedStudent,
-    this.identifiedStudentFacePicture,
-    this.onCorrectRecognition,
-    this.onEditRecognition,
-    this.onIncorrectRecognition,
+    required this.useCase,
   });
 
-  final Uint8List detectedFaceImage;
-  final Student? identifiedStudent;
+  final MarkAttendance useCase;
+
+  @override
+  State<RecognitionReviewer> createState() => _RecognitionReviewerState();
+}
+
+class _RecognitionReviewerState extends State<RecognitionReviewer> {
+  @override
+  void initState() {
+    cameraRecognized = widget.useCase.getFaceRecognizedFromCamera();
+    cameraNotRecognized = widget.useCase.getFaceNotRecognizedFromCamera();
+    studentFacePicture = widget.useCase.getStudentFaceImage();
+    super.initState();
+  }
+
+  Iterable<EmbeddingRecognized> cameraRecognized = [];
+  Iterable<EmbeddingNotRecognized> cameraNotRecognized = [];
+  Map<Student, FacePicture?> studentFacePicture = {};
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView.builder(
+      itemCount: cameraRecognized.length,
+      itemBuilder: (buildContext, i) {
+        final item = cameraRecognized.elementAt(i);
+        return ReviewCard(
+          key: ObjectKey(item),
+          recognition: item,
+          identifiedStudentFacePicture:
+              studentFacePicture[item.identifiedStudent]?.faceJpeg,
+          onCorrectAction: _handleConfirmRecognition,
+          onReviseAction: _handleReviseRecognition,
+          onDiscardAction: _handleDiscardRecognition,
+        );
+      },
+    );
+  }
+
+  void _handleConfirmRecognition(
+    EmbeddingRecognized recognition,
+  ) {
+    if (recognition.identifiedStudent == null) {
+      projectLogger.severe('a recognition without a student was confirmed.');
+      return;
+    }
+    widget.useCase.writeStudentAttendance([recognition.identifiedStudent]);
+    widget.useCase.removeFaceRecognizedFromCamera([recognition]);
+    setState(() {
+      cameraRecognized = widget.useCase.getFaceRecognizedFromCamera();
+    });
+  }
+
+  void _handleReviseRecognition(
+    EmbeddingRecognized recognition,
+    Student? other,
+  ) {
+    setState(() {});
+  }
+
+  void _handleDiscardRecognition(
+    EmbeddingRecognized recognition,
+  ) {
+    setState(() {
+      widget.useCase.removeFaceRecognizedFromCamera([recognition]);
+    });
+  }
+}
+
+class ReviewCard extends StatelessWidget {
+  const ReviewCard({
+    super.key,
+    required this.recognition,
+    this.identifiedStudentFacePicture,
+    this.onCorrectAction,
+    this.onReviseAction,
+    this.onDiscardAction,
+  });
+
+  final EmbeddingRecognized recognition;
   final Uint8List? identifiedStudentFacePicture;
-  final void Function(Student? student)? onCorrectRecognition;
-  final void Function(Student? student)? onEditRecognition;
-  final void Function(Student? student)? onIncorrectRecognition;
+  final void Function(
+    EmbeddingRecognized recognition,
+  )? onCorrectAction;
+  final void Function(
+    EmbeddingRecognized recognition,
+    Student? student,
+  )? onReviseAction;
+  final void Function(
+    EmbeddingRecognized recognition,
+  )? onDiscardAction;
 
   @override
   Widget build(BuildContext context) {
     final studentFullName =
-        identifiedStudent?.individual.displayFullName;
+        recognition.identifiedStudent.individual.displayFullName;
     final columnDetected = Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        const Flexible(
-          child: Text(
-            'detectado',
-            maxLines: 1,
-          ),
+        AspectRatio(
+          aspectRatio: 1.0,
+          child: Image.memory(recognition.inputFace),
         ),
-        Flexible(
-          fit: FlexFit.tight,
-          child: Image.memory(detectedFaceImage),
+        Text(
+          'Detectado',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: Theme.of(context).textTheme.titleMedium,
         ),
       ],
     );
     final columnRegistered = Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        const Flexible(
-          child: Text(
-            'cadastrado',
-            maxLines: 1,
-          ),
-        ),
-        Flexible(
-          fit: FlexFit.tight,
+        AspectRatio(
+          aspectRatio: 1.0,
           child: identifiedStudentFacePicture != null
               ? Image.memory(identifiedStudentFacePicture!)
               : const Icon(Icons.person),
         ),
-      ],
-    );
-    final columnActions = Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Flexible(
-          child: Text(
-            studentFullName != null ? 'É $studentFullName?' : '',
-            maxLines: 1,
-          ),
+        Text(
+          'Cadastrado',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: Theme.of(context).textTheme.titleMedium,
         ),
-        Flexible(
-          fit: FlexFit.tight,
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              if (onCorrectRecognition != null)
-                IconButton(
-                  onPressed: () => onCorrectRecognition!(identifiedStudent),
-                  icon: const Icon(Icons.done),
-                ),
-              if (onIncorrectRecognition != null)
-                IconButton(
-                  onPressed: () => onIncorrectRecognition!(identifiedStudent),
-                  icon: const Icon(Icons.clear),
-                ),
-              if (onEditRecognition != null)
-                IconButton(
-                  onPressed: () => onEditRecognition!(identifiedStudent),
-                  icon: const Icon(Icons.person_add),
-                ),
-            ],
-          ),
-        )
       ],
     );
 
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Flexible(fit: FlexFit.tight, child: columnDetected),
-        Flexible(fit: FlexFit.tight, child: columnRegistered),
-        Flexible(flex: 2, fit: FlexFit.tight, child: columnActions),
-      ],
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16.0),
+      child: Card(
+        margin: const EdgeInsets.symmetric(
+          horizontal: 0.0,
+          vertical: 0.0,
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                studentFullName != null ? 'É $studentFullName?' : '',
+                maxLines: 1,
+                overflow: TextOverflow.fade,
+                style: Theme.of(context).textTheme.headlineSmall,
+              ),
+              Row(
+                children: [
+                  Flexible(
+                    fit: FlexFit.tight,
+                    child: columnDetected,
+                  ),
+                  Flexible(
+                    fit: FlexFit.tight,
+                    child: columnRegistered,
+                  ),
+                ],
+              ),
+              const Divider(indent: 16.0, endIndent: 16.0),
+              Wrap(
+                direction: Axis.horizontal,
+                spacing: 8.0,
+                alignment: WrapAlignment.center,
+                runAlignment: WrapAlignment.center,
+                runSpacing: 0.0,
+                children: [
+                  FilledButton.icon(
+                    icon: const Icon(Icons.done),
+                    label: const Text(
+                      'Confirmar',
+                      maxLines: 1,
+                      overflow: TextOverflow.fade,
+                    ),
+                    onPressed: (onCorrectAction != null)
+                        ? () => onCorrectAction!(recognition)
+                        : null,
+                  ),
+                  FilledButton.icon(
+                    icon: const Icon(Icons.edit),
+                    label: const Text(
+                      'Corrigir',
+                      maxLines: 1,
+                      overflow: TextOverflow.fade,
+                    ),
+                    onPressed: (onReviseAction != null)
+                        ? () => onReviseAction!(recognition, null)
+                        : null,
+                  ),
+                  FilledButton.icon(
+                    icon: const Icon(Icons.clear),
+                    label: const Text(
+                      'Descartar',
+                      maxLines: 1,
+                      overflow: TextOverflow.fade,
+                    ),
+                    onLongPress: (onDiscardAction != null)
+                        ? () => onDiscardAction!(recognition)
+                        : null,
+                    onPressed: (onDiscardAction != null)
+                        ? () => _showSnackBar(
+                            context,
+                            const Text(
+                              'Toque e segure o botão.',
+                              textAlign: TextAlign.center,
+                            ),
+                          )
+                        : null,
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
+}
+
+void _showSnackBar(BuildContext context, Widget content) {
+  ScaffoldMessenger.of(context)
+    ..removeCurrentSnackBar()
+    ..showSnackBar(
+      SnackBar(content: content),
+    );
 }

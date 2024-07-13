@@ -296,6 +296,16 @@ class DomainRepository {
     _faceRecognizedFromCamera.putIfAbsent(lesson, () => []);
     _faceRecognizedFromCamera[lesson]!.addAll(recognized);
   }
+  void removeFaceEmbeddingRecognizedFromCamera(
+    Iterable<EmbeddingRecognized> recognition,
+    Lesson lesson,
+  ) {
+    projectLogger.fine('before removing: ${_faceRecognizedFromCamera.length}');
+    for (final r in recognition) {
+      _faceRecognizedFromCamera.remove(r);
+    }
+    projectLogger.fine('after removing: ${_faceRecognizedFromCamera.length}');
+  }
   void addFaceEmbeddingToCameraNotRecognized(
     Iterable<EmbeddingNotRecognized> notRecognized,
     Lesson lesson,
@@ -303,7 +313,15 @@ class DomainRepository {
     _faceNotRecognizedFromCamera.putIfAbsent(lesson, () => []);
     _faceNotRecognizedFromCamera[lesson]!.addAll(notRecognized);
   }
-// ---------------------------
+  void removeFaceEmbeddingNotRecognizedFromCamera(
+    Iterable<EmbeddingRecognized> recognition,
+    Lesson lesson,
+  ) {
+    for (final r in recognition) {
+      _faceNotRecognizedFromCamera.remove(r);
+    }
+  }
+  // ---------------------------
 
   Map<String, Individual?> getIndividualFromRegistration(
     final Iterable<String> individualRegistration,
