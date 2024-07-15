@@ -17,6 +17,22 @@ class MarkAttendance {
     return result[lesson] ?? [];
   }
 
+  void updateFaceRecognitionFromCamera(
+    EmbeddingRecognized recognition,
+    Student? other,
+  ) {
+    // TODO
+/*
+    final aux = EmbeddingRecognized(
+      inputFace: recognition.inputFace,
+      inputFaceEmbedding: recognition.inputFaceEmbedding,
+      identifiedStudent: other,
+    );
+    domainRepository.removeFaceEmbeddingRecognizedFromCamera([recognition], lesson);
+    domainRepository.addFaceEmbeddingToCameraRecognized([aux], lesson);
+*/
+  }
+
   void removeFaceRecognizedFromCamera(
     Iterable<EmbeddingRecognized> recognition,
   ) {

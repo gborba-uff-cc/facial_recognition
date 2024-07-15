@@ -300,11 +300,13 @@ class DomainRepository {
     Iterable<EmbeddingRecognized> recognition,
     Lesson lesson,
   ) {
-    projectLogger.fine('before removing: ${_faceRecognizedFromCamera.length}');
-    for (final r in recognition) {
-      _faceRecognizedFromCamera.remove(r);
+    final recognizedAtLesson = _faceRecognizedFromCamera[lesson];
+    if (recognizedAtLesson == null) {
+      return;
     }
-    projectLogger.fine('after removing: ${_faceRecognizedFromCamera.length}');
+    for (final r in recognition) {
+      recognizedAtLesson.remove(r);
+    }
   }
   void addFaceEmbeddingToCameraNotRecognized(
     Iterable<EmbeddingNotRecognized> notRecognized,
@@ -317,8 +319,12 @@ class DomainRepository {
     Iterable<EmbeddingRecognized> recognition,
     Lesson lesson,
   ) {
+    final notRecognizedAtLesson = _faceNotRecognizedFromCamera[lesson];
+    if (notRecognizedAtLesson == null) {
+      return;
+    }
     for (final r in recognition) {
-      _faceNotRecognizedFromCamera.remove(r);
+      notRecognizedAtLesson.remove(r);
     }
   }
   // ---------------------------

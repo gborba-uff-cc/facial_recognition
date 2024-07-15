@@ -94,16 +94,19 @@ class _RecognitionReviewerState extends State<RecognitionReviewer> {
     EmbeddingRecognized recognition,
     Student? other,
   ) {
-    setState(() {});
+    widget.useCase.updateFaceRecognitionFromCamera(recognition, other);
+    setState(() {
+      cameraRecognized = widget.useCase.getFaceRecognizedFromCamera();
+    });
   }
 
   void _handleDiscardRecognition(
     EmbeddingRecognized recognition,
   ) {
+    widget.useCase.removeFaceRecognizedFromCamera([recognition]);
     setState(() {
-      widget.useCase.removeFaceRecognizedFromCamera([recognition]);
-    });
-  }
+      cameraRecognized = widget.useCase.getFaceRecognizedFromCamera();
+    });  }
 }
 
 class ReviewCard extends StatelessWidget {
