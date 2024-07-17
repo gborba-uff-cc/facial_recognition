@@ -88,8 +88,8 @@ abstract class IPresenter {
 ### Fluxo: Marcar presenças
 
 1. indicar turma
-1. obter imagemns das faces
-1. reconhecer faces no banco de dados
+1. obter imagens das faces
+1. reconhecer faces no banco de ~~dados~~/faces
 1. marcar as presenças
 
 ### Fluxo: Atualizar dados faciais

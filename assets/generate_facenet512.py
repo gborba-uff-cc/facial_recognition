@@ -3,7 +3,7 @@ from deepface import DeepFace
 import hashlib
 import os
 
-# get pretrained David Sandberg Facenet512 keras model from python deepface
+# get pretrained Facenet512 keras model from python deepface
 model = DeepFace.build_model('Facenet512')
 
 # show model information
