@@ -13,6 +13,7 @@ migrate_working_dir/
 *.tflite
 bin/tmp.dart
 assets/*.sqlite3
+bin/*.dll
 
 # IntelliJ related
 *.iml
