@@ -227,8 +227,8 @@ class DomainRepository {
   final Set<Attendance> _attendance = {};
   // ---
   final Map<Lesson, List<Duple<Uint8List, FaceEmbedding>>> _faceEmbeddingDeferredPool = {};
-  final Map<Lesson, List<EmbeddingRecognized>> _faceRecognizedFromCamera = {};
-  final Map<Lesson, List<EmbeddingNotRecognized>> _faceNotRecognizedFromCamera = {};
+  final Map<Lesson, List<EmbeddingRecognitionResult>> _faceRecognizedFromCamera = {};
+  final Map<Lesson, List<EmbeddingRecognitionResult>> _faceNotRecognizedFromCamera = {};
 // ---------------------------
 
   void addIndividual(
@@ -290,14 +290,14 @@ class DomainRepository {
     _faceEmbeddingDeferredPool[lesson]!.addAll(embedding);
   }
   void addFaceEmbeddingToCameraRecognized(
-    Iterable<EmbeddingRecognized> recognized,
+    Iterable<EmbeddingRecognitionResult> recognized,
     Lesson lesson,
   ) {
     _faceRecognizedFromCamera.putIfAbsent(lesson, () => []);
     _faceRecognizedFromCamera[lesson]!.addAll(recognized);
   }
   void removeFaceEmbeddingRecognizedFromCamera(
-    Iterable<EmbeddingRecognized> recognition,
+    Iterable<EmbeddingRecognitionResult> recognition,
     Lesson lesson,
   ) {
     final recognizedAtLesson = _faceRecognizedFromCamera[lesson];
@@ -309,14 +309,14 @@ class DomainRepository {
     }
   }
   void addFaceEmbeddingToCameraNotRecognized(
-    Iterable<EmbeddingNotRecognized> notRecognized,
+    Iterable<EmbeddingRecognitionResult> notRecognized,
     Lesson lesson,
   ) {
     _faceNotRecognizedFromCamera.putIfAbsent(lesson, () => []);
     _faceNotRecognizedFromCamera[lesson]!.addAll(notRecognized);
   }
   void removeFaceEmbeddingNotRecognizedFromCamera(
-    Iterable<EmbeddingRecognized> recognition,
+    Iterable<EmbeddingRecognitionResult> recognition,
     Lesson lesson,
   ) {
     final notRecognizedAtLesson = _faceNotRecognizedFromCamera[lesson];
@@ -325,6 +325,37 @@ class DomainRepository {
     }
     for (final r in recognition) {
       notRecognizedAtLesson.remove(r);
+    }
+  }
+  void replaceRecordOfRecognitionResultFromCamera(
+    EmbeddingRecognitionResult oldRecord,
+    EmbeddingRecognitionResult newRecord,
+    Lesson lesson,
+  ) {
+    // avoid edge cases where there is no entry in that lesson
+    _faceNotRecognizedFromCamera.putIfAbsent(lesson, () => []);
+    _faceRecognizedFromCamera.putIfAbsent(lesson, () => []);
+
+    List<EmbeddingRecognitionResult> originList;
+    if (oldRecord.recognized) {
+      originList = _faceRecognizedFromCamera[lesson]!;
+    } else {
+      originList = _faceNotRecognizedFromCamera[lesson]!;
+    }
+    List<EmbeddingRecognitionResult> destinationList;
+    if (newRecord.recognized) {
+      destinationList = _faceRecognizedFromCamera[lesson]!;
+    } else {
+      destinationList = _faceNotRecognizedFromCamera[lesson]!;
+    }
+
+    final indexAtOrigin = originList.indexOf(oldRecord);
+    // maintain entry at same location
+    if (originList == destinationList && indexAtOrigin >= 0) {
+      originList.replaceRange(indexAtOrigin, indexAtOrigin + 1, [newRecord]);
+    } else {
+      originList.removeAt(indexAtOrigin);
+      destinationList.add(newRecord);
     }
   }
   // ---------------------------
@@ -510,10 +541,10 @@ class DomainRepository {
     }
     return result;
   }
-  Map<Lesson, Iterable<EmbeddingRecognized>> getCameraRecognized(
+  Map<Lesson, Iterable<EmbeddingRecognitionResult>> getCameraRecognized(
     Iterable<Lesson>? lesson,
   ) {
-    final Map<Lesson, Iterable<EmbeddingRecognized>> result;
+    final Map<Lesson, Iterable<EmbeddingRecognitionResult>> result;
     if (lesson == null) {
       result = {
         for (final l in _faceRecognizedFromCamera.keys)
@@ -528,10 +559,10 @@ class DomainRepository {
     }
     return result;
   }
-  Map<Lesson, Iterable<EmbeddingNotRecognized>> getCameraNotRecognized(
+  Map<Lesson, Iterable<EmbeddingRecognitionResult>> getCameraNotRecognized(
     Iterable<Lesson>? lesson,
   ) {
-    final Map<Lesson, Iterable<EmbeddingNotRecognized>> result;
+    final Map<Lesson, Iterable<EmbeddingRecognitionResult>> result;
     if (lesson == null) {
       result = {
         for (final l in _faceNotRecognizedFromCamera.keys)

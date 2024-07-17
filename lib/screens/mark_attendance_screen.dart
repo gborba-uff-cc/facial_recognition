@@ -47,66 +47,66 @@ class RecognitionReviewer extends StatefulWidget {
 class _RecognitionReviewerState extends State<RecognitionReviewer> {
   @override
   void initState() {
-    cameraRecognized = widget.useCase.getFaceRecognizedFromCamera();
-    cameraNotRecognized = widget.useCase.getFaceNotRecognizedFromCamera();
+    recognitions = widget.useCase.getRecognitionFromCamera();
     studentFacePicture = widget.useCase.getStudentFaceImage();
     super.initState();
   }
 
-  Iterable<EmbeddingRecognized> cameraRecognized = [];
-  Iterable<EmbeddingNotRecognized> cameraNotRecognized = [];
+  Iterable<EmbeddingRecognitionResult> recognitions = [];
   Map<Student, FacePicture?> studentFacePicture = {};
 
   @override
   Widget build(BuildContext context) {
     return ListView.builder(
-      itemCount: cameraRecognized.length,
+      itemCount: recognitions.length,
       itemBuilder: (buildContext, i) {
-        final item = cameraRecognized.elementAt(i);
+        final item = recognitions.elementAt(i);
         return ReviewCard(
-          key: ObjectKey(item),
+          key: ObjectKey(item.inputFace),
           recognition: item,
           identifiedStudentFacePicture:
-              studentFacePicture[item.identifiedStudent]?.faceJpeg,
-          onCorrectAction: _handleConfirmRecognition,
-          onReviseAction: _handleReviseRecognition,
-          onDiscardAction: _handleDiscardRecognition,
+              studentFacePicture[item.nearestStudent]?.faceJpeg,
+          onCorrectAction: item.recognized ? () => _handleConfirmRecognition(item) : null,
+          onReviseAction: () => _handleReviseRecognition(item, null),
+          onDiscardAction: () => _handleDiscardRecognition(item),
         );
       },
     );
   }
 
   void _handleConfirmRecognition(
-    EmbeddingRecognized recognition,
+    EmbeddingRecognitionResult recognition,
   ) {
-    if (recognition.identifiedStudent == null) {
+    final recognizedStudent = recognition.nearestStudent;
+    if (recognizedStudent == null) {
       projectLogger.severe('a recognition without a student was confirmed.');
       return;
     }
-    widget.useCase.writeStudentAttendance([recognition.identifiedStudent]);
-    widget.useCase.removeFaceRecognizedFromCamera([recognition]);
+    widget.useCase.writeStudentAttendance([recognizedStudent]);
+    widget.useCase.removeRecognitionFromCamera([recognition]);
     setState(() {
-      cameraRecognized = widget.useCase.getFaceRecognizedFromCamera();
+      recognitions = widget.useCase.getRecognitionFromCamera();
     });
   }
 
   void _handleReviseRecognition(
-    EmbeddingRecognized recognition,
+    EmbeddingRecognitionResult recognition,
     Student? other,
   ) {
-    widget.useCase.updateFaceRecognitionFromCamera(recognition, other);
+    widget.useCase.updateRecognitionFromCamera(recognition, other);
     setState(() {
-      cameraRecognized = widget.useCase.getFaceRecognizedFromCamera();
+      recognitions = widget.useCase.getRecognitionFromCamera();
     });
   }
 
   void _handleDiscardRecognition(
-    EmbeddingRecognized recognition,
+    EmbeddingRecognitionResult recognition,
   ) {
-    widget.useCase.removeFaceRecognizedFromCamera([recognition]);
+    widget.useCase.removeRecognitionFromCamera([recognition]);
     setState(() {
-      cameraRecognized = widget.useCase.getFaceRecognizedFromCamera();
-    });  }
+      recognitions = widget.useCase.getRecognitionFromCamera();
+    });
+  }
 }
 
 class ReviewCard extends StatelessWidget {
@@ -119,29 +119,22 @@ class ReviewCard extends StatelessWidget {
     this.onDiscardAction,
   });
 
-  final EmbeddingRecognized recognition;
+  final EmbeddingRecognitionResult recognition;
   final Uint8List? identifiedStudentFacePicture;
-  final void Function(
-    EmbeddingRecognized recognition,
-  )? onCorrectAction;
-  final void Function(
-    EmbeddingRecognized recognition,
-    Student? student,
-  )? onReviseAction;
-  final void Function(
-    EmbeddingRecognized recognition,
-  )? onDiscardAction;
+  final void Function()? onCorrectAction;
+  final void Function()? onReviseAction;
+  final void Function()? onDiscardAction;
 
   @override
   Widget build(BuildContext context) {
     final studentFullName =
-        recognition.identifiedStudent.individual.displayFullName;
+        recognition.nearestStudent?.individual.displayFullName;
     final columnDetected = Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         AspectRatio(
           aspectRatio: 1.0,
-          child: Image.memory(recognition.inputFace),
+          child: Image.memory(recognition.inputFace, fit: BoxFit.contain),
         ),
         Text(
           'Detectado',
@@ -157,7 +150,7 @@ class ReviewCard extends StatelessWidget {
         AspectRatio(
           aspectRatio: 1.0,
           child: identifiedStudentFacePicture != null
-              ? Image.memory(identifiedStudentFacePicture!)
+              ? Image.memory(identifiedStudentFacePicture!, fit: BoxFit.contain)
               : const Icon(Icons.person),
         ),
         Text(
@@ -182,7 +175,7 @@ class ReviewCard extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                studentFullName != null ? 'É $studentFullName?' : '',
+                studentFullName != null ? 'É $studentFullName?' : 'Quem é?',
                 maxLines: 1,
                 overflow: TextOverflow.fade,
                 style: Theme.of(context).textTheme.headlineSmall,
@@ -214,9 +207,7 @@ class ReviewCard extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.fade,
                     ),
-                    onPressed: (onCorrectAction != null)
-                        ? () => onCorrectAction!(recognition)
-                        : null,
+                    onPressed: onCorrectAction,
                   ),
                   FilledButton.icon(
                     icon: const Icon(Icons.edit),
@@ -225,9 +216,7 @@ class ReviewCard extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.fade,
                     ),
-                    onPressed: (onReviseAction != null)
-                        ? () => onReviseAction!(recognition, null)
-                        : null,
+                    onPressed: onReviseAction,
                   ),
                   FilledButton.icon(
                     icon: const Icon(Icons.clear),
@@ -236,9 +225,7 @@ class ReviewCard extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.fade,
                     ),
-                    onLongPress: (onDiscardAction != null)
-                        ? () => onDiscardAction!(recognition)
-                        : null,
+                    onLongPress: onDiscardAction,
                     onPressed: (onDiscardAction != null)
                         ? () => _showSnackBar(
                             context,

@@ -48,8 +48,8 @@ class CameraIdentification implements ICameraAttendance<CameraImage> {
     }
 
     // recognize embedding now
-    final Duple<Iterable<EmbeddingRecognized>,
-        Iterable<EmbeddingNotRecognized>> recognizedAndNot;
+    final Duple<Iterable<EmbeddingRecognitionResult>,
+        Iterable<EmbeddingRecognitionResult>> recognizedAndNot;
     try {
       recognizedAndNot =
           _recognizeEmbedding(jpegsAndEmbeddings, lesson.subjectClass);
@@ -64,8 +64,8 @@ class CameraIdentification implements ICameraAttendance<CameraImage> {
       return;
     }
 
-    final Iterable<EmbeddingRecognized> recognized = recognizedAndNot.value1;
-    final Iterable<EmbeddingNotRecognized> notRecognized = recognizedAndNot.value2;
+    final Iterable<EmbeddingRecognitionResult> recognized = recognizedAndNot.value1;
+    final Iterable<EmbeddingRecognitionResult> notRecognized = recognizedAndNot.value2;
     projectLogger.fine('recognized students ${recognized.length}');
     projectLogger.fine('not recognized students: ${notRecognized.length}');
 
@@ -125,13 +125,13 @@ the attendance
   }
 
   /// trows _TryRecognizeLater if, for some reason, can't access face embeddings
-  Duple<Iterable<EmbeddingRecognized>, Iterable<EmbeddingNotRecognized>>
+  Duple<Iterable<EmbeddingRecognitionResult>, Iterable<EmbeddingRecognitionResult>>
       _recognizeEmbedding(
     final Iterable<Duple<Uint8List, FaceEmbedding>> input,
     final SubjectClass subjectClass,
   ) {
-    final List<EmbeddingRecognized> recognized = [];
-    final List<EmbeddingNotRecognized> notRecognized = [];
+    final List<EmbeddingRecognitionResult> recognized = [];
+    final List<EmbeddingRecognitionResult> notRecognized = [];
     final result = Duple(recognized, notRecognized);
     if (input.isEmpty) {
       return result;
@@ -150,9 +150,10 @@ the attendance
     if(facialDataByStudent.isEmpty) {
       notRecognized.addAll(
         input.map(
-          (i) => EmbeddingNotRecognized(
+          (i) => EmbeddingRecognitionResult(
             inputFace: i.value1,
             inputFaceEmbedding: i.value2,
+            recognized: false,
             nearestStudent: null,
           ),
         ),
@@ -162,7 +163,7 @@ the attendance
       );
       return result;
     }
-    //
+    // (listFaceEmbedding, labeledFaceEmbedding) => {aFaceEmbedding: theRecognitionResult, ...}
     final recognizeResult = _recognizer.recognize(
       input.map((e) => e.value2),
       facialDataByStudent.map(
@@ -180,17 +181,19 @@ the attendance
       // decide whether or not the embedding was recognized
       // REVIEW - necessity of different classes to recognized?
       if (r.status == FaceRecognitionStatus.recognized) {
-        final newEntry = EmbeddingRecognized(
+        final newEntry = EmbeddingRecognitionResult(
           inputFace: jpeg,
           inputFaceEmbedding: inputEmbedding,
-          identifiedStudent: r.label,
+          recognized: true,
+          nearestStudent: r.label,
         );
         recognized.add(newEntry);
       }
       else {
-        final newEntry = EmbeddingNotRecognized(
+        final newEntry = EmbeddingRecognitionResult(
           inputFace: jpeg,
           inputFaceEmbedding: inputEmbedding,
+          recognized: false,
           nearestStudent: r.label,
         );
         notRecognized.add(newEntry);
@@ -211,7 +214,7 @@ the attendance
   }
 
   void _faceRecognized(
-    Iterable<EmbeddingRecognized> recognized,
+    Iterable<EmbeddingRecognitionResult> recognized,
     Lesson lesson,
   ) {
     if (recognized.isEmpty) {
@@ -219,12 +222,10 @@ the attendance
     }
 
     _domainRepo.addFaceEmbeddingToCameraRecognized(recognized, lesson);
-    // _writeStudentAttendance(recognized.map((e) => e.nearestStudent), lesson);
-    // _getAndShowSubjectClassAttendance(lesson.subjectClass);
   }
 
   void _faceNotRecognized(
-    Iterable<EmbeddingNotRecognized> notRecognized,
+    Iterable<EmbeddingRecognitionResult> notRecognized,
     Lesson lesson,
   ) {
     if (notRecognized.isEmpty) {
@@ -237,7 +238,7 @@ the attendance
 
   /// FIXME - only for development - register a new student for a face embedding
   void _saveEmbeddingAsNewStudent(
-    Iterable<EmbeddingNotRecognized> notRecognized,
+    Iterable<EmbeddingRecognitionResult> notRecognized,
     Lesson lesson,
   ) {
     final individual = <Individual>[];

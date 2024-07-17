@@ -1,5 +1,3 @@
-import 'dart:typed_data';
-
 import 'package:facial_recognition/models/domain.dart';
 import 'package:facial_recognition/models/use_case.dart';
 
@@ -12,36 +10,52 @@ class MarkAttendance {
   final Lesson lesson;
   final DomainRepository domainRepository;
 
-  Iterable<EmbeddingRecognized> getFaceRecognizedFromCamera() {
-    final result = domainRepository.getCameraRecognized([lesson]);
-    return result[lesson] ?? [];
+  Iterable<EmbeddingRecognitionResult> getRecognitionFromCamera() {
+    final recognized = domainRepository.getCameraRecognized([lesson])[lesson];
+    final notRecognized =
+        domainRepository.getCameraNotRecognized([lesson])[lesson];
+    final Iterable<EmbeddingRecognitionResult> result =
+        List.unmodifiable(<EmbeddingRecognitionResult>[
+      if (recognized != null && recognized.isNotEmpty) ...recognized,
+      if (notRecognized != null && notRecognized.isNotEmpty) ...notRecognized,
+    ]);
+    return result;
   }
 
-  void updateFaceRecognitionFromCamera(
-    EmbeddingRecognized recognition,
+  void updateRecognitionFromCamera(
+    EmbeddingRecognitionResult recognition,
     Student? other,
   ) {
-    // TODO
-/*
-    final aux = EmbeddingRecognized(
+    final aux = EmbeddingRecognitionResult(
       inputFace: recognition.inputFace,
       inputFaceEmbedding: recognition.inputFaceEmbedding,
-      identifiedStudent: other,
+      recognized: other != null ? true : false,
+      nearestStudent: other,
     );
-    domainRepository.removeFaceEmbeddingRecognizedFromCamera([recognition], lesson);
-    domainRepository.addFaceEmbeddingToCameraRecognized([aux], lesson);
-*/
+    domainRepository.replaceRecordOfRecognitionResultFromCamera(
+      recognition,
+      aux,
+      lesson,
+    );
   }
 
-  void removeFaceRecognizedFromCamera(
-    Iterable<EmbeddingRecognized> recognition,
+  void removeRecognitionFromCamera(
+    final Iterable<EmbeddingRecognitionResult> recognition,
   ) {
-    domainRepository.removeFaceEmbeddingRecognizedFromCamera(recognition, lesson);
-  }
+    final List<EmbeddingRecognitionResult> recognized = [];
+    final List<EmbeddingRecognitionResult> notRecognized = [];
 
-  Iterable<EmbeddingNotRecognized> getFaceNotRecognizedFromCamera() {
-    final result = domainRepository.getCameraNotRecognized([lesson]);
-    return result[lesson] ?? [];
+    for (final r in recognition) {
+      if (r.recognized) {
+        recognized.add(r);
+      }
+      else {
+        notRecognized.add(r);
+      }
+    }
+
+    domainRepository.removeFaceEmbeddingRecognizedFromCamera(recognized, lesson);
+    domainRepository.removeFaceEmbeddingNotRecognizedFromCamera(notRecognized, lesson);
   }
 
   void writeStudentAttendance(

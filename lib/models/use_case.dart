@@ -12,28 +12,18 @@ class Duple<T1, T2> {
   );
 }
 
-class EmbeddingNotRecognized {
+class EmbeddingRecognitionResult {
   /// [inputFace] is a jpeg image as UInt8List
   final Uint8List inputFace;
   final FaceEmbedding inputFaceEmbedding;
+  final bool recognized;
   final Student? nearestStudent;
 
-  EmbeddingNotRecognized({
+  EmbeddingRecognitionResult({
     required this.inputFace,
     required this.inputFaceEmbedding,
+    required this.recognized,
     required this.nearestStudent,
   });
 }
 
-class EmbeddingRecognized {
-  /// [inputFace] is a jpeg image as UInt8List
-  final Uint8List inputFace;
-  final FaceEmbedding inputFaceEmbedding;
-  final Student identifiedStudent;
-
-  EmbeddingRecognized({
-    required this.inputFace,
-    required this.inputFaceEmbedding,
-    required this.identifiedStudent,
-  });
-}
