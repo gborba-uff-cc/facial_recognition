@@ -11,7 +11,8 @@ import 'package:facial_recognition/screens/create_student_screen.dart';
 import 'package:facial_recognition/screens/create_subject_class_screen.dart';
 import 'package:facial_recognition/screens/create_subject_screen.dart';
 import 'package:facial_recognition/screens/create_teacher_screen.dart';
-import 'package:facial_recognition/screens/fast_view.dart';
+// import 'package:facial_recognition/screens/fast_view.dart';
+import 'package:facial_recognition/screens/grid_student_selector_screen.dart';
 import 'package:facial_recognition/screens/landing_screen.dart';
 import 'package:facial_recognition/screens/mark_attendance_screen.dart';
 // import 'package:facial_recognition/screens/placeholder_screen.dart';
@@ -108,6 +109,12 @@ class MainApp extends StatelessWidget {
                     domainRepository,
                     state.extra as Lesson,
                   ),
+                ),
+              ),
+              GoRoute(
+                path: 'mark_attendance_edit_student',
+                builder: (context, state) => gridstudentSelector(
+                  state.extra as GridStudentSelectorScreenArguments<MapEntry<Student, FacePicture?>>,
                 ),
               ),
               GoRoute(

@@ -2,9 +2,11 @@ import 'dart:typed_data';
 
 import 'package:facial_recognition/models/domain.dart';
 import 'package:facial_recognition/models/use_case.dart';
+import 'package:facial_recognition/screens/grid_student_selector_screen.dart';
 import 'package:facial_recognition/use_case/mark_attendance.dart';
 import 'package:facial_recognition/utils/project_logger.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 class MarkAttendanceScreen extends StatelessWidget {
   const MarkAttendanceScreen({
@@ -67,7 +69,7 @@ class _RecognitionReviewerState extends State<RecognitionReviewer> {
           identifiedStudentFacePicture:
               studentFacePicture[item.nearestStudent]?.faceJpeg,
           onCorrectAction: item.recognized ? () => _handleConfirmRecognition(item) : null,
-          onReviseAction: () => _handleReviseRecognition(item, null),
+          onReviseAction: () => _handleReviseRecognition(item),
           onDiscardAction: () => _handleDiscardRecognition(item),
         );
       },
@@ -91,9 +93,23 @@ class _RecognitionReviewerState extends State<RecognitionReviewer> {
 
   void _handleReviseRecognition(
     EmbeddingRecognitionResult recognition,
-    Student? other,
-  ) {
-    widget.useCase.updateRecognitionFromCamera(recognition, other);
+  ) async {
+    final items = studentFacePicture.entries.toList();
+    final initialySelected = recognition.recognized
+        ? items.firstWhere(
+            (element) => element.key == recognition.nearestStudent,
+          )
+        : null;
+    final newSelection =
+        await GoRouter.of(context).push<MapEntry<Student, FacePicture?>>(
+      '/mark_attendance_edit_student',
+      extra: GridStudentSelectorScreenArguments(
+        items: items,
+        initialySelected: initialySelected,
+      ),
+    );
+    final newStudent = newSelection?.key;
+    widget.useCase.updateRecognitionFromCamera(recognition, newStudent);
     setState(() {
       recognitions = widget.useCase.getRecognitionFromCamera();
     });
