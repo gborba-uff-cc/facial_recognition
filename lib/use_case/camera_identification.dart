@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:camera/camera.dart';
 import 'package:facial_recognition/interfaces.dart';
 import 'package:facial_recognition/models/domain.dart';
+import 'package:facial_recognition/models/recognition_pipeline.dart';
 import 'package:facial_recognition/models/use_case.dart';
 import 'package:facial_recognition/utils/project_logger.dart';
 import 'package:image/image.dart';
@@ -13,21 +14,19 @@ class CameraIdentification implements ICameraAttendance<CameraImage> {
     IFaceDetector<CameraImage> faceDetector,
     IImageHandler<CameraImage, Image, Uint8List> imageHandler,
     IFaceEmbedder faceEmbedder,
-    IFaceRecognizer<FaceEmbedding, Student> faceRecognizer,
+    IFaceRecognizer<Student, FaceEmbedding> faceRecognizer,
     DomainRepository domainRepository,
     this.showFaceImages,
     this.lesson,
-  ) :
-    _detector = faceDetector,
-    _imageHandler = imageHandler,
-    _embedder = faceEmbedder,
-    _recognizer = faceRecognizer,
-    _domainRepo = domainRepository;
+  )   :
+        _recognitionPipeline = RecognitionPipeline(
+            faceDetector: faceDetector,
+            imageHandler: imageHandler,
+            faceEmbedder: faceEmbedder,
+            faceRecognizer: faceRecognizer),
+        _domainRepo = domainRepository;
 
-  final IFaceDetector<CameraImage> _detector;
-  final IImageHandler<CameraImage, Image, Uint8List> _imageHandler;
-  final IFaceEmbedder _embedder;
-  final IFaceRecognizer<FaceEmbedding, Student> _recognizer;
+  final RecognitionPipeline<CameraImage, Image, Uint8List, Student, FaceEmbedding> _recognitionPipeline;
   final DomainRepository _domainRepo;
   void Function(Iterable<Uint8List> jpegImages)? showFaceImages;
   final Lesson lesson;
@@ -38,30 +37,47 @@ class CameraIdentification implements ICameraAttendance<CameraImage> {
     final int cameraSensorOrientation,
   ) async {
     //
-    final Iterable<Duple<Uint8List, FaceEmbedding>> jpegsAndEmbeddings =
-        await _detectFaceAndExtractEmbedding(image, cameraSensorOrientation);
+    final faces = await _recognitionPipeline.detectFace(
+      image,
+      cameraSensorOrientation,
+    );
+    final jpegsAndEmbeddings =
+        await _recognitionPipeline.extractEmbedding(faces);
 
     // call back the function to handle the detected faces image
     final localShowFaceImages = showFaceImages;
     if (localShowFaceImages != null) {
-      localShowFaceImages(jpegsAndEmbeddings.map((e) => e.value1));
+      localShowFaceImages(
+        jpegsAndEmbeddings.map(
+          (e) => e.value1,
+        ),
+      );
     }
 
-    // recognize embedding now
-    final Duple<Iterable<EmbeddingRecognitionResult>,
-        Iterable<EmbeddingRecognitionResult>> recognizedAndNot;
-    try {
-      recognizedAndNot =
-          _recognizeEmbedding(jpegsAndEmbeddings, lesson.subjectClass);
-    }
-    on _TryRecognizeLater {
+    const bool tryRecognizeLater = false;
+    // retrieve all students in this class that have facial data added
+    final Map<Student, Iterable<FaceEmbedding>> embeddingsByStudent =
+        _getFacialDataFromSubjectClass(lesson.subjectClass).map(
+      (student, iterableFacialData) => MapEntry(
+        student,
+        iterableFacialData.map(
+          (facialData) => facialData.data,
+        ),
+      ),
+    );
+
+    Duple<Iterable<EmbeddingRecognitionResult>,
+        Iterable<EmbeddingRecognitionResult>> recognizedAndNot = const Duple([], []);
+    if (tryRecognizeLater) {
       projectLogger.info('could not recognize embedding now', e);
       _deferRecognizeEmbedding(jpegsAndEmbeddings, lesson);
       return;
     }
-    catch (e) {
-      projectLogger.severe('for some reason, other than to try recognize later, could not recognize embedding', e);
-      return;
+    else {
+      recognizedAndNot = await _recognitionPipeline.recognizeEmbedding(
+        jpegsAndEmbeddings,
+        embeddingsByStudent,
+      );
     }
 
     final Iterable<EmbeddingRecognitionResult> recognized = recognizedAndNot.value1;
@@ -69,51 +85,11 @@ class CameraIdentification implements ICameraAttendance<CameraImage> {
     projectLogger.fine('recognized students ${recognized.length}');
     projectLogger.fine('not recognized students: ${notRecognized.length}');
 
-/* REVIEW
-- for recognized, would be better to ask for a human comparison before marking
-the attendance
-- for not recognized, would be better ask to update known facial data for student
-*/
     // handle recognized students
     _faceRecognized(recognized, lesson);
 
     // handle not recognized faces embedding
     _faceNotRecognized(notRecognized, lesson);
-  }
-
-  Future<Iterable<Duple<Uint8List, FaceEmbedding>>>
-      _detectFaceAndExtractEmbedding(
-    final CameraImage image,
-    final int cameraSensorOrientation,
-  ) async {
-    // detect faces
-    final faceRects = await _detector.detect(image, cameraSensorOrientation);
-    projectLogger.fine('detected faces: ${faceRects.length}');
-
-    // detach faces into manipulable images
-    final manipulableImage = _imageHandler.fromCameraImage(image);
-    final faceImages = _imageHandler.cropFromImage(manipulableImage, faceRects);
-
-    // create jpegs images and rgbMatrixes of detected face images
-    final List<Uint8List> detectedFaces = [];
-    final List<List<List<List<int>>>> samples = [];
-    for (final i in faceImages) {
-      final jpeg = _imageHandler.toJpeg(i);
-      detectedFaces.add(jpeg);
-
-      final resizedImage = _imageHandler.resizeImage(i, 160, 160);
-      final imageMatrix = _imageHandler.toRgbMatrix(resizedImage);
-      samples.add(imageMatrix);
-    }
-
-    // generate faces embedding
-    List<FaceEmbedding> facesEmbedding = await _embedder.extractEmbedding(samples);
-
-    final List<Duple<Uint8List, FaceEmbedding>> result = [
-      for (int i=0; i<detectedFaces.length; i++)
-        Duple(detectedFaces[i], facesEmbedding[i])
-    ];
-    return result;
   }
 
   void _deferRecognizeEmbedding(
@@ -122,85 +98,6 @@ the attendance
   ) {
     projectLogger.info('face recognition is going to be deferred');
     _domainRepo.addFaceEmbeddingToDeferredPool(input, lesson);
-  }
-
-  /// trows _TryRecognizeLater if, for some reason, can't access face embeddings
-  Duple<Iterable<EmbeddingRecognitionResult>, Iterable<EmbeddingRecognitionResult>>
-      _recognizeEmbedding(
-    final Iterable<Duple<Uint8List, FaceEmbedding>> input,
-    final SubjectClass subjectClass,
-  ) {
-    final List<EmbeddingRecognitionResult> recognized = [];
-    final List<EmbeddingRecognitionResult> notRecognized = [];
-    final result = Duple(recognized, notRecognized);
-    if (input.isEmpty) {
-      return result;
-    }
-
-    // retrieve all students in this class that have facial data added
-    final Map<Student, Iterable<FacialData>> facialDataByStudent;
-    try {
-      facialDataByStudent = _getFacialDataFromSubjectClass(subjectClass);
-    }
-    catch (e) {  // STUB - change to the correct condition
-      throw _TryRecognizeLater();
-    }
-
-    // no facial data registered for students in the subject class
-    if(facialDataByStudent.isEmpty) {
-      notRecognized.addAll(
-        input.map(
-          (i) => EmbeddingRecognitionResult(
-            inputFace: i.value1,
-            inputFaceEmbedding: i.value2,
-            recognized: false,
-            nearestStudent: null,
-          ),
-        ),
-      );
-      projectLogger.info(
-        'This subject class has no student with facial data registered'
-      );
-      return result;
-    }
-    // (listFaceEmbedding, labeledFaceEmbedding) => {aFaceEmbedding: theRecognitionResult, ...}
-    final recognizeResult = _recognizer.recognize(
-      input.map((e) => e.value2),
-      facialDataByStudent.map(
-        (student, iterableFacialData) => MapEntry(
-          student,
-          iterableFacialData.map((facialData) => facialData.data),
-        ),
-      ),
-    );
-    // split the recognition data between recognized and not
-    for (final inputElement in input) {
-      final jpeg = inputElement.value1;
-      final inputEmbedding = inputElement.value2;
-      final r = recognizeResult[inputElement.value2]!;
-      // decide whether or not the embedding was recognized
-      // REVIEW - necessity of different classes to recognized?
-      if (r.status == FaceRecognitionStatus.recognized) {
-        final newEntry = EmbeddingRecognitionResult(
-          inputFace: jpeg,
-          inputFaceEmbedding: inputEmbedding,
-          recognized: true,
-          nearestStudent: r.label,
-        );
-        recognized.add(newEntry);
-      }
-      else {
-        final newEntry = EmbeddingRecognitionResult(
-          inputFace: jpeg,
-          inputFaceEmbedding: inputEmbedding,
-          recognized: false,
-          nearestStudent: r.label,
-        );
-        notRecognized.add(newEntry);
-      }
-    }
-
-    return result;
   }
 
   Map<Student, Iterable<FacialData>> _getFacialDataFromSubjectClass(
@@ -279,5 +176,3 @@ the attendance
     _domainRepo.addEnrollment(enrollment);
   }
 }
-
-class _TryRecognizeLater implements Exception {}

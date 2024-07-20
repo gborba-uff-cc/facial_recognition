@@ -23,7 +23,7 @@ class FaceRecognitionResult<TLabel> implements IFaceRecognitionResult<TLabel> {
 }
 
 class DistanceClassifier<TElement extends List<num>, TLabel>
-    implements IFaceRecognizer<TElement, TLabel> {
+    implements IFaceRecognizer<TLabel, TElement> {
   DistanceClassifier({
     required this.distanceFunction,
     recognitionThreshold = 20.0,
@@ -84,7 +84,7 @@ class DistanceClassifier<TElement extends List<num>, TLabel>
 }
 
 class KnnClassifier<TElement extends List<num>, TLabel>
-    implements IFaceRecognizer<TElement, TLabel> {
+    implements IFaceRecognizer<TLabel, TElement> {
   /// [kNeighbors] is the number of neighbors being considered \
   /// [distanceFunction] is the distance metric used to determine proximity
   const KnnClassifier({

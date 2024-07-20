@@ -21,7 +21,7 @@ abstract class IFaceEmbedder {
   Future<List<FaceEmbedding>> extractEmbedding(final List<List<List<List<num>>>> facesRgbMatrix);
 }
 
-abstract class IFaceRecognizer<TElement, TLabel> {
+abstract class IFaceRecognizer<TLabel, TElement> {
   /// return the most alike label among the data set and the a recognition value
   Map<TElement, IFaceRecognitionResult<TLabel>> recognize(
     final Iterable<TElement> unknown,
