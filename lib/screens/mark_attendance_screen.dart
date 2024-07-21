@@ -145,39 +145,6 @@ class ReviewCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final studentFullName =
         recognition.nearestStudent?.individual.displayFullName;
-    final columnDetected = Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        AspectRatio(
-          aspectRatio: 1.0,
-          child: Image.memory(recognition.inputFace, fit: BoxFit.contain),
-        ),
-        Text(
-          'Detectado',
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: Theme.of(context).textTheme.titleMedium,
-        ),
-      ],
-    );
-    final columnRegistered = Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        AspectRatio(
-          aspectRatio: 1.0,
-          child: identifiedStudentFacePicture != null
-              ? Image.memory(identifiedStudentFacePicture!, fit: BoxFit.contain)
-              : const Icon(Icons.person),
-        ),
-        Text(
-          'Cadastrado',
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: Theme.of(context).textTheme.titleMedium,
-        ),
-      ],
-    );
-
     return Padding(
       padding: const EdgeInsets.only(bottom: 16.0),
       child: Card(
@@ -191,7 +158,7 @@ class ReviewCard extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                studentFullName != null ? 'É $studentFullName?' : 'Quem é?',
+                recognition.recognized ? 'É $studentFullName?' : 'Quem é?',
                 maxLines: 1,
                 overflow: TextOverflow.fade,
                 style: Theme.of(context).textTheme.headlineSmall,
@@ -200,11 +167,27 @@ class ReviewCard extends StatelessWidget {
                 children: [
                   Flexible(
                     fit: FlexFit.tight,
-                    child: columnDetected,
+                    child: PictureTile(
+                      jpeg: recognition.inputFace,
+                      footer: Text(
+                        'Detectado',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                    ),
                   ),
                   Flexible(
                     fit: FlexFit.tight,
-                    child: columnRegistered,
+                    child: PictureTile(
+                      jpeg: recognition.recognized ? identifiedStudentFacePicture : null,
+                      footer: Text(
+                        'Cadastrado',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -268,4 +251,34 @@ void _showSnackBar(BuildContext context, Widget content) {
     ..showSnackBar(
       SnackBar(content: content),
     );
+}
+
+class PictureTile extends StatelessWidget {
+  const PictureTile({
+    super.key,
+    this.jpeg,
+    this.footer,
+  });
+
+  final Uint8List? jpeg;
+  final Widget? footer;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        AspectRatio(
+          aspectRatio: 1.0,
+          child: jpeg != null
+              ? Image.memory(jpeg!, fit: BoxFit.contain)
+              : const Center(
+                  child: Icon(Icons.person),
+                ),
+        ),
+        if(footer != null)
+          footer!,
+      ],
+    );
+  }
 }

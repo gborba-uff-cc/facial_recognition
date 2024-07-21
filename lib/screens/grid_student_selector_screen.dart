@@ -23,14 +23,10 @@ GridSelectorScreen<MapEntry<Student, FacePicture?>> gridstudentSelector(
       aspectRatio: 1.0,
       child: item.value != null
             ? Image.memory(item.value!.faceJpeg, fit: BoxFit.contain)
-            : Column(
-                children: [
-                  Text(
-                    item.key.individual.displayFullName,
-                    softWrap: true,
-                    overflow: TextOverflow.fade,
-                  )
-                ],
-              ),
+            : Text(
+              item.key.individual.displayFullName,
+              softWrap: true,
+              overflow: TextOverflow.fade,
+            ),
     ),
   );
