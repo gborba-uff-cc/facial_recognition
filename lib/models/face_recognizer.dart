@@ -1,4 +1,6 @@
 // try differents SVM, KNN, multilayer perceptron, xgboost, adaboost
+import 'dart:math';
+
 import 'package:facial_recognition/interfaces.dart';
 import 'package:facial_recognition/models/use_case.dart';
 
@@ -90,7 +92,7 @@ class KnnClassifier<TElement extends List<num>, TLabel>
   const KnnClassifier({
     this.kNeighbors = 5,
     required this.distanceFunction,
-    recognitionThreshold = 0.8,
+    recognitionThreshold = 20.0,
   }): _recognitionThreshold = recognitionThreshold,
       assert (kNeighbors > 0);
 
@@ -114,12 +116,6 @@ class KnnClassifier<TElement extends List<num>, TLabel>
     assert (unknown.isNotEmpty);
 
     // generate once and update every round to avoid generating every time
-    // the map the occurence number of a label among the kNeighbors every round
-    final Map<TLabel, int> countStructure = {
-      for (final foo in dataSet.keys) foo: 0
-    };
-
-    // generate once and update every round to avoid generating every time
     // the list of distances between an unknown and a dataSet element
     final distanceStructure = [
       for (final labelValues in dataSet.entries)
@@ -136,9 +132,10 @@ class KnnClassifier<TElement extends List<num>, TLabel>
     );
     final result = {for (final u in unknown) u: tmp};
 
+    final Map<TLabel, double> scoreStructure = {};
     // compute for all the inputs
     for (final anInput in unknown) {
-      countStructure.updateAll((key, value) => 0);
+      scoreStructure.clear();
 
       //measure the distances
       for (final lvd in distanceStructure) {
@@ -151,31 +148,25 @@ class KnnClassifier<TElement extends List<num>, TLabel>
       );
 
       // count occurency of the kNearests neighbors
-      for (final anInput in  distanceStructure.take(kNeighbors)) {
-        countStructure.update(anInput.label, (value) => value++);
+      for (final labelValueDistance in  distanceStructure.take(kNeighbors)) {
+        final double score = labelValueDistance.distance < recognitionThreshold ? pow(labelValueDistance.distance, 3).toDouble() : 0.0;
+        scoreStructure.update(labelValueDistance.label, (oldScore) => oldScore + score, ifAbsent: () => score,);
       }
-      final occurrencyAndLabel = [
-        for (final anInput in countStructure.entries)
-          Duple<int, TLabel>(anInput.value, anInput.key)
-      ];
-      occurrencyAndLabel.sort(
-        (a, b) => -a.value1.compareTo(b.value1),
-      );
+      final labelByScore = scoreStructure.entries
+          .map((labelScore) => Duple(labelScore.value, labelScore.key))
+          .toList(growable: false)
+        ..sort((a, b) => -a.value1.compareTo(b.value1));
 
       // get the most occurring
-      final mostOccurring = occurrencyAndLabel.first;
-      final label = mostOccurring.value2;
-      final probability = mostOccurring.value1/kNeighbors;
+      final mostOccurring = labelByScore.first;
       result[anInput] = FaceRecognitionResult(
-        label: label,
-        recognitionValue: probability,
-        status: _recognitionStatus(probability) ? FaceRecognitionStatus.recognized : FaceRecognitionStatus.notRecognized,
+        label: mostOccurring.value2,
+        recognitionValue: mostOccurring.value1,
+        status: mostOccurring.value1 > 0.0 ? FaceRecognitionStatus.recognized : FaceRecognitionStatus.notRecognized,
       );
     }
     return result;
   }
-
-  bool _recognitionStatus(double probability) => probability > recognitionThreshold ? true : false;
 }
 
 class _LabelValueDistance<TLabel, TElement>{
