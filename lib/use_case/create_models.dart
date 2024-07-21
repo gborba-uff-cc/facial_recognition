@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:facial_recognition/models/domain.dart';
 
 class CreateModels {
@@ -95,6 +97,7 @@ class CreateModels {
       individual: i,
       registration: registration,
     );
+    _domainRepository.addIndividual([i]);
     _domainRepository.addTeacher([teacher]);
   }
 
@@ -128,7 +131,50 @@ class CreateModels {
       individual: i,
       registration: registration,
     );
+    _domainRepository.addIndividual([i]);
     _domainRepository.addTeacher([teacher]);
+  }
+
+  void createStudentFacePicture({
+    required Uint8List jpegFacePicture,
+    required String studentRegistration,
+  }) {
+    final s = _domainRepository
+        .getStudentFromRegistration([studentRegistration])[studentRegistration];
+    if (s == null) {
+      throw ArgumentError(
+        'could not find a registered student',
+        'individualRegistration',
+      );
+    }
+    else {
+      final facePicture = FacePicture(
+        faceJpeg: jpegFacePicture,
+        individual: s.individual,
+      );
+      _domainRepository.addFacePicture([facePicture]);
+    }
+  }
+
+  void createStudentFacialData({
+    required FaceEmbedding embedding,
+    required String studentRegistration,
+  }){
+    final s = _domainRepository
+        .getStudentFromRegistration([studentRegistration])[studentRegistration];
+    if (s == null) {
+      throw ArgumentError(
+        'could not find a registered student',
+        'individualRegistration',
+      );
+    }
+    else {
+      final facialData = FacialData(
+        data: embedding,
+        individual: s.individual,
+      );
+      _domainRepository.addFacialData([facialData]);
+    }
   }
 
   void createSubject({
