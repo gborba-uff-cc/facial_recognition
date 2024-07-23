@@ -90,20 +90,17 @@ class AttendanceSummaryScreen extends StatelessWidget {
                           trailing: SizedBox(
                             width: 60.0,
                             height: cardHeight,
-                            child: Flexible(
-                              fit: FlexFit.tight,
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Text(
-                                    element.value.length.toString(),
-                                    style: textTheme.headlineSmall,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.clip,
-                                    textAlign: TextAlign.center,
-                                  ),
-                                ],
-                              ),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  element.value.length.toString(),
+                                  style: textTheme.headlineSmall,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.clip,
+                                  textAlign: TextAlign.center,
+                                ),
+                              ],
                             ),
                           ),
                         ),

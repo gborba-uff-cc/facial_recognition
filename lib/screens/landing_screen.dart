@@ -69,13 +69,13 @@ class _LandingScreenState extends State<LandingScreen> {
                           },
                           child: SelectedInfos(
                             subject: (subject == null)
-                                ? '--'
+                                ? ''
                                 : subject!.name,
                             subjectClass: (subjectClass == null)
-                                ? '--'
+                                ? ''
                                 : subjectClass!.name,
                             lesson: (lesson == null)
-                                ? '--'
+                                ? ''
                                 : lesson!.utcDateTime.toLocal().toString(),
                           ),
                         ),
