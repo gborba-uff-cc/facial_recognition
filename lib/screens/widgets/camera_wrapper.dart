@@ -4,26 +4,24 @@ import 'package:camera/camera.dart' as pkg_camera;
 import 'package:facial_recognition/utils/project_logger.dart';
 import 'package:flutter/material.dart';
 
+typedef CameraWrapperCallBack = void Function(
+  pkg_camera.CameraDescription description,
+  pkg_camera.CameraImage cameraImage,
+);
+
 class CameraWrapper extends StatefulWidget {
   const CameraWrapper({
     super.key,
     required this.camerasAvailable,
-    void Function()? onCapturePressed,
-    void Function(
-      pkg_camera.CameraDescription cameraDescription,
-      pkg_camera.CameraImage cameraImage,
-    )?
-        imageStreamHandler,
+    CameraWrapperCallBack? imageCaptureHandler,
+    CameraWrapperCallBack? imageStreamHandler,
     this.streamDiscardCount = 29,
-  })  : _onCapturePressed = onCapturePressed,
+  })  : _imageCaptureHandler = imageCaptureHandler,
         _imageStreamHandler = imageStreamHandler;
 
   final List<pkg_camera.CameraDescription> camerasAvailable;
-  final void Function()? _onCapturePressed;
-  final void Function(
-    pkg_camera.CameraDescription cameraDescription,
-    pkg_camera.CameraImage cameraImage,
-  )? _imageStreamHandler;
+  final CameraWrapperCallBack? _imageCaptureHandler;
+  final CameraWrapperCallBack? _imageStreamHandler;
   /// discard [streamDiscardCount] images after handling 1 image from the
   /// stream for load balance
   final int streamDiscardCount;
@@ -33,39 +31,69 @@ class CameraWrapper extends StatefulWidget {
 }
 
 class _CameraWrapperState extends State<CameraWrapper> with WidgetsBindingObserver {
-  // controll the frequency at which images are processed
-  late _ModularCounter _imageCounterFilter;
-  StreamController<pkg_camera.CameraImage>? _cameraImageStreamController;
+  // SECTION - STREAMS ---------------------------------------------------------
+  /* wrap original stream allowing multiple subscriptions */
+  final StreamController<pkg_camera.CameraImage> _cameraImageBroadcastStream =
+      StreamController.broadcast();
+  /* subscription receiving the same elements as the original stream */
   StreamSubscription<pkg_camera.CameraImage>? _cameraImageStreamSubscription;
+  /* subscription receiving elements when capture button is tapped */
+  StreamSubscription<pkg_camera.CameraImage>? _cameraImageCaptureSubscription;
+  /*
+  the frequency at which images are processed in the stream subscription;
+  i.e. how many discarded images after handling one image;
+  */
+  late _ModularCounter _imageCounterFilter;
+  /* sinalize the capture stream handler to handle images when true */
+  final _Box<bool> _shouldCaptureImage = _Box(false);
+  // !SECTION ------------------------------------------------------------------
 
-  pkg_camera.CameraController? cameraController;
+  // SECTION - CAMERA CONTROLLER -----------------------------------------------
+  pkg_camera.CameraController? _cameraController;
   double _cameraControllerMinZoom = 1.0;
   double _cameraControllerMaxZoom = 1.0;
   double _cameraControllerBaseZoom = 1.0;
   double _cameraControllerCurrentZoom = 1.0;
   late _ModularCounter _selectedCameraIndex;
+  // !SECTION ------------------------------------------------------------------
 
   @override
   void initState() {
     super.initState();
     // setup to receive calls to didChangeAppLifecycleState
     WidgetsBinding.instance.addObserver(this);
+    // ----- late variables
+    _imageCounterFilter = _ModularCounter(widget.streamDiscardCount);
+    _selectedCameraIndex = _ModularCounter(widget.camerasAvailable.length);
+    // -----
+    // _cameraImageBroadcastStream.onListen = () => projectLogger.fine(
+    //       '_CameraWrapperState: at least one handler',
+    //     );
+    // _cameraImageBroadcastStream.onCancel = () => projectLogger.fine(
+    //       '_CameraWrapperState: no more handlers',
+    //     );
+    _cameraImageStreamSubscription =
+        _subscribeImageStream(_cameraImageBroadcastStream);
+    _cameraImageCaptureSubscription =
+        _subscribeCaptureStream(_cameraImageBroadcastStream);
+    // -----
     if (widget.camerasAvailable.isNotEmpty) {
-      _selectedCameraIndex = _ModularCounter(widget.camerasAvailable.length);
-      _onNewCameraSelected(widget.camerasAvailable[_selectedCameraIndex.current]);
-      _imageCounterFilter = _ModularCounter(widget.streamDiscardCount);
+      final description = widget.camerasAvailable[_selectedCameraIndex.current];
+      _onNewCameraSelected(description);
     }
-    else {}
   }
 
   @override
   void dispose() {
-    final controller = cameraController;
+    final controller = _cameraController;
     if (controller != null) {
-      _stopImageStream(controller);
-      controller.dispose();
+      _disposeCameraController(controller);
     }
-
+    // -----
+    _cameraImageStreamSubscription?.cancel();
+    _cameraImageCaptureSubscription?.cancel();
+    _cameraImageBroadcastStream.close();
+    // -----
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -75,38 +103,145 @@ class _CameraWrapperState extends State<CameraWrapper> with WidgetsBindingObserv
     AppLifecycleState state,
   ) {
     super.didChangeAppLifecycleState(state);
-    final pkg_camera.CameraController? controller = cameraController;
 
-    if (
-      // App state changed before we got the chance to initialize.
-      controller == null ||
-      !controller.value.isInitialized) {
-      return;
+    final controller = _cameraController;
+    switch (state) {
+      case AppLifecycleState.resumed:
+        final description = widget.camerasAvailable[_selectedCameraIndex.current];
+        _onNewCameraSelected(description);
+        break;
+      case AppLifecycleState.inactive:
+        if (controller != null) {
+          _disposeCameraController(controller);
+        }
+        break;
+      default:
     }
-    else {
-      switch (state) {
-        case AppLifecycleState.resumed:
-          _initializeCameraController(controller.description).then(
-            (startedController) {
-              if (mounted) {
-                setState(() {
-                  cameraController = startedController;
-                });
-              }
-            },
+  }
+
+  Future<void> _onNewCameraSelected(
+    pkg_camera.CameraDescription description,
+  ) {
+    return _initializeCameraController(description).then(
+      (startedController) {
+        if (startedController != null) {
+          startedController.startImageStream(
+            // _cameraImageBroadcastStream is not null because of initState
+            (image) => _cameraImageBroadcastStream.add(image),
           );
-          break;
-        case AppLifecycleState.inactive:
-          controller.dispose();
-          break;
-        default:
-      }
+        }
+
+        if (mounted) {
+          setState(() {
+            _cameraController = startedController;
+          });
+        }
+      },
+    );
+  }
+
+  Future<pkg_camera.CameraController?> _initializeCameraController(
+      pkg_camera.CameraDescription description,
+  ) async {
+    final controller = pkg_camera.CameraController(
+      description,
+      pkg_camera.ResolutionPreset.high,
+      enableAudio: false,
+      // imageFormatGroup: ImageFormatGroup.yuv420
+    );
+
+    controller.addListener(
+      () {
+        if (controller.value.hasError) {
+          projectLogger.warning(controller.value.errorDescription);
+        }
+      },
+    );
+
+    _cameraControllerCurrentZoom = 1.0;
+    _cameraControllerMinZoom = 1.0;
+    _cameraControllerMaxZoom = 1.0;
+
+    return controller.initialize().then(
+      (initialized) {
+        return controller.getMinZoomLevel();
+      },
+      onError: (error) {
+        _logCameraException(error);
+        return 1.0;
+      },
+    ).then(
+      (minLevel) {
+        _cameraControllerMinZoom = minLevel;
+        return controller.getMaxZoomLevel();
+      },
+      onError: (error) {
+        _logCameraException(error);
+        return 1.0;
+      },
+    ).then(
+      (maxLevel) {
+        _cameraControllerMaxZoom = maxLevel;
+        return controller;
+      },
+      onError: (error) {
+        _logCameraException(error);
+        return controller;
+      },
+    );
+  }
+
+  Future<void> _disposeCameraController(
+    pkg_camera.CameraController controller,
+  ) {
+    return Future<void>(
+      () {
+        if (controller.value.isStreamingImages) {
+          return controller.stopImageStream();
+        }
+        else {}
+      },
+    ).then((value) => controller.dispose());
+  }
+
+  void _logCameraException(
+    pkg_camera.CameraException exception,
+  ) {
+    String message = '';
+    bool isShout = false;
+    switch (exception.code) {
+      case 'CameraAccessDenied':
+        message = 'You have denied camera access.';
+        break;
+      case 'CameraAccessDeniedWithoutPrompt':
+        message = 'Please go to Settings app to enable camera access.';
+        break;
+      case 'CameraAccessRestricted':
+        message = 'Camera access is restricted.';
+        break;
+      case 'AudioAccessDenied':
+        message = 'You have denied audio access.';
+        break;
+      case 'AudioAccessDeniedWithoutPrompt':
+        message = 'Please go to Settings app to enable audio access.';
+        break;
+      case 'AudioAccessRestricted':
+        message = 'Audio access is restricted.';
+        break;
+      default:
+        message = 'Unknow CameraException code';
+        isShout = true;
+    }
+    if (isShout) {
+      projectLogger.shout(message, exception);
+    } else {
+      projectLogger.severe(message);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final controller = cameraController;
+    final controller = _cameraController;
     Widget buildObject;
     if (controller == null) {
       buildObject = const Center(
@@ -146,7 +281,7 @@ class _CameraWrapperState extends State<CameraWrapper> with WidgetsBindingObserv
                     padding: const EdgeInsets.only(bottom: bottomPadding),
                     child: GestureDetector(
                       behavior: HitTestBehavior.opaque,
-                      onTap: widget._onCapturePressed,
+                      onTap: _onCaptureTapped,
                       child: Container(
                         height: baseIconSize,
                         width: baseIconSize,
@@ -207,153 +342,6 @@ class _CameraWrapperState extends State<CameraWrapper> with WidgetsBindingObserv
     return buildObject;
   }
 
-  Future<pkg_camera.CameraController?> _initializeCameraController(
-      pkg_camera.CameraDescription description,
-  ) async {
-    final controller = pkg_camera.CameraController(
-      description,
-      pkg_camera.ResolutionPreset.high,
-      enableAudio: false,
-      // imageFormatGroup: ImageFormatGroup.yuv420
-    );
-
-    controller.addListener(
-      () {
-        if (controller.value.hasError) {
-          projectLogger.warning(controller.value.errorDescription);
-        }
-      },
-    );
-
-    try {
-      await controller.initialize();
-      _cameraControllerMinZoom = await controller.getMinZoomLevel();
-      _cameraControllerMaxZoom = await controller.getMaxZoomLevel();
-      _cameraControllerCurrentZoom = 1.0;
-
-      return controller;
-    } on pkg_camera.CameraException catch (e) {
-      _logCameraException(e);
-    }
-    _cameraControllerCurrentZoom = 1.0;
-    _cameraControllerMinZoom = 1.0;
-    _cameraControllerMaxZoom = 1.0;
-
-    return null;
-  }
-
-  void _onNewCameraSelected(
-    pkg_camera.CameraDescription description,
-  ) async {
-    final oldController = cameraController;
-    // stop image stream on old controller
-    if (oldController != null) {
-      _stopImageStream(oldController);
-    }
-
-    // update camera controller
-    if (oldController == null) {
-      _initializeCameraController(description).then(
-        (startedController) {
-          if (startedController != null) {
-            _startImageStream(startedController);
-          }
-          if (mounted) {
-            setState(() {
-              cameraController = startedController;
-            });
-          }
-        },
-      );
-    } else {
-      oldController.setDescription(description).then(
-        (value) => _startImageStream(oldController),
-        onError: (error) {
-          switch (error) {
-            case pkg_camera.CameraException:
-              _logCameraException(error);
-              break;
-            default:
-              projectLogger.severe(error);
-          }
-        },
-      );
-    }
-  }
-
-  void _logCameraException(
-    pkg_camera.CameraException exception,
-  ) {
-    String message = '';
-    bool isShout = false;
-    switch (exception.code) {
-      case 'CameraAccessDenied':
-        message = 'You have denied camera access.';
-        break;
-      case 'CameraAccessDeniedWithoutPrompt':
-        message = 'Please go to Settings app to enable camera access.';
-        break;
-      case 'CameraAccessRestricted':
-        message = 'Camera access is restricted.';
-        break;
-      case 'AudioAccessDenied':
-        message = 'You have denied audio access.';
-        break;
-      case 'AudioAccessDeniedWithoutPrompt':
-        message = 'Please go to Settings app to enable audio access.';
-        break;
-      case 'AudioAccessRestricted':
-        message = 'Audio access is restricted.';
-        break;
-      default:
-        message = 'Unknow CameraException code';
-        isShout = true;
-    }
-    if (isShout) {
-      projectLogger.shout(message, exception);
-    } else {
-      projectLogger.severe(message);
-    }
-  }
-
-  void _startImageStream(
-    pkg_camera.CameraController controller,
-  ) {
-    final streamHandler = widget._imageStreamHandler;
-    if (streamHandler != null) {
-      final streamController = StreamController<pkg_camera.CameraImage>();
-      _cameraImageStreamController = streamController;
-      _cameraImageStreamSubscription =
-          streamController.stream.where((cameraImage) {
-        final isZero = _imageCounterFilter.current == 0;
-        _imageCounterFilter.tick();
-        return isZero ? true : false;
-      }).listen(
-        (cameraImage) => streamHandler(
-          widget.camerasAvailable[_selectedCameraIndex.current],
-          cameraImage,
-        ),
-      );
-      controller.startImageStream((image) => streamController.add(image));
-    }
-  }
-
-  void _stopImageStream(pkg_camera.CameraController controller) {
-    final streamHandler = widget._imageStreamHandler;
-    if (streamHandler != null) {
-      final streamSubscription = _cameraImageStreamSubscription;
-      final streamController = _cameraImageStreamController;
-
-      controller.stopImageStream();
-      if (streamSubscription != null) {
-        streamSubscription.cancel();
-      }
-      if (streamController != null) {
-        streamController.close();
-      }
-    }
-  }
-
   void _startZoom(
     ScaleStartDetails details,
   ) {
@@ -369,7 +357,7 @@ class _CameraWrapperState extends State<CameraWrapper> with WidgetsBindingObserv
     if (details.pointerCount == 2) {
       _cameraControllerCurrentZoom = (_cameraControllerBaseZoom * details.scale)
           .clamp(_cameraControllerMinZoom, _cameraControllerMaxZoom);
-      cameraController?.setZoomLevel(_cameraControllerCurrentZoom);
+      _cameraController?.setZoomLevel(_cameraControllerCurrentZoom);
       return;
     }
   }
@@ -378,7 +366,7 @@ class _CameraWrapperState extends State<CameraWrapper> with WidgetsBindingObserv
     TapDownDetails details,
     BoxConstraints constraints,
   ) {
-    final controller = cameraController;
+    final controller = _cameraController;
     final normalizedOffset = _normalizedOffsetOfTapPosition(details.localPosition, constraints);
 
     if (controller == null) {
@@ -399,10 +387,60 @@ class _CameraWrapperState extends State<CameraWrapper> with WidgetsBindingObserv
         position.dy / constraints.maxHeight,
       );
 
-  void _onSwitchCameraPressed()
+  void _onCaptureTapped() {
+    _shouldCaptureImage.value = true;
+  }
+
+  Future<void> _onSwitchCameraPressed()
   {
+    final controller = _cameraController;
     _selectedCameraIndex.tick();
-    _onNewCameraSelected(widget.camerasAvailable[_selectedCameraIndex.current]);
+    final description = widget.camerasAvailable[_selectedCameraIndex.current];
+
+    return Future<void>(() {
+      if (controller != null) {
+        return _disposeCameraController(controller);
+      }
+    }).then<void>((disposed) {
+      _onNewCameraSelected(description);
+    });
+  }
+
+  /// subscribe to the broadcast image stream
+  StreamSubscription<T> _subscribeImageStream<T extends pkg_camera.CameraImage>(
+    StreamController<T> broadcastStreamController,
+  ) {
+    final streamHandler = widget._imageStreamHandler;
+    final cameraDescription = widget.camerasAvailable[_selectedCameraIndex.current];
+    return broadcastStreamController.stream.listen(
+      streamHandler != null
+          ? (cameraImage) {
+              final isZero = _imageCounterFilter.current == 0;
+              _imageCounterFilter.tick();
+              if (isZero) {
+                streamHandler(cameraDescription, cameraImage);
+              }
+            }
+          : null,
+    );
+  }
+
+  /// subscribe to the captured images stream
+  StreamSubscription<T> _subscribeCaptureStream<T extends pkg_camera.CameraImage>(
+    StreamController<T> broadcastStreamController,
+  ) {
+    final captureHandler = widget._imageCaptureHandler;
+    final cameraDescription = widget.camerasAvailable[_selectedCameraIndex.current];
+    return broadcastStreamController.stream.listen(
+      captureHandler != null
+          ? (cameraImage) {
+              if (_shouldCaptureImage.value) {
+                _shouldCaptureImage.value = false;
+                captureHandler(cameraDescription, cameraImage);
+              }
+            }
+          : null,
+    );
   }
 }
 
@@ -417,4 +455,11 @@ class _ModularCounter {
   void tick() {
     _current = (_current+1) % module;
   }
+}
+
+/// help to bypass a value inside a closure
+class _Box<T> {
+  _Box(this.value);
+
+  T value;
 }
