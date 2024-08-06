@@ -14,6 +14,7 @@ class ImageHandler
   @override
   Image fromCameraImage(
     final CameraImage image,
+    final int rollDegreeRotation,
   ) {
     final rgbBuffer = _yCbCr420ToRgbBuffer(
       width: image.width,
@@ -24,6 +25,7 @@ class ImageHandler
       width: image.width,
       height: image.height,
       rgbBytes: rgbBuffer,
+      rollDegreeRotation: rollDegreeRotation,
     );
     return newImage;
   }
@@ -143,6 +145,7 @@ class ImageHandler
     required final int width,
     required final int height,
     required final ByteBuffer rgbBytes,
+    required final int rollDegreeRotation
   }) {
     final image = Image.fromBytes(
       width: width,
@@ -150,12 +153,14 @@ class ImageHandler
       bytes: rgbBytes,
       order: ChannelOrder.rgb,
     );
-    return flipHorizontal(
-      copyRotate(
-        image,
-        angle: 270,
-      ),
+
+    final rotatedImage = copyRotate(
+      image,
+      angle: rollDegreeRotation,
     );
+    return rotatedImage;
+    // final flipedImage = flipHorizontal(rotatedImage);
+    // return flipedImage;
   }
 
   /// Return new images from subareas of [image].

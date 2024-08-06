@@ -30,7 +30,7 @@ class RecognitionPipeline<CI, I, J, L extends Student, E extends FaceEmbedding> 
     projectLogger.fine('detected faces: ${faceRects.length}');
 
     // detach faces into manipulable images
-    final manipulableImage = _imageHandler.fromCameraImage(image);
+    final manipulableImage = _imageHandler.fromCameraImage(image, cameraSensorOrientation);
     final faces = _imageHandler.cropFromImage(manipulableImage, faceRects);
     return faces;
   }

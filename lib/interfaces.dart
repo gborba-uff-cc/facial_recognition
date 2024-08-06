@@ -8,7 +8,7 @@ abstract class IFaceDetector<CI> {
 }
 
 abstract class IImageHandler<CI, I, J> {
-  I fromCameraImage(final CI image);
+  I fromCameraImage(final CI image,int rollDegreeRotation);
   List<I> cropFromImage(final I image, final List<Rect> rect);
   I resizeImage(final I image, final int width, final int height);
   J toJpeg(final I image);
