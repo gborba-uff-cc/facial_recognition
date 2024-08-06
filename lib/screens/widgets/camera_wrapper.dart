@@ -25,9 +25,14 @@ class CameraWrapper extends StatefulWidget {
   /// discard [streamDiscardCount] images after handling 1 image from the
   /// stream for load balance
   final int streamDiscardCount;
+  final double _baseIconSize = 80;
+  final double _basePadding = 8;
 
   @override
   State<CameraWrapper> createState() => _CameraWrapperState();
+
+  double get baseIconSize => _baseIconSize;
+  double get basePadding => _basePadding;
 }
 
 class _CameraWrapperState extends State<CameraWrapper> with WidgetsBindingObserver {
@@ -73,9 +78,11 @@ class _CameraWrapperState extends State<CameraWrapper> with WidgetsBindingObserv
     //       '_CameraWrapperState: no more handlers',
     //     );
     _cameraImageStreamSubscription =
-        _subscribeImageStream(_cameraImageBroadcastStream);
+        _cameraImageBroadcastStream.stream.listen(null);
     _cameraImageCaptureSubscription =
-        _subscribeCaptureStream(_cameraImageBroadcastStream);
+        _cameraImageBroadcastStream.stream.listen(null);
+    _updateCaptureSubscriptionHandler(widget._imageCaptureHandler);
+    _updateStreamSubscriptionHandler(widget._imageStreamHandler);
     // -----
     if (widget.camerasAvailable.isNotEmpty) {
       final description = widget.camerasAvailable[_selectedCameraIndex.current];
@@ -96,6 +103,32 @@ class _CameraWrapperState extends State<CameraWrapper> with WidgetsBindingObserv
     // -----
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
+  }
+
+  @override
+  void activate() {
+    super.activate();
+    if (widget.camerasAvailable.isNotEmpty) {
+      final description = widget.camerasAvailable[_selectedCameraIndex.current];
+      _onNewCameraSelected(description);
+    }
+  }
+
+  @override
+  void deactivate() {
+    final controller = _cameraController;
+    if (controller != null) {
+      _disposeCameraController(controller);
+    }
+    super.deactivate();
+  }
+
+  // handle calls to build that updates this.widget
+  @override
+  void didUpdateWidget(covariant CameraWrapper oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _updateCaptureSubscriptionHandler(widget._imageCaptureHandler);
+    _updateStreamSubscriptionHandler(widget._imageStreamHandler);
   }
 
   @override
@@ -254,37 +287,35 @@ class _CameraWrapperState extends State<CameraWrapper> with WidgetsBindingObserv
       );
     }
     else {
-      const double baseIconSize = 80;
-      const double bottomPadding = 8;
       final iconColor = Theme.of(context).colorScheme.primary;
       final backgroundIconColor = Colors.grey.shade300;
-      buildObject = Align(
-        alignment: Alignment.center,
-        child: pkg_camera.CameraPreview(
-          controller,
-          child: SizedBox(
-            height: double.infinity,
-            child: Stack(
-              children: [
-                LayoutBuilder(
-                  builder: (BuildContext context, BoxConstraints constraints) =>
-                      GestureDetector(
-                    onScaleStart: (details) => _startZoom(details),
-                    onScaleUpdate: (details) => _updateZoom(details),
-                    onTapDown: (details) =>
-                        _setExposureAndFocusPoint(details, constraints),
-                  ),
+      buildObject =
+      pkg_camera.CameraPreview(
+        controller,
+        child: SizedBox(
+          height: double.infinity,
+          child: Stack(
+            children: [
+              LayoutBuilder(
+                builder: (BuildContext context, BoxConstraints constraints) =>
+                    GestureDetector(
+                  onScaleStart: (details) => _startZoom(details),
+                  onScaleUpdate: (details) => _updateZoom(details),
+                  onTapDown: (details) =>
+                      _setExposureAndFocusPoint(details, constraints),
                 ),
+              ),
+              if (widget._imageCaptureHandler != null)
                 Align(
                   alignment: Alignment.bottomCenter,
                   child: Padding(
-                    padding: const EdgeInsets.only(bottom: bottomPadding),
+                    padding: EdgeInsets.only(bottom: widget._basePadding),
                     child: GestureDetector(
                       behavior: HitTestBehavior.opaque,
                       onTap: _onCaptureTapped,
                       child: Container(
-                        height: baseIconSize,
-                        width: baseIconSize,
+                        height: widget._baseIconSize,
+                        width: widget._baseIconSize,
                         decoration: ShapeDecoration(
                           shape: const CircleBorder(),
                           color: backgroundIconColor,
@@ -300,31 +331,30 @@ class _CameraWrapperState extends State<CameraWrapper> with WidgetsBindingObserv
                     ),
                   ),
                 ),
-                Align(
-                  alignment: Alignment.bottomRight,
-                  child: Padding(
-                    padding: const EdgeInsets.only(bottom: bottomPadding),
-                    child: SizedBox(
-                      height: baseIconSize,
-                      width: baseIconSize,
-                      child: Padding(
-                        padding: const EdgeInsets.all(20.0),
-                        child: GestureDetector(
-                          behavior: HitTestBehavior.opaque,
-                          onTap: _onSwitchCameraPressed,
-                          child: DecoratedBox(
-                            decoration: ShapeDecoration(
-                              shape: const CircleBorder(),
-                              color: backgroundIconColor,
-                            ),
-                            child: Padding(
-                              padding: const EdgeInsets.all(6.0),
-                              child: FittedBox(
-                                fit: BoxFit.contain,
-                                child: Icon(
-                                  Icons.cameraswitch_outlined,
-                                  color: iconColor,
-                                ),
+              Align(
+                alignment: Alignment.bottomRight,
+                child: Padding(
+                  padding: EdgeInsets.only(bottom: widget._basePadding),
+                  child: SizedBox(
+                    height: widget._baseIconSize,
+                    width: widget._baseIconSize,
+                    child: Padding(
+                      padding: const EdgeInsets.all(20.0),
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: _onSwitchCameraPressed,
+                        child: DecoratedBox(
+                          decoration: ShapeDecoration(
+                            shape: const CircleBorder(),
+                            color: backgroundIconColor,
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(6.0),
+                            child: FittedBox(
+                              fit: BoxFit.contain,
+                              child: Icon(
+                                Icons.cameraswitch_outlined,
+                                color: iconColor,
                               ),
                             ),
                           ),
@@ -333,8 +363,8 @@ class _CameraWrapperState extends State<CameraWrapper> with WidgetsBindingObserv
                     ),
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       );
@@ -406,37 +436,43 @@ class _CameraWrapperState extends State<CameraWrapper> with WidgetsBindingObserv
     });
   }
 
-  /// subscribe to the broadcast image stream
-  StreamSubscription<T> _subscribeImageStream<T extends pkg_camera.CameraImage>(
-    StreamController<T> broadcastStreamController,
+  void _updateStreamSubscriptionHandler(
+    CameraWrapperCallBack? dataHandler,
   ) {
-    final streamHandler = widget._imageStreamHandler;
-    final cameraDescription = widget.camerasAvailable[_selectedCameraIndex.current];
-    return broadcastStreamController.stream.listen(
-      streamHandler != null
+    final description =
+        widget.camerasAvailable[_selectedCameraIndex.current];
+    final streamSubscription = _cameraImageStreamSubscription;
+    if (streamSubscription == null) {
+      return;
+    }
+    streamSubscription.onData(
+      dataHandler != null
           ? (cameraImage) {
               final isZero = _imageCounterFilter.current == 0;
               _imageCounterFilter.tick();
               if (isZero) {
-                streamHandler(cameraDescription, cameraImage);
+                dataHandler(description, cameraImage);
               }
             }
           : null,
     );
   }
 
-  /// subscribe to the captured images stream
-  StreamSubscription<T> _subscribeCaptureStream<T extends pkg_camera.CameraImage>(
-    StreamController<T> broadcastStreamController,
+  void _updateCaptureSubscriptionHandler(
+    CameraWrapperCallBack? dataHandler,
   ) {
-    final captureHandler = widget._imageCaptureHandler;
-    final cameraDescription = widget.camerasAvailable[_selectedCameraIndex.current];
-    return broadcastStreamController.stream.listen(
-      captureHandler != null
+    final description =
+        widget.camerasAvailable[_selectedCameraIndex.current];
+    final streamSubscription = _cameraImageCaptureSubscription;
+    if (streamSubscription == null) {
+      return;
+    }
+    streamSubscription.onData(
+      dataHandler != null
           ? (cameraImage) {
               if (_shouldCaptureImage.value) {
                 _shouldCaptureImage.value = false;
-                captureHandler(cameraDescription, cameraImage);
+                dataHandler(description, cameraImage);
               }
             }
           : null,
