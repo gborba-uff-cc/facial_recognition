@@ -42,7 +42,7 @@ class RecognitionPipeline<CI, I, J, L extends Student, E extends FaceEmbedding> 
     final List<J> detectedFaces = [];
     final List<List<List<List<int>>>> samples = [];
     for (final i in faces) {
-      final jpeg = _imageHandler.toJpeg(i);
+      final jpeg = _imageHandler.toJpg(i);
       detectedFaces.add(jpeg);
 
       final resizedImage = _imageHandler.resizeImage(i, 160, 160);

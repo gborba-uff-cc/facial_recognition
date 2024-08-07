@@ -11,7 +11,9 @@ abstract class IImageHandler<CI, I, J> {
   I fromCameraImage(final CI image,int rollDegreeRotation);
   List<I> cropFromImage(final I image, final List<Rect> rect);
   I resizeImage(final I image, final int width, final int height);
-  J toJpeg(final I image);
+  I flipHorizontal(final I image);
+  J toJpg(final I image);
+  I? fromJpg(final J jpgBytes);
   List<List<List<int>>> toRgbMatrix(final I image);
 }
 

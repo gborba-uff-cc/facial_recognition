@@ -1,19 +1,19 @@
 import 'dart:typed_data';
 import 'dart:ui';
 
-import 'package:camera/camera.dart';
+import 'package:camera/camera.dart' as pkg_camera;
 import 'package:facial_recognition/interfaces.dart';
 import 'package:flutter/foundation.dart';
-import 'package:image/image.dart';
+import 'package:image/image.dart' as pkg_image;
 
 class ImageHandler
-    implements IImageHandler<CameraImage, Image, Uint8List> {
+    implements IImageHandler<pkg_camera.CameraImage, pkg_image.Image, Uint8List> {
   ImageHandler();
 
   /// return a manipulable image from the camera image
   @override
-  Image fromCameraImage(
-    final CameraImage image,
+  pkg_image.Image fromCameraImage(
+    final pkg_camera.CameraImage image,
     final int rollDegreeRotation,
   ) {
     final rgbBuffer = _yCbCr420ToRgbBuffer(
@@ -37,7 +37,7 @@ class ImageHandler
   ByteBuffer _yCbCr420ToRgbBuffer({
     required final int width,
     required final int height,
-    required final List<Plane> planes,
+    required final List<pkg_camera.Plane> planes,
   }) {
     final yBytes  = planes[0].bytes; // Y
     final cbBytes = planes[1].bytes; // U
@@ -141,38 +141,38 @@ class ImageHandler
     return x ~/ xGroup * elementSize + y ~/ yGroup * xSize;
   }
 
-  Image _toLogicalImage({
+  pkg_image.Image _toLogicalImage({
     required final int width,
     required final int height,
     required final ByteBuffer rgbBytes,
     required final int rollDegreeRotation
   }) {
-    final image = Image.fromBytes(
+    final image = pkg_image.Image.fromBytes(
       width: width,
       height: height,
       bytes: rgbBytes,
-      order: ChannelOrder.rgb,
+      order: pkg_image.ChannelOrder.rgb,
     );
 
-    final rotatedImage = copyRotate(
+    final rotatedImage = pkg_image.copyRotate(
       image,
       angle: rollDegreeRotation,
     );
-    return rotatedImage;
-    // final flipedImage = flipHorizontal(rotatedImage);
-    // return flipedImage;
+    // return rotatedImage;
+    final flipedImage = flipHorizontal(rotatedImage);
+    return flipedImage;
   }
 
   /// Return new images from subareas of [image].
   @override
-  List<Image> cropFromImage(
-    final Image image,
+  List<pkg_image.Image> cropFromImage(
+    final pkg_image.Image image,
     final List<Rect> rect,
   ) {
     // image origin is (x,y)=(0,0) on the top left corner, x and y grow to the
     // right and bottom respectivelly.
     return rect
-        .map((r) => copyCrop(
+        .map((r) => pkg_image.copyCrop(
               image,
               x: (image.width - 1) - (r.right).toInt(),
               y: r.top.toInt(),
@@ -184,18 +184,28 @@ class ImageHandler
 
   /// Resize the *image* to match [size]
   @override
-  Image resizeImage(Image image, int width, int height) {
-    return copyResize(image, width: width, height: height);
+  pkg_image.Image resizeImage(pkg_image.Image image, int width, int height) {
+    return pkg_image.copyResize(image, width: width, height: height);
+  }
+
+  @override
+  pkg_image.Image flipHorizontal(pkg_image.Image image) {
+    return pkg_image.flipHorizontal(image);
   }
 
   ///
   @override
-  Uint8List toJpeg(Image image) {
-    return encodeJpg(image);
+  Uint8List toJpg(pkg_image.Image image) {
+    return pkg_image.encodeJpg(image);
   }
 
   @override
-  List<List<List<int>>> toRgbMatrix(Image image) {
+  pkg_image.Image? fromJpg(Uint8List jpgBytes) {
+    return pkg_image.decodeJpg(jpgBytes);
+  }
+
+  @override
+  List<List<List<int>>> toRgbMatrix(pkg_image.Image image) {
     final height = image.height;
     final width = image.width;
     final buffer = image.buffer.asUint8List();
