@@ -1,4 +1,7 @@
-import 'package:camera/camera.dart';
+// import 'dart:async';
+
+import 'package:camera/camera.dart' as pkg_camera;
+// import 'package:facial_recognition/models/image_handler.dart';
 import 'package:facial_recognition/screens/widgets/camera_wrapper.dart';
 import 'package:facial_recognition/use_case/camera_identification.dart';
 import 'package:facial_recognition/utils/project_logger.dart';
@@ -13,7 +16,7 @@ class CameraIdentificationScreen extends StatefulWidget {
   });
 
   final CameraIdentification useCase;
-  final List<CameraDescription> cameras;
+  final List<pkg_camera.CameraDescription> cameras;
 
   @override
   State<CameraIdentificationScreen> createState() => _CameraIdentificationScreenState();
@@ -22,21 +25,47 @@ class CameraIdentificationScreen extends StatefulWidget {
 class _CameraIdentificationScreenState extends State<CameraIdentificationScreen> with WidgetsBindingObserver {
   final List<Uint8List> facesPhotos = [];
   bool _isAutoMode = false;
+  // final ImageHandler _imageHandler = ImageHandler();
+  // late final Timer _autoclearFacePhotos;
 
   @override
   void initState() {
     super.initState();
-    widget.useCase.showFaceImages =  (jpegImages) {
+    facesPhotos.clear();
+    widget.useCase.showFaceImages = (jpegImages) async {
       if (mounted) {
-        setState(() {
-          facesPhotos.addAll(jpegImages);
+/*
+    // NOTE - flip image for the UI
+        final Iterable<Uint8List> flippedForUi = jpegImages.map((img) {
+          final jpg = _imageHandler.fromJpg(img);
+          if (jpg == null) {
+            return img;
+          }
+          return _imageHandler.toJpg(_imageHandler.flipHorizontal(jpg));
         });
+        setState(() => facesPhotos.addAll(flippedForUi));
+ */
+        setState(() => facesPhotos.addAll(jpegImages));
       }
     };
+/*
+    // NOTE - remove one image at time from view
+    _autoclearFacePhotos = Timer.periodic(const Duration(seconds: 3), (timer) {
+      if (facesPhotos.isNotEmpty) {
+        if (mounted) {
+          setState(() {
+            facesPhotos.removeAt(0);
+          });
+        }
+      }
+    });
+*/
   }
 
   @override
   void dispose() {
+    // _autoclearFacePhotos.cancel();
+    facesPhotos.clear();
     super.dispose();
   }
 
@@ -58,6 +87,13 @@ class _CameraIdentificationScreenState extends State<CameraIdentificationScreen>
       body: SizedBox.expand(
         child: Column(
           children: [
+            Expanded(
+              child: ListView.builder(
+                itemCount: facesPhotos.length,
+                itemBuilder: (context, index) => Image.memory(facesPhotos[index]),
+                scrollDirection: Axis.horizontal,
+              ),
+            ),
             Stack(
               children: [
                 cameraWidget,
@@ -88,13 +124,6 @@ class _CameraIdentificationScreenState extends State<CameraIdentificationScreen>
                 ),
               ] ,
             ),
-            Expanded(
-              child: ListView.builder(
-                itemCount: facesPhotos.length,
-                itemBuilder: (context, index) => Image.memory(facesPhotos[index]),
-                scrollDirection: Axis.horizontal,
-              ),
-            )
           ],
         ),
       ),
