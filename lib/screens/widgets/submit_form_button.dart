@@ -17,7 +17,11 @@ class SubmitFormButton extends StatelessWidget {
     return FilledButton(
       onPressed: () {
         final formState = _formKey.currentState;
-        if (formState!.validate()) {
+        if (formState == null) {
+          return;
+        }
+        if (formState.validate()) {
+          formState.save();
           _action();
           return;
         }

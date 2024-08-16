@@ -1,4 +1,8 @@
-import 'package:camera/camera.dart';
+import 'dart:typed_data';
+
+import 'package:camera/camera.dart' as pkg_camera;
+import 'package:image/image.dart' as pkg_image;
+import 'package:facial_recognition/interfaces.dart';
 import 'package:facial_recognition/models/domain.dart';
 import 'package:facial_recognition/models/face_recognizer.dart';
 import 'package:facial_recognition/models/facenet_face_embedder.dart';
@@ -11,12 +15,13 @@ import 'package:facial_recognition/screens/create_student_screen.dart';
 import 'package:facial_recognition/screens/create_subject_class_screen.dart';
 import 'package:facial_recognition/screens/create_subject_screen.dart';
 import 'package:facial_recognition/screens/create_teacher_screen.dart';
-// import 'package:facial_recognition/screens/fast_view.dart';
+import 'package:facial_recognition/screens/fast_view.dart';
 import 'package:facial_recognition/screens/grid_student_selector_screen.dart';
 import 'package:facial_recognition/screens/landing_screen.dart';
 import 'package:facial_recognition/screens/mark_attendance_screen.dart';
-// import 'package:facial_recognition/screens/placeholder_screen.dart';
+import 'package:facial_recognition/screens/placeholder_screen.dart';
 import 'package:facial_recognition/screens/select_information_screen.dart';
+import 'package:facial_recognition/screens/one_shot_camera.dart';
 import 'package:facial_recognition/use_case/attendance_summary.dart';
 import 'package:facial_recognition/use_case/camera_identification.dart';
 import 'package:facial_recognition/use_case/create_models.dart';
@@ -33,7 +38,7 @@ void main() async {
   // start async code as soon as possible
   final futures = await Future.wait(
     [
-      availableCameras(),
+      pkg_camera.availableCameras(),
     ],
   );
   final availableCams = futures[0];
@@ -54,11 +59,16 @@ class MainApp extends StatelessWidget {
     required this.domainRepository,
   });
 
-  final List<CameraDescription> cameras;
+  final List<pkg_camera.CameraDescription> cameras;
   final DomainRepository domainRepository;
 
   @override
   Widget build(BuildContext context) {
+    final IFaceDetector<pkg_camera.CameraImage> faceDetector = GoogleFaceDetector();
+    final IImageHandler<pkg_camera.CameraImage, pkg_image.Image, Uint8List> imageHandler = ImageHandler();
+    final IFaceEmbedder faceEmbedder = FacenetFaceEmbedder();
+    final IFaceRecognizer<Student, List<double>> faceRecognizer = DistanceClassifier(distanceFunction: euclideanDistance);
+    final CreateModels createModels = CreateModels(domainRepository, faceDetector, imageHandler);
     return MaterialApp.router(
       theme: ThemeData(useMaterial3: true),
       routerConfig: GoRouter(
@@ -92,10 +102,10 @@ class MainApp extends StatelessWidget {
                 builder: (context, state) => CameraIdentificationScreen(
                   cameras: cameras,
                   useCase: CameraIdentification(
-                    GoogleFaceDetector(),
-                    ImageHandler(),
-                    FacenetFaceEmbedder(),
-                    DistanceClassifier(distanceFunction: euclideanDistance),
+                    faceDetector,
+                    imageHandler,
+                    faceEmbedder,
+                    faceRecognizer,
                     domainRepository,
                     null,
                     state.extra as Lesson,
@@ -137,31 +147,38 @@ class MainApp extends StatelessWidget {
               GoRoute(
                 path: 'create_subject',
                 builder: (context, state) => CreateSubjectScreen(
-                  useCase: CreateModels(domainRepository),
+                  useCase: createModels,
                 ),
               ),
               GoRoute(
                 path: 'create_subject_class',
                 builder: (context, state) => CreateSubjectClassScreen(
-                  useCase: CreateModels(domainRepository),
+                  useCase: createModels,
                 ),
               ),
               GoRoute(
                 path: 'create_lesson',
                 builder: (context, state) => CreateLessonScreen(
-                  useCase: CreateModels(domainRepository),
+                  useCase: createModels,
                 ),
               ),
               GoRoute(
                 path: 'create_student',
                 builder: (context, state) => CreateStudentScreen(
-                  useCase: CreateModels(domainRepository),
+                  useCase: createModels,
                 ),
               ),
               GoRoute(
                 path: 'create_teacher',
                 builder: (context, state) => CreateTeacherScreen(
-                  useCase: CreateModels(domainRepository),
+                  useCase: createModels,
+                ),
+              ),
+              GoRoute(
+                path: 'take_photo',
+                builder: (context, state) => OneShotCamera(
+                  camerasAvailable: cameras,
+                  imageHandler: imageHandler,
                 ),
               ),
             ],

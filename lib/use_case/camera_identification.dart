@@ -18,13 +18,15 @@ class CameraIdentification implements ICameraAttendance<CameraImage> {
     DomainRepository domainRepository,
     this.showFaceImages,
     this.lesson,
-  )   :
+  )   : _imageHandler = imageHandler,
         _recognitionPipeline = RecognitionPipeline(
             faceDetector: faceDetector,
             imageHandler: imageHandler,
             faceEmbedder: faceEmbedder,
             faceRecognizer: faceRecognizer),
         _domainRepo = domainRepository;
+
+  final IImageHandler<CameraImage, Image, Uint8List> _imageHandler;
 
   final RecognitionPipeline<CameraImage, Image, Uint8List, Student, FaceEmbedding> _recognitionPipeline;
   final DomainRepository _domainRepo;
@@ -50,7 +52,7 @@ class CameraIdentification implements ICameraAttendance<CameraImage> {
       localShowFaceImages(
         jpegsAndEmbeddings.map(
           (e) => e.value1,
-        ),
+        ).toList()..insert(0, _imageHandler.toJpg(_imageHandler.fromCameraImage(image, cameraSensorOrientation))),
       );
     }
 

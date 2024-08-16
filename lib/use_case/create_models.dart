@@ -1,13 +1,20 @@
 import 'dart:typed_data';
 
+import 'package:camera/camera.dart' as pkg_camera;
+import 'package:image/image.dart' as pkg_image;
+import 'package:facial_recognition/interfaces.dart';
 import 'package:facial_recognition/models/domain.dart';
 
 class CreateModels {
   CreateModels(
     this._domainRepository,
+    this._faceDetector,
+    this._imageHandler,
   );
 
   final DomainRepository _domainRepository;
+  final IFaceDetector<pkg_camera.CameraImage> _faceDetector;
+  final IImageHandler<pkg_camera.CameraImage, pkg_image.Image, Uint8List> _imageHandler;
 
   void createLesson({
     required String codeOfSubject,
@@ -99,6 +106,20 @@ class CreateModels {
     );
     _domainRepository.addIndividual([i]);
     _domainRepository.addTeacher([teacher]);
+  }
+
+  Future<bool> isFacePicture(pkg_camera.CameraImage facePicture, sensorOrientation) async {
+    final faces = await _faceDetector.detect(facePicture, sensorOrientation);
+    return faces.length == 1;
+  }
+
+  Uint8List toJpg(pkg_camera.CameraImage cameraImage, int sensorRotation) {
+    return _imageHandler.toJpg(
+      _imageHandler.fromCameraImage(
+        cameraImage,
+        sensorRotation,
+      ),
+    );
   }
 
   void createStudent({
