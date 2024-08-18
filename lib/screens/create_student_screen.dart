@@ -67,7 +67,7 @@ class _CreateStudentScreenState extends State<CreateStudentScreen> {
             Form(
               key: _studentForm,
               child: CreateStudent(
-                isValidFacePicture: widget.useCase.isFacePicture,
+                isValidFacePicture: widget.useCase.isOneFacePicture,
                 facePictureOnSaved: (final cameraImage, final cameraDescription) {
                   // REVIEW - cameraDescription should not be null;
                   _facePicture = cameraDescription == null || cameraImage == null

@@ -108,7 +108,7 @@ class CreateModels {
     _domainRepository.addTeacher([teacher]);
   }
 
-  Future<bool> isFacePicture(pkg_camera.CameraImage facePicture, sensorOrientation) async {
+  Future<bool> isOneFacePicture(pkg_camera.CameraImage facePicture, sensorOrientation) async {
     final faces = await _faceDetector.detect(facePicture, sensorOrientation);
     return faces.length == 1;
   }

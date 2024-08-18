@@ -1,11 +1,11 @@
 import 'dart:typed_data';
 
-import 'package:facial_recognition/interfaces.dart';
 import 'package:facial_recognition/models/use_case.dart';
 import 'package:facial_recognition/screens/one_shot_camera_return.dart';
+import 'package:facial_recognition/utils/algorithms.dart';
+import 'package:facial_recognition/utils/project_logger.dart';
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart' as pkg_camera;
-import 'package:image/image.dart' as pkg_image;
 import 'package:go_router/go_router.dart';
 
 // TODO - move form fields here
@@ -225,51 +225,42 @@ class Enrollment_ extends _TextField {
   }
 }
 
-class CameraImageField extends StatefulWidget {
-  const CameraImageField({
+class FacePictureField extends StatefulWidget {
+  const FacePictureField({
     super.key,
-    required this.validator,
     required this.onSaved,
-  });
+    required isValidFacePicture,
+  }) : _isValidFacePicture = isValidFacePicture;
 
-  final String? Function(
-    FormFieldState<Duple<pkg_camera.CameraImage, pkg_camera.CameraDescription>>,
-    pkg_camera.CameraImage?,
-    pkg_camera.CameraDescription?,
-  )? validator;
   final void Function(
     pkg_camera.CameraImage?,
     pkg_camera.CameraDescription?,
   )? onSaved;
+  final Future<bool> Function(pkg_camera.CameraImage, int) _isValidFacePicture;
 
   @override
-  State<CameraImageField> createState() => _CameraImageFieldState();
+  State<FacePictureField> createState() => _FacePictureFieldState();
 }
 
-class _CameraImageFieldState extends State<CameraImageField> {
+class _FacePictureFieldState extends State<FacePictureField> {
   Uint8List? _jpg;
-  final GlobalKey<FormFieldState<_CameraImageFieldType>> _cameraImageFormField = GlobalKey();
+  final GlobalKey<FormFieldState<_CandidateFacePicture>> _facePictureFormField = GlobalKey();
 
-  _CandidatePicture _candidateImage;
+  _CandidateFacePicture? _candidatePicture;
   _FacePictureValidationStatus _facePictureValidationStatus =
       _FacePictureValidationStatus.isValid;
 
   @override
   Widget build(BuildContext context) {
-    final validator = widget.validator;
     final saver = widget.onSaved;
-    final field = _cameraImageFormField.currentState;
-    return FormField<_CameraImageFieldType>(
-      key: _cameraImageFormField,
+    return FormField<_CandidateFacePicture>(
+      key: _facePictureFormField,
       initialValue: null,
       autovalidateMode: AutovalidateMode.disabled,
-      // validator: validator != null && field != null
-      //     ? (value) => validator(field, value?.value1, value?.value2)
-      //     : null,
       validator: (final value) {
         final cameraImage = value?.value1;
         final cameraDescription = value?.value2;
-        final oldCandidate = _candidateImage;
+        final oldCandidate = _candidatePicture;
         final oldStatus = _facePictureValidationStatus;
         final isValidating =
             oldStatus == _FacePictureValidationStatus.validating;
@@ -287,29 +278,39 @@ class _CameraImageFieldState extends State<CameraImageField> {
             projectLogger.severe(
               'CreateStudentScreen: missing cameraCamera description for the picture candidate',
             );
-          } else if (cameraImage != null) {
-            _candidateImage = _CandidatePicture(
+          }
+          else if (cameraImage != null) {
+            _candidatePicture = _CandidateFacePicture(
               cameraImage,
               cameraDescription,
             );
             _facePictureValidationStatus =
                 _FacePictureValidationStatus.validating;
+            // ----------------------------------
             // change later the validation status
+            final thisField = _facePictureFormField.currentState;
             _validateFacePicture(
               cameraImage,
               cameraDescription.sensorOrientation,
             ).then((status) {
-              if (field.mounted) {
-                field.setState(() {
+              if (thisField == null) {
+                projectLogger.warning(
+                  'CameraImageFieldState trying to validate a picture when the field is not on the widget tree',
+                );
+                return;
+              }
+              else if (thisField.mounted) {
+                thisField.setState(() {
                   projectLogger.fine('validation status updated');
                   _facePictureValidationStatus = status;
                 });
               }
               // validate after updating status
-              field.validate();
+              thisField.validate();
             });
-          } else {
-            _candidateImage = null;
+          }
+          else {
+            _candidatePicture = null;
             _facePictureValidationStatus = _FacePictureValidationStatus.isValid;
           }
         }
@@ -326,9 +327,19 @@ class _CameraImageFieldState extends State<CameraImageField> {
             return 'Valid';
         }
       },
-      onSaved:
-          saver != null ? (value) => saver(value?.value1, value?.value2) : null,
-      builder: (FormFieldState<_CameraImageFieldType> field) {
+      onSaved: saver == null
+          ? null
+          : (value) {
+              final cameraImage = value?.value1;
+              final cameraDescription = value?.value2;
+              final candidatePicture = _candidatePicture?.value1;
+              if (_areDifferrentPictures(candidatePicture, cameraImage)) {
+                projectLogger.severe('tried to save a not validated picture');
+              } else {
+                saver(cameraImage, cameraDescription);
+              }
+            },
+      builder: (FormFieldState<_CandidateFacePicture> field) {
         final jpg = _jpg;
         final theme = Theme.of(field.context);
         final router = GoRouter.of(field.context);
@@ -367,7 +378,7 @@ class _CameraImageFieldState extends State<CameraImageField> {
                       .then((value) {
                     field.didChange(
                       value != null
-                          ? _CameraImageFieldType(
+                          ? _CandidateFacePicture(
                               value.cameraImage,
                               value.cameraDescription,
                             )
@@ -414,11 +425,34 @@ class _CameraImageFieldState extends State<CameraImageField> {
       },
     );
   }
+
+  bool _areDifferrentPictures(
+    pkg_camera.CameraImage? imageA,
+    pkg_camera.CameraImage? imageB,
+  ) =>
+      (imageA == null && imageB != null) ||
+      (imageA != null && imageB == null) ||
+      (imageA != null && imageB != null && areIterablesEquivalents(imageA.planes,imageB.planes));
+
+  Future<_FacePictureValidationStatus> _validateFacePicture(
+    final pkg_camera.CameraImage picture,
+    final int sensorOrientation,
+  ) async {
+    projectLogger.fine('validating image');
+    bool valid = false;
+    // there is one face on the picture
+    valid = await widget._isValidFacePicture(
+      picture,
+      sensorOrientation,
+    );
+
+    return valid
+        ? _FacePictureValidationStatus.isValid
+        : _FacePictureValidationStatus.notValid;
+  }
 }
 
-typedef _CameraImageFieldType = Duple<pkg_camera.CameraImage, pkg_camera.CameraDescription>;
-
-typedef _CandidatePicture = Duple<pkg_camera.CameraImage, pkg_camera.CameraDescription>;
+typedef _CandidateFacePicture = Duple<pkg_camera.CameraImage, pkg_camera.CameraDescription>;
 
 enum _FacePictureValidationStatus {
   notValid,
