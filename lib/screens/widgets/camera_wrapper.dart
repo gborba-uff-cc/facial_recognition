@@ -81,8 +81,6 @@ class _CameraWrapperState extends State<CameraWrapper> with WidgetsBindingObserv
         _cameraImageBroadcastStream.stream.listen(null);
     _cameraImageCaptureSubscription =
         _cameraImageBroadcastStream.stream.listen(null);
-    _updateCaptureSubscriptionHandler(widget._imageCaptureHandler);
-    _updateStreamSubscriptionHandler(widget._imageStreamHandler);
     // -----
     if (widget.camerasAvailable.isNotEmpty) {
       final description = widget.camerasAvailable[_selectedCameraIndex.current];
@@ -162,6 +160,8 @@ class _CameraWrapperState extends State<CameraWrapper> with WidgetsBindingObserv
             // _cameraImageBroadcastStream is not null because of initState
             (image) => _cameraImageBroadcastStream.add(image),
           );
+          _updateCaptureSubscriptionHandler(widget._imageCaptureHandler);
+          _updateStreamSubscriptionHandler(widget._imageStreamHandler);
         }
 
         if (mounted) {
