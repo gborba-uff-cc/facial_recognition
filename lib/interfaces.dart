@@ -3,6 +3,23 @@ import 'dart:ui';
 import 'package:facial_recognition/models/domain.dart';
 import 'package:facial_recognition/models/use_case.dart';
 
+abstract class IRecognitionPipeline<CI, I, J, L, V> {
+  Future<List<I>> detectFace(
+    final CI image,
+    final int cameraSensorOrientation,
+  );
+
+  Future<List<Duple<J, FaceEmbedding>>> extractEmbedding(
+    final List<I> faces,
+  );
+
+  Duple<Iterable<EmbeddingRecognitionResult>, Iterable<EmbeddingRecognitionResult>>
+      recognizeEmbedding(
+    final Iterable<Duple<J, FaceEmbedding>> input,
+    final Map<L, Iterable<V>>embeddingsByStudent,
+  );
+}
+
 abstract class IFaceDetector<CI> {
   Future<List<Rect>> detect(final CI image, [final int controllerSensorOrientation = 0]);
 }

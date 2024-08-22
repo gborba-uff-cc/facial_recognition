@@ -1,19 +1,24 @@
 import 'dart:typed_data';
 
 import 'package:camera/camera.dart' as pkg_camera;
+import 'package:facial_recognition/models/use_case.dart';
 import 'package:image/image.dart' as pkg_image;
 import 'package:facial_recognition/interfaces.dart';
 import 'package:facial_recognition/models/domain.dart';
 
 class CreateModels {
   CreateModels(
-    this._domainRepository,
-    this._faceDetector,
-    this._imageHandler,
-  );
+    DomainRepository domainRepository,
+    IImageHandler<pkg_camera.CameraImage, pkg_image.Image, Uint8List> imageHandler,
+    IRecognitionPipeline<pkg_camera.CameraImage, pkg_image.Image, Uint8List,
+      Student, FaceEmbedding> recognitionPipeline,
+  )   : _domainRepository = domainRepository,
+        _recognitionPipeline = recognitionPipeline,
+        _imageHandler = imageHandler;
 
   final DomainRepository _domainRepository;
-  final IFaceDetector<pkg_camera.CameraImage> _faceDetector;
+  final IRecognitionPipeline<pkg_camera.CameraImage, pkg_image.Image, Uint8List,
+      Student, FaceEmbedding> _recognitionPipeline;
   final IImageHandler<pkg_camera.CameraImage, pkg_image.Image, Uint8List> _imageHandler;
 
   void createLesson({
@@ -108,9 +113,17 @@ class CreateModels {
     _domainRepository.addTeacher([teacher]);
   }
 
-  Future<bool> isOneFacePicture(pkg_camera.CameraImage facePicture, sensorOrientation) async {
-    final faces = await _faceDetector.detect(facePicture, sensorOrientation);
-    return faces.length == 1;
+  Future<List<pkg_image.Image>> detectFaces(
+    final pkg_camera.CameraImage image,
+    final int cameraSensorOrientation,
+  ) {
+    return _recognitionPipeline.detectFace(image, cameraSensorOrientation);
+  }
+
+  Future<List<Duple<Uint8List, FaceEmbedding>>> extractEmbedding(
+    final pkg_image.Image face,
+  ) {
+    return _recognitionPipeline.extractEmbedding([face]);
   }
 
   Uint8List toJpg(pkg_camera.CameraImage cameraImage, int sensorRotation) {

@@ -1,6 +1,6 @@
 import 'dart:typed_data';
 
-import 'package:camera/camera.dart' as pkg_camera;
+import 'package:facial_recognition/models/domain.dart';
 import 'package:facial_recognition/screens/widgets/create_student.dart';
 import 'package:facial_recognition/screens/widgets/submit_form_button.dart';
 import 'package:facial_recognition/use_case/create_models.dart';
@@ -33,11 +33,12 @@ class _CreateStudentScreenState extends State<CreateStudentScreen> {
 
   /// not used to build the widget, just hold retrieved value from the form
   Uint8List? _facePicture;
+  FaceEmbedding? _faceEmbedding;
 
-  String _individualRegistrationValue = '';
-  String _registrationValue = '';
-  String _nameValue = '';
-  String _surnameValue = '';
+  // String _individualRegistrationValue = '';
+  // String _registrationValue = '';
+  // String _nameValue = '';
+  // String _surnameValue = '';
 
   @override
   void dispose() {
@@ -67,15 +68,18 @@ class _CreateStudentScreenState extends State<CreateStudentScreen> {
             Form(
               key: _studentForm,
               child: CreateStudent(
-                isValidFacePicture: widget.useCase.isOneFacePicture,
-                facePictureOnSaved: (final cameraImage, final cameraDescription) {
-                  // REVIEW - cameraDescription should not be null;
-                  _facePicture = cameraDescription == null || cameraImage == null
+                faceDetector: widget.useCase.detectFaces,
+                faceEmbedder: widget.useCase.extractEmbedding,
+                facePictureOnSaved: (final cameraImage, final cameraDescription, final faceEmbedding) {
+                  // REVIEW - cameraDescription should not be null?;
+                  final facePicture = cameraDescription == null || cameraImage == null
                       ? null
                       : widget.useCase.toJpg(
                           cameraImage,
                           cameraDescription.sensorOrientation,
                         );
+                  _facePicture = facePicture;
+                  _faceEmbedding = faceEmbedding;
                 },
                 individualRegistrationController: _individualRegistration,
                 registrationController: _registration,
@@ -92,17 +96,18 @@ class _CreateStudentScreenState extends State<CreateStudentScreen> {
                   name: _name.text,
                   surname: _surname.text,
                 );
-                // TODO - ask for face picture
-                // if (jpegFacePicture != null) {
-                //   widget.useCase.createStudentFacePicture(
-                //     jpegFacePicture: jpegFacePicture,
-                //     studentRegistration: _individualRegistration.text,
-                //   );
-                //   widget.useCase.createStudentFacialData(
-                //     embedding: embedding,
-                //     studentRegistration: _individualRegistration.text,
-                //   );
-                // }
+                final facePicture = _facePicture;
+                final faceEmbedding = _faceEmbedding;
+                if (!(facePicture == null || faceEmbedding == null)) {
+                  widget.useCase.createStudentFacePicture(
+                    jpegFacePicture: facePicture,
+                    studentRegistration: _individualRegistration.text,
+                  );
+                  widget.useCase.createStudentFacialData(
+                    embedding: faceEmbedding,
+                    studentRegistration: _individualRegistration.text,
+                  );
+                }
               },
             ),
           ],

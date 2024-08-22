@@ -1,41 +1,36 @@
 import 'dart:math';
 import 'dart:typed_data';
 
-import 'package:camera/camera.dart';
+import 'package:camera/camera.dart' as pkg_camera;
+import 'package:image/image.dart' as pkg_image;
 import 'package:facial_recognition/interfaces.dart';
 import 'package:facial_recognition/models/domain.dart';
-import 'package:facial_recognition/models/recognition_pipeline.dart';
 import 'package:facial_recognition/models/use_case.dart';
 import 'package:facial_recognition/utils/project_logger.dart';
-import 'package:image/image.dart';
 
-class CameraIdentification implements ICameraAttendance<CameraImage> {
+class CameraIdentification implements ICameraAttendance<pkg_camera.CameraImage> {
   CameraIdentification(
-    IFaceDetector<CameraImage> faceDetector,
-    IImageHandler<CameraImage, Image, Uint8List> imageHandler,
-    IFaceEmbedder faceEmbedder,
-    IFaceRecognizer<Student, FaceEmbedding> faceRecognizer,
+    IRecognitionPipeline<pkg_camera.CameraImage, pkg_image.Image, Uint8List,
+      Student, FaceEmbedding> recognitionPipeline,
+    IImageHandler<pkg_camera.CameraImage, pkg_image.Image, Uint8List> imageHandler,
     DomainRepository domainRepository,
     this.showFaceImages,
     this.lesson,
   )   : _imageHandler = imageHandler,
-        _recognitionPipeline = RecognitionPipeline(
-            faceDetector: faceDetector,
-            imageHandler: imageHandler,
-            faceEmbedder: faceEmbedder,
-            faceRecognizer: faceRecognizer),
+        _recognitionPipeline = recognitionPipeline,
         _domainRepo = domainRepository;
 
-  final IImageHandler<CameraImage, Image, Uint8List> _imageHandler;
+  final IImageHandler<pkg_camera.CameraImage, pkg_image.Image, Uint8List> _imageHandler;
 
-  final RecognitionPipeline<CameraImage, Image, Uint8List, Student, FaceEmbedding> _recognitionPipeline;
+  final IRecognitionPipeline<pkg_camera.CameraImage, pkg_image.Image, Uint8List,
+      Student, FaceEmbedding> _recognitionPipeline;
   final DomainRepository _domainRepo;
   void Function(Iterable<Uint8List> jpegImages)? showFaceImages;
   final Lesson lesson;
 
   @override
   Future<void> onNewCameraImage(
-    final CameraImage image,
+    final pkg_camera.CameraImage image,
     final int cameraSensorOrientation,
   ) async {
     //

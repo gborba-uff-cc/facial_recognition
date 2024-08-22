@@ -1,4 +1,9 @@
+import "dart:typed_data";
+
 import "package:camera/camera.dart" as pkg_camera;
+import "package:image/image.dart" as pkg_image;
+import "package:facial_recognition/models/domain.dart";
+import "package:facial_recognition/models/use_case.dart";
 import "package:facial_recognition/screens/widgets/form_fields.dart";
 import "package:facial_recognition/utils/project_logger.dart";
 import "package:flutter/material.dart";
@@ -6,8 +11,17 @@ import "package:flutter/material.dart";
 class CreateStudent extends StatefulWidget {
   const CreateStudent({
     super.key,
-    required Future<bool> Function(pkg_camera.CameraImage, int) isValidFacePicture,
-    void Function(pkg_camera.CameraImage?, pkg_camera.CameraDescription?)? facePictureOnSaved,
+    // [cameraSensorOrientation] degrees the camera image need to be rotated to be upright
+    Future<List<pkg_image.Image>> Function(
+      pkg_camera.CameraImage cameiraImage,
+      int cameraSensorOrientation,
+    )?
+        faceDetector,
+    Future<List<Duple<Uint8List, List<double>>>> Function(
+      pkg_image.Image face,
+    )?
+        faceEmbedder,
+    void Function(pkg_camera.CameraImage?, pkg_camera.CameraDescription?, FaceEmbedding?)? facePictureOnSaved,
     required TextEditingController individualRegistrationController,
     void Function(String?)? individualRegistrationOnSaved,
     required TextEditingController registrationController,
@@ -16,7 +30,8 @@ class CreateStudent extends StatefulWidget {
     void Function(String?)? nameOnSaved,
     required TextEditingController surnameController,
     void Function(String?)? surnameControllerOnSaved,
-  })  : _isValidFacePicture = isValidFacePicture,
+  })  : _faceDetector = faceDetector,
+        _faceEmbedder = faceEmbedder,
         _facePictureOnSaved = facePictureOnSaved,
         _individualRegistrationController = individualRegistrationController,
         _individualRegistrationOnSaved = individualRegistrationOnSaved,
@@ -27,8 +42,14 @@ class CreateStudent extends StatefulWidget {
         _surnameController = surnameController,
         _surnameOnSaved = surnameControllerOnSaved;
 
-  final Future<bool> Function(pkg_camera.CameraImage, int) _isValidFacePicture;
-  final void Function(pkg_camera.CameraImage?, pkg_camera.CameraDescription?)? _facePictureOnSaved;
+  final Future<List<pkg_image.Image>> Function(
+    pkg_camera.CameraImage cameiraImage,
+    int cameraSensorOrientation,
+  )? _faceDetector;
+  final Future<List<Duple<Uint8List, List<double>>>> Function(
+    pkg_image.Image face,
+  )? _faceEmbedder;
+  final void Function(pkg_camera.CameraImage?, pkg_camera.CameraDescription?, FaceEmbedding?)? _facePictureOnSaved;
   final TextEditingController _individualRegistrationController;
   final void Function(String?)? _individualRegistrationOnSaved;
   final TextEditingController _registrationController;
@@ -45,9 +66,11 @@ class CreateStudent extends StatefulWidget {
 class _CreateStudentState extends State<CreateStudent> {
   @override
   Widget build(BuildContext context) {
+    projectLogger.fine('_CreateStudentstate.build');
     final inputPicture = FacePictureField(
+      faceDetector: widget._faceDetector,
+      faceEmbedder: widget._faceEmbedder,
       onSaved: widget._facePictureOnSaved,
-      isValidFacePicture: widget._isValidFacePicture,
     );
 
     final inputRegistration = TextFormField(

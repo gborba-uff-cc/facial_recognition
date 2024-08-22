@@ -4,25 +4,29 @@ import 'package:facial_recognition/interfaces.dart';
 import 'package:facial_recognition/models/domain.dart';
 import 'package:facial_recognition/models/use_case.dart';
 import 'package:facial_recognition/utils/project_logger.dart';
+import 'package:camera/camera.dart' as pkg_camera;
+import 'package:image/image.dart' as pkg_image;
 
-class RecognitionPipeline<CI, I, J, L extends Student, E extends FaceEmbedding> {
+
+class RecognitionPipeline implements IRecognitionPipeline<pkg_camera.CameraImage, pkg_image.Image, Uint8List, Student, FaceEmbedding> {
   const RecognitionPipeline({
-    required IFaceDetector<CI> faceDetector,
-    required IImageHandler<CI, I, J> imageHandler,
+    required IFaceDetector<pkg_camera.CameraImage> faceDetector,
+    required IImageHandler<pkg_camera.CameraImage, pkg_image.Image, Uint8List> imageHandler,
     required IFaceEmbedder faceEmbedder,
-    required IFaceRecognizer<L, E> faceRecognizer,
+    required IFaceRecognizer<Student, FaceEmbedding> faceRecognizer,
   })  : _faceDetector = faceDetector,
         _imageHandler = imageHandler,
         _faceEmbedder = faceEmbedder,
         _faceRecognizer = faceRecognizer;
 
-  final IFaceDetector<CI> _faceDetector;
-  final IImageHandler<CI, I, J> _imageHandler;
+  final IFaceDetector<pkg_camera.CameraImage> _faceDetector;
+  final IImageHandler<pkg_camera.CameraImage, pkg_image.Image, Uint8List> _imageHandler;
   final IFaceEmbedder _faceEmbedder;
-  final IFaceRecognizer<L, E> _faceRecognizer;
+  final IFaceRecognizer<Student, FaceEmbedding> _faceRecognizer;
 
-  Future<List<I>> detectFace(
-    final CI image,
+  @override
+  Future<List<pkg_image.Image>> detectFace(
+    final pkg_camera.CameraImage image,
     final int cameraSensorOrientation,
   ) async {
     // detect faces
@@ -35,11 +39,12 @@ class RecognitionPipeline<CI, I, J, L extends Student, E extends FaceEmbedding> 
     return faces;
   }
 
-  Future<List<Duple<J, FaceEmbedding>>> extractEmbedding(
-    final List<I> faces,
+  @override
+  Future<List<Duple<Uint8List, FaceEmbedding>>> extractEmbedding(
+    final List<pkg_image.Image> faces,
   ) async {
     // create jpegs images and rgbMatrixes of detected face images
-    final List<J> detectedFaces = [];
+    final List<Uint8List> detectedFaces = [];
     final List<List<List<List<int>>>> samples = [];
     for (final i in faces) {
       final jpeg = _imageHandler.toJpg(i);
@@ -54,7 +59,7 @@ class RecognitionPipeline<CI, I, J, L extends Student, E extends FaceEmbedding> 
     List<FaceEmbedding> facesEmbedding =
         await _faceEmbedder.extractEmbedding(samples);
 
-    final List<Duple<J, FaceEmbedding>> result = [
+    final List<Duple<Uint8List, FaceEmbedding>> result = [
       for (int i = 0; i < detectedFaces.length; i++)
         Duple(detectedFaces[i], facesEmbedding[i])
     ];
@@ -72,10 +77,11 @@ class RecognitionPipeline<CI, I, J, L extends Student, E extends FaceEmbedding> 
   ///    throw _TryRecognizeLater();
   ///  }
   /// ```
+  @override
   Duple<Iterable<EmbeddingRecognitionResult>, Iterable<EmbeddingRecognitionResult>>
       recognizeEmbedding(
     final Iterable<Duple<Uint8List, FaceEmbedding>> input,
-    final Map<L, Iterable<E>>embeddingsByStudent,
+    final Map<Student, Iterable<FaceEmbedding>>embeddingsByStudent,
   ) {
     final List<EmbeddingRecognitionResult> recognized = [];
     final List<EmbeddingRecognitionResult> notRecognized = [];
@@ -102,7 +108,7 @@ class RecognitionPipeline<CI, I, J, L extends Student, E extends FaceEmbedding> 
       return result;
     }
 
-    final Iterable<E> unlabelledembeddings = input.map((e) => e.value2).cast();
+    final Iterable<FaceEmbedding> unlabelledembeddings = input.map((e) => e.value2).cast();
     // (listFaceEmbedding, labeledFaceEmbedding) => {aFaceEmbedding: theRecognitionResult, ...}
     final recognizeResult = _faceRecognizer.recognize(
       unlabelledembeddings,

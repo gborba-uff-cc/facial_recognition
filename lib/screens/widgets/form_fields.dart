@@ -1,11 +1,13 @@
 import 'dart:typed_data';
 
+import 'package:facial_recognition/models/domain.dart';
 import 'package:facial_recognition/models/use_case.dart';
 import 'package:facial_recognition/screens/one_shot_camera_return.dart';
 import 'package:facial_recognition/utils/algorithms.dart';
 import 'package:facial_recognition/utils/project_logger.dart';
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart' as pkg_camera;
+import 'package:image/image.dart' as pkg_image;
 import 'package:go_router/go_router.dart';
 
 // TODO - move form fields here
@@ -229,14 +231,23 @@ class FacePictureField extends StatefulWidget {
   const FacePictureField({
     super.key,
     required this.onSaved,
-    required isValidFacePicture,
-  }) : _isValidFacePicture = isValidFacePicture;
+    Future<List<pkg_image.Image>> Function(pkg_camera.CameraImage cameiraImage, int cameraSensorOrientation)? faceDetector,
+    Future<List<Duple<Uint8List, List<double>>>> Function(pkg_image.Image face,)? faceEmbedder,
+  })  : _faceDetector = faceDetector,
+        _faceEmbedder = faceEmbedder;
 
   final void Function(
     pkg_camera.CameraImage?,
     pkg_camera.CameraDescription?,
+    FaceEmbedding?,
   )? onSaved;
-  final Future<bool> Function(pkg_camera.CameraImage, int) _isValidFacePicture;
+  final Future<List<pkg_image.Image>> Function(
+    pkg_camera.CameraImage cameiraImage,
+    int cameraSensorOrientation,
+  )? _faceDetector;
+  final Future<List<Duple<Uint8List, List<double>>>> Function(
+    pkg_image.Image face,
+  )? _faceEmbedder;
 
   @override
   State<FacePictureField> createState() => _FacePictureFieldState();
@@ -246,29 +257,32 @@ class _FacePictureFieldState extends State<FacePictureField> {
   Uint8List? _jpg;
   final GlobalKey<FormFieldState<_CandidateFacePicture>> _facePictureFormField = GlobalKey();
 
+  // _candidatePicture.embedding may have a value other than null because of the
+  // validation and embedding extraction
   _CandidateFacePicture? _candidatePicture;
   _FacePictureValidationStatus _facePictureValidationStatus =
       _FacePictureValidationStatus.isValid;
 
   @override
   Widget build(BuildContext context) {
+    projectLogger.fine('_FacePictureFieldState.build');
     final saver = widget.onSaved;
     return FormField<_CandidateFacePicture>(
       key: _facePictureFormField,
       initialValue: null,
       autovalidateMode: AutovalidateMode.disabled,
+      // value.embedding is always null because the value is the image returned
+      // from camera without embedding
+      // REVIEW - move to camera the detection and extraction actions?
       validator: (final value) {
-        final cameraImage = value?.value1;
-        final cameraDescription = value?.value2;
+        projectLogger.fine('FormField<_CandidateFacePicture>.validator');
+        final cameraImage = value?.image;
+        final cameraDescription = value?.description;
         final oldCandidate = _candidatePicture;
         final oldStatus = _facePictureValidationStatus;
         final isValidating =
             oldStatus == _FacePictureValidationStatus.validating;
-        final isAnotherImage = (oldCandidate == null && cameraImage != null) ||
-            (oldCandidate != null && cameraImage == null) ||
-            (oldCandidate != null &&
-                cameraImage != null &&
-                oldCandidate.value1 != cameraImage);
+        final isAnotherImage = _areDifferrentPictures(oldCandidate?.image, cameraImage);
 
         projectLogger.fine('validating: $isValidating; isAnotherImage: $isAnotherImage');
         // update and validate a candidate picture when:
@@ -281,33 +295,34 @@ class _FacePictureFieldState extends State<FacePictureField> {
           }
           else if (cameraImage != null) {
             _candidatePicture = _CandidateFacePicture(
-              cameraImage,
-              cameraDescription,
+              image: cameraImage,
+              description: cameraDescription,
+              embedding: null,
             );
             _facePictureValidationStatus =
                 _FacePictureValidationStatus.validating;
             // ----------------------------------
             // change later the validation status
             final thisField = _facePictureFormField.currentState;
-            _validateFacePicture(
-              cameraImage,
-              cameraDescription.sensorOrientation,
-            ).then((status) {
-              if (thisField == null) {
-                projectLogger.warning(
-                  'CameraImageFieldState trying to validate a picture when the field is not on the widget tree',
-                );
-                return;
-              }
-              else if (thisField.mounted) {
-                thisField.setState(() {
+            _updateFacePictureCandidate(cameraImage, cameraDescription).then(
+              (valid) {
+                if (thisField == null) {
+                  projectLogger.warning(
+                    'CameraImageFieldState trying to validate a picture when the field is not on the widget tree',
+                  );
+                  return;
+                } else if (thisField.mounted) {
                   projectLogger.fine('validation status updated');
-                  _facePictureValidationStatus = status;
-                });
-              }
-              // validate after updating status
-              thisField.validate();
-            });
+                  thisField.setState(() {
+                    _facePictureValidationStatus = valid
+                        ? _FacePictureValidationStatus.isValid
+                        : _FacePictureValidationStatus.notValid;
+                  });
+                }
+                // validate after updating status
+                thisField.validate();
+              },
+            );
           }
           else {
             _candidatePicture = null;
@@ -330,13 +345,14 @@ class _FacePictureFieldState extends State<FacePictureField> {
       onSaved: saver == null
           ? null
           : (value) {
-              final cameraImage = value?.value1;
-              final cameraDescription = value?.value2;
-              final candidatePicture = _candidatePicture?.value1;
+              final cameraImage = value?.image;
+              final candidatePicture = _candidatePicture?.image;
+              final candidateCameraDescription = _candidatePicture?.description;
+              final candidateEmbedding = _candidatePicture?.embedding;
               if (_areDifferrentPictures(candidatePicture, cameraImage)) {
                 projectLogger.severe('tried to save a not validated picture');
               } else {
-                saver(cameraImage, cameraDescription);
+                saver(candidatePicture, candidateCameraDescription, candidateEmbedding);
               }
             },
       builder: (FormFieldState<_CandidateFacePicture> field) {
@@ -379,8 +395,9 @@ class _FacePictureFieldState extends State<FacePictureField> {
                     field.didChange(
                       value != null
                           ? _CandidateFacePicture(
-                              value.cameraImage,
-                              value.cameraDescription,
+                              image: value.cameraImage,
+                              description: value.cameraDescription,
+                              embedding: null,
                             )
                           : null,
                     );
@@ -432,27 +449,53 @@ class _FacePictureFieldState extends State<FacePictureField> {
   ) =>
       (imageA == null && imageB != null) ||
       (imageA != null && imageB == null) ||
-      (imageA != null && imageB != null && areIterablesEquivalents(imageA.planes,imageB.planes));
+      (imageA != null && imageB != null && !identical(imageA,imageB));
 
-  Future<_FacePictureValidationStatus> _validateFacePicture(
-    final pkg_camera.CameraImage picture,
-    final int sensorOrientation,
+  /// update the image candidate to face picture
+  /// detect if there is only one face on the image
+  /// extracts the face embedding if there is a face
+  /// returns if the camera image is a valid face picture
+  Future<bool> _updateFacePictureCandidate(
+    final pkg_camera.CameraImage cameraImage,
+    final pkg_camera.CameraDescription cameraDescription,
   ) async {
-    projectLogger.fine('validating image');
-    bool valid = false;
-    // there is one face on the picture
-    valid = await widget._isValidFacePicture(
-      picture,
-      sensorOrientation,
-    );
+    final detector = widget._faceDetector;
+    final embedder = widget._faceEmbedder;
+    if (detector == null || embedder == null) {
+      return true;
+    }
 
-    return valid
-        ? _FacePictureValidationStatus.isValid
-        : _FacePictureValidationStatus.notValid;
+    final List<pkg_image.Image> faces = await detector(cameraImage, cameraDescription.sensorOrientation);
+    if (faces.length != 1) {
+      return false;
+    }
+    final FaceEmbedding embedding = (await embedder(faces.first)).first.value2;
+
+    if (_areDifferrentPictures(_candidatePicture?.image, cameraImage)) {
+      return false;
+    }
+    else {
+      _candidatePicture = _CandidateFacePicture(
+        image: cameraImage,
+        description: cameraDescription,
+        embedding: embedding,
+      );
+      return true;
+    }
   }
 }
 
-typedef _CandidateFacePicture = Duple<pkg_camera.CameraImage, pkg_camera.CameraDescription>;
+class _CandidateFacePicture {
+  const _CandidateFacePicture({
+    required this.image,
+    required this.description,
+    required this.embedding,
+  });
+
+  final pkg_camera.CameraImage? image;
+  final pkg_camera.CameraDescription? description;
+  final FaceEmbedding? embedding;
+}
 
 enum _FacePictureValidationStatus {
   notValid,

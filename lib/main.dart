@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:camera/camera.dart' as pkg_camera;
+import 'package:facial_recognition/models/recognition_pipeline.dart';
 import 'package:image/image.dart' as pkg_image;
 import 'package:facial_recognition/interfaces.dart';
 import 'package:facial_recognition/models/domain.dart';
@@ -68,7 +69,22 @@ class MainApp extends StatelessWidget {
     final IImageHandler<pkg_camera.CameraImage, pkg_image.Image, Uint8List> imageHandler = ImageHandler();
     final IFaceEmbedder faceEmbedder = FacenetFaceEmbedder();
     final IFaceRecognizer<Student, List<double>> faceRecognizer = DistanceClassifier(distanceFunction: euclideanDistance);
-    final CreateModels createModels = CreateModels(domainRepository, faceDetector, imageHandler);
+    final IRecognitionPipeline<
+        pkg_camera.CameraImage,
+        pkg_image.Image,
+        Uint8List,
+        Student,
+        FaceEmbedding> recognitionPipeline = RecognitionPipeline(
+      faceDetector: faceDetector,
+      imageHandler: imageHandler,
+      faceEmbedder: faceEmbedder,
+      faceRecognizer: faceRecognizer,
+    );
+    final CreateModels createModels = CreateModels(
+      domainRepository,
+      imageHandler,
+      recognitionPipeline
+    );
     return MaterialApp.router(
       theme: ThemeData(useMaterial3: true),
       routerConfig: GoRouter(
@@ -102,10 +118,8 @@ class MainApp extends StatelessWidget {
                 builder: (context, state) => CameraIdentificationScreen(
                   cameras: cameras,
                   useCase: CameraIdentification(
-                    faceDetector,
+                    recognitionPipeline,
                     imageHandler,
-                    faceEmbedder,
-                    faceRecognizer,
                     domainRepository,
                     null,
                     state.extra as Lesson,
