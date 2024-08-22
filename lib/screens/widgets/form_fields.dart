@@ -231,7 +231,7 @@ class FacePictureField extends StatefulWidget {
   const FacePictureField({
     super.key,
     required this.onSaved,
-    Future<List<pkg_image.Image>> Function(pkg_camera.CameraImage cameiraImage, int cameraSensorOrientation)? faceDetector,
+    Future<List<pkg_image.Image>> Function(pkg_camera.CameraImage cameiraImage, pkg_camera.CameraDescription cameraDescription)? faceDetector,
     Future<List<Duple<Uint8List, List<double>>>> Function(pkg_image.Image face,)? faceEmbedder,
   })  : _faceDetector = faceDetector,
         _faceEmbedder = faceEmbedder;
@@ -243,7 +243,7 @@ class FacePictureField extends StatefulWidget {
   )? onSaved;
   final Future<List<pkg_image.Image>> Function(
     pkg_camera.CameraImage cameiraImage,
-    int cameraSensorOrientation,
+    pkg_camera.CameraDescription cameraDescription,
   )? _faceDetector;
   final Future<List<Duple<Uint8List, List<double>>>> Function(
     pkg_image.Image face,
@@ -465,7 +465,7 @@ class _FacePictureFieldState extends State<FacePictureField> {
       return true;
     }
 
-    final List<pkg_image.Image> faces = await detector(cameraImage, cameraDescription.sensorOrientation);
+    final List<pkg_image.Image> faces = await detector(cameraImage, cameraDescription);
     if (faces.length != 1) {
       return false;
     }

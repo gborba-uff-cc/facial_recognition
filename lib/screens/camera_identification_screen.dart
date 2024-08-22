@@ -76,11 +76,11 @@ class _CameraIdentificationScreenState extends State<CameraIdentificationScreen>
       imageCaptureHandler: _isAutoMode
           ? null
           : (cameraDescription, cameraImage) => widget.useCase.onNewCameraImage(
-              cameraImage, cameraDescription.sensorOrientation),
+              cameraImage, cameraDescription),
       imageStreamHandler: !_isAutoMode
           ? null
           : (cameraDescription, cameraImage) => widget.useCase.onNewCameraImage(
-              cameraImage, cameraDescription.sensorOrientation),
+              cameraImage, cameraDescription),
     );
     return Scaffold(
       appBar: AppBar(),

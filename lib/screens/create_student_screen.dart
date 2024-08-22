@@ -76,7 +76,7 @@ class _CreateStudentScreenState extends State<CreateStudentScreen> {
                       ? null
                       : widget.useCase.toJpg(
                           cameraImage,
-                          cameraDescription.sensorOrientation,
+                          cameraDescription,
                         );
                   _facePicture = facePicture;
                   _faceEmbedding = faceEmbedding;
@@ -97,12 +97,14 @@ class _CreateStudentScreenState extends State<CreateStudentScreen> {
                   surname: _surname.text,
                 );
                 final facePicture = _facePicture;
-                final faceEmbedding = _faceEmbedding;
-                if (!(facePicture == null || faceEmbedding == null)) {
+                if (facePicture != null) {
                   widget.useCase.createStudentFacePicture(
                     jpegFacePicture: facePicture,
                     studentRegistration: _individualRegistration.text,
                   );
+                }
+                final faceEmbedding = _faceEmbedding;
+                if (faceEmbedding != null) {
                   widget.useCase.createStudentFacialData(
                     embedding: faceEmbedding,
                     studentRegistration: _individualRegistration.text,

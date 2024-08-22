@@ -13,8 +13,8 @@ class CreateStudent extends StatefulWidget {
     super.key,
     // [cameraSensorOrientation] degrees the camera image need to be rotated to be upright
     Future<List<pkg_image.Image>> Function(
-      pkg_camera.CameraImage cameiraImage,
-      int cameraSensorOrientation,
+      pkg_camera.CameraImage cameraImage,
+      pkg_camera.CameraDescription cameraDescription,
     )?
         faceDetector,
     Future<List<Duple<Uint8List, List<double>>>> Function(
@@ -44,7 +44,7 @@ class CreateStudent extends StatefulWidget {
 
   final Future<List<pkg_image.Image>> Function(
     pkg_camera.CameraImage cameiraImage,
-    int cameraSensorOrientation,
+    pkg_camera.CameraDescription cameraDescription,
   )? _faceDetector;
   final Future<List<Duple<Uint8List, List<double>>>> Function(
     pkg_image.Image face,

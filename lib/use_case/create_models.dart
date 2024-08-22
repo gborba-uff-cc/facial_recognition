@@ -9,17 +9,23 @@ import 'package:facial_recognition/models/domain.dart';
 class CreateModels {
   CreateModels(
     DomainRepository domainRepository,
-    IImageHandler<pkg_camera.CameraImage, pkg_image.Image, Uint8List> imageHandler,
-    IRecognitionPipeline<pkg_camera.CameraImage, pkg_image.Image, Uint8List,
+    IImageHandler<pkg_camera.CameraImage, pkg_camera.CameraDescription, pkg_image.Image, Uint8List> imageHandler,
+    IRecognitionPipeline<pkg_camera.CameraImage, pkg_camera.CameraDescription, pkg_image.Image, Uint8List,
       Student, FaceEmbedding> recognitionPipeline,
   )   : _domainRepository = domainRepository,
         _recognitionPipeline = recognitionPipeline,
         _imageHandler = imageHandler;
 
   final DomainRepository _domainRepository;
-  final IRecognitionPipeline<pkg_camera.CameraImage, pkg_image.Image, Uint8List,
-      Student, FaceEmbedding> _recognitionPipeline;
-  final IImageHandler<pkg_camera.CameraImage, pkg_image.Image, Uint8List> _imageHandler;
+  final IRecognitionPipeline<
+      pkg_camera.CameraImage,
+      pkg_camera.CameraDescription,
+      pkg_image.Image,
+      Uint8List,
+      Student,
+      FaceEmbedding> _recognitionPipeline;
+  final IImageHandler<pkg_camera.CameraImage, pkg_camera.CameraDescription,
+      pkg_image.Image, Uint8List> _imageHandler;
 
   void createLesson({
     required String codeOfSubject,
@@ -115,9 +121,9 @@ class CreateModels {
 
   Future<List<pkg_image.Image>> detectFaces(
     final pkg_camera.CameraImage image,
-    final int cameraSensorOrientation,
+    final pkg_camera.CameraDescription cameraDescription,
   ) {
-    return _recognitionPipeline.detectFace(image, cameraSensorOrientation);
+    return _recognitionPipeline.detectFace(image, cameraDescription);
   }
 
   Future<List<Duple<Uint8List, FaceEmbedding>>> extractEmbedding(
@@ -126,11 +132,11 @@ class CreateModels {
     return _recognitionPipeline.extractEmbedding([face]);
   }
 
-  Uint8List toJpg(pkg_camera.CameraImage cameraImage, int sensorRotation) {
+  Uint8List toJpg(pkg_camera.CameraImage cameraImage, pkg_camera.CameraDescription cameraDescription) {
     return _imageHandler.toJpg(
       _imageHandler.fromCameraImage(
         cameraImage,
-        sensorRotation,
+        cameraDescription,
       ),
     );
   }

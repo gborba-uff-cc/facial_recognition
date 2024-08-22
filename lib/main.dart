@@ -66,11 +66,12 @@ class MainApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final IFaceDetector<pkg_camera.CameraImage> faceDetector = GoogleFaceDetector();
-    final IImageHandler<pkg_camera.CameraImage, pkg_image.Image, Uint8List> imageHandler = ImageHandler();
+    final IImageHandler<pkg_camera.CameraImage, pkg_camera.CameraDescription, pkg_image.Image, Uint8List> imageHandler = ImageHandler();
     final IFaceEmbedder faceEmbedder = FacenetFaceEmbedder();
     final IFaceRecognizer<Student, List<double>> faceRecognizer = DistanceClassifier(distanceFunction: euclideanDistance);
     final IRecognitionPipeline<
         pkg_camera.CameraImage,
+        pkg_camera.CameraDescription,
         pkg_image.Image,
         Uint8List,
         Student,

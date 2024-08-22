@@ -8,11 +8,13 @@ import 'package:facial_recognition/models/domain.dart';
 import 'package:facial_recognition/models/use_case.dart';
 import 'package:facial_recognition/utils/project_logger.dart';
 
-class CameraIdentification implements ICameraAttendance<pkg_camera.CameraImage> {
+class CameraIdentification implements ICameraAttendance<pkg_camera.CameraImage, pkg_camera.CameraDescription> {
   CameraIdentification(
-    IRecognitionPipeline<pkg_camera.CameraImage, pkg_image.Image, Uint8List,
+    IRecognitionPipeline<pkg_camera.CameraImage, pkg_camera.CameraDescription, pkg_image.Image, Uint8List,
       Student, FaceEmbedding> recognitionPipeline,
-    IImageHandler<pkg_camera.CameraImage, pkg_image.Image, Uint8List> imageHandler,
+    IImageHandler<pkg_camera.CameraImage, pkg_camera.CameraDescription,
+            pkg_image.Image, Uint8List>
+        imageHandler,
     DomainRepository domainRepository,
     this.showFaceImages,
     this.lesson,
@@ -20,9 +22,10 @@ class CameraIdentification implements ICameraAttendance<pkg_camera.CameraImage> 
         _recognitionPipeline = recognitionPipeline,
         _domainRepo = domainRepository;
 
-  final IImageHandler<pkg_camera.CameraImage, pkg_image.Image, Uint8List> _imageHandler;
+  final IImageHandler<pkg_camera.CameraImage, pkg_camera.CameraDescription,
+      pkg_image.Image, Uint8List> _imageHandler;
 
-  final IRecognitionPipeline<pkg_camera.CameraImage, pkg_image.Image, Uint8List,
+  final IRecognitionPipeline<pkg_camera.CameraImage, pkg_camera.CameraDescription, pkg_image.Image, Uint8List,
       Student, FaceEmbedding> _recognitionPipeline;
   final DomainRepository _domainRepo;
   void Function(Iterable<Uint8List> jpegImages)? showFaceImages;
@@ -30,13 +33,13 @@ class CameraIdentification implements ICameraAttendance<pkg_camera.CameraImage> 
 
   @override
   Future<void> onNewCameraImage(
-    final pkg_camera.CameraImage image,
-    final int cameraSensorOrientation,
+    final pkg_camera.CameraImage cameraImage,
+    final pkg_camera.CameraDescription cameraDescription,
   ) async {
     //
     final faces = await _recognitionPipeline.detectFace(
-      image,
-      cameraSensorOrientation,
+      cameraImage,
+      cameraDescription,
     );
     final jpegsAndEmbeddings =
         await _recognitionPipeline.extractEmbedding(faces);
@@ -47,7 +50,7 @@ class CameraIdentification implements ICameraAttendance<pkg_camera.CameraImage> 
       localShowFaceImages(
         jpegsAndEmbeddings.map(
           (e) => e.value1,
-        ).toList()..insert(0, _imageHandler.toJpg(_imageHandler.fromCameraImage(image, cameraSensorOrientation))),
+        ).toList()..insert(0, _imageHandler.toJpg(_imageHandler.fromCameraImage(cameraImage, cameraDescription))),
       );
     }
 

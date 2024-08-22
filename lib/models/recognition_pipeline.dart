@@ -8,10 +8,12 @@ import 'package:camera/camera.dart' as pkg_camera;
 import 'package:image/image.dart' as pkg_image;
 
 
-class RecognitionPipeline implements IRecognitionPipeline<pkg_camera.CameraImage, pkg_image.Image, Uint8List, Student, FaceEmbedding> {
+class RecognitionPipeline implements IRecognitionPipeline<pkg_camera.CameraImage, pkg_camera.CameraDescription, pkg_image.Image, Uint8List, Student, FaceEmbedding> {
   const RecognitionPipeline({
     required IFaceDetector<pkg_camera.CameraImage> faceDetector,
-    required IImageHandler<pkg_camera.CameraImage, pkg_image.Image, Uint8List> imageHandler,
+    required IImageHandler<pkg_camera.CameraImage, pkg_camera.CameraDescription,
+            pkg_image.Image, Uint8List>
+        imageHandler,
     required IFaceEmbedder faceEmbedder,
     required IFaceRecognizer<Student, FaceEmbedding> faceRecognizer,
   })  : _faceDetector = faceDetector,
@@ -20,21 +22,23 @@ class RecognitionPipeline implements IRecognitionPipeline<pkg_camera.CameraImage
         _faceRecognizer = faceRecognizer;
 
   final IFaceDetector<pkg_camera.CameraImage> _faceDetector;
-  final IImageHandler<pkg_camera.CameraImage, pkg_image.Image, Uint8List> _imageHandler;
+  final IImageHandler<pkg_camera.CameraImage, pkg_camera.CameraDescription,
+      pkg_image.Image, Uint8List> _imageHandler;
   final IFaceEmbedder _faceEmbedder;
   final IFaceRecognizer<Student, FaceEmbedding> _faceRecognizer;
 
+  // FIXME - URGENT - should receive an image alread rotated and fliped if needed
   @override
   Future<List<pkg_image.Image>> detectFace(
     final pkg_camera.CameraImage image,
-    final int cameraSensorOrientation,
+    final pkg_camera.CameraDescription cameraDescription,
   ) async {
     // detect faces
-    final faceRects = await _faceDetector.detect(image, cameraSensorOrientation);
+    final faceRects = await _faceDetector.detect(image, cameraDescription.sensorOrientation);
     projectLogger.fine('detected faces: ${faceRects.length}');
 
     // detach faces into manipulable images
-    final manipulableImage = _imageHandler.fromCameraImage(image, cameraSensorOrientation);
+    final manipulableImage = _imageHandler.fromCameraImage(image, cameraDescription);
     final faces = _imageHandler.cropFromImage(manipulableImage, faceRects);
     return faces;
   }

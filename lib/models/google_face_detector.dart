@@ -24,6 +24,7 @@ class GoogleFaceDetector
   }
 
   ///
+  // FIXME - change to receive an rgba buffer instead of a cameraImage
   @override
   Future<List<Rect>> detect (
     final CameraImage image,

@@ -3,19 +3,21 @@ import 'dart:ui';
 
 import 'package:camera/camera.dart' as pkg_camera;
 import 'package:facial_recognition/interfaces.dart';
+import 'package:facial_recognition/utils/project_logger.dart';
 import 'package:flutter/foundation.dart';
 import 'package:image/image.dart' as pkg_image;
 
 class ImageHandler
-    implements IImageHandler<pkg_camera.CameraImage, pkg_image.Image, Uint8List> {
+    implements IImageHandler<pkg_camera.CameraImage, pkg_camera.CameraDescription, pkg_image.Image, Uint8List> {
   ImageHandler();
 
   /// return a manipulable image from the camera image
   @override
   pkg_image.Image fromCameraImage(
     final pkg_camera.CameraImage image,
-    final int rollDegreeRotation,
+    final pkg_camera.CameraDescription description,
   ) {
+    final int rollDegrees = description.sensorOrientation;
     final rgbBuffer = _yCbCr420ToRgbBuffer(
       width: image.width,
       height: image.height,
@@ -25,7 +27,7 @@ class ImageHandler
       width: image.width,
       height: image.height,
       rgbBytes: rgbBuffer,
-      rollDegreeRotation: rollDegreeRotation,
+      rollDegreeRotation: rollDegrees,
     );
     return newImage;
   }
@@ -145,7 +147,7 @@ class ImageHandler
     required final int width,
     required final int height,
     required final ByteBuffer rgbBytes,
-    required final int rollDegreeRotation
+    required final int rollDegreeRotation,
   }) {
     final image = pkg_image.Image.fromBytes(
       width: width,
@@ -158,9 +160,7 @@ class ImageHandler
       image,
       angle: rollDegreeRotation,
     );
-    // return rotatedImage;
-    final flipedImage = flipHorizontal(rotatedImage);
-    return flipedImage;
+    return rotatedImage;
   }
 
   /// Return new images from subareas of [image].

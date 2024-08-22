@@ -15,7 +15,8 @@ class OneShotCamera extends StatelessWidget {
     required this.imageHandler,
   });
 
-  final IImageHandler<pkg_camera.CameraImage, pkg_image.Image, Uint8List> imageHandler;
+  final IImageHandler<pkg_camera.CameraImage, pkg_camera.CameraDescription,
+      pkg_image.Image, Uint8List> imageHandler;
   final List<pkg_camera.CameraDescription> camerasAvailable;
 
   @override
@@ -30,7 +31,7 @@ class OneShotCamera extends StatelessWidget {
           } else {
             final image = imageHandler.fromCameraImage(
               cameraImage,
-              description.sensorOrientation,
+              description,
             );
             final jpg = imageHandler.toJpg(image);
             router.pop(
