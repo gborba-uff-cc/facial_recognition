@@ -1,4 +1,4 @@
-// dart -DsqliteLibPath='' -DsqlStatementsResourcePath='' .\bin\server_main.dart
+// dart -DsqliteLibPath='' -DsqlStatementsResourcePath='' .\test\sqlite_sql_statements.dart
 
 import 'dart:ffi';
 import 'dart:io';
