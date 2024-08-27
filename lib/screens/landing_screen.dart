@@ -22,14 +22,176 @@ class LandingScreen extends StatefulWidget {
 }
 
 class _LandingScreenState extends State<LandingScreen> {
+  int _currentViewIndex = 0;
   Subject? subject;
   SubjectClass? subjectClass;
   Lesson? lesson;
 
   @override
   Widget build(BuildContext context) {
+    final String attendanceDestinationTitle = 'Acompanhamento';
+    final Widget attendanceDestination = Builder(
+      builder: (context) {
+        return ListView(
+          children: [
+            Text(
+              attendanceDestinationTitle,
+              maxLines: 1,
+              style: Theme.of(context).textTheme.headlineLarge,
+              overflow: TextOverflow.fade,
+            ),
+            _menuSpacer,
+            InkWell(
+              onTap: () async {
+                final aux = await GoRouter.of(context)
+                    .push<SelectInformationReturn>('/select_information');
+                setState(() {
+                  if (aux == null) {
+                    projectLogger
+                        .severe("a value weren't returned from /select_lesson");
+                  }
+                  subject = aux?.subject;
+                  subjectClass = aux?.subjectClass;
+                  lesson = aux?.lesson;
+                });
+              },
+              child: SelectedInfos(
+                subject: (subject == null) ? '' : subject!.name,
+                subjectClass: (subjectClass == null) ? '' : subjectClass!.name,
+                lesson: (lesson == null)
+                    ? ''
+                    : lesson!.utcDateTime.toLocal().toString(),
+              ),
+            ),
+            _menuSpacer,
+            MenuItem(
+              onTap: () => (lesson == null)
+                  ? _showAlert(
+                      context,
+                      Text('Selecione uma aula antes de continuar',
+                          style: Theme.of(context).textTheme.bodyLarge),
+                    )
+                  : GoRouter.of(context).go('/camera_view', extra: lesson),
+              child: const Padding(
+                padding: EdgeInsets.only(left: 24.0),
+                child: Text('Apontamento por câmera'),
+              ),
+            ),
+            _menuSpacer,
+            MenuItem(
+              onTap: () => (lesson == null)
+                  ? _showAlert(
+                      context,
+                      Text('Selecione uma aula antes de continuar',
+                          style: Theme.of(context).textTheme.bodyLarge),
+                    )
+                  : GoRouter.of(context).go('/mark_attendance', extra: lesson),
+              child: const Padding(
+                padding: EdgeInsets.only(left: 24.0),
+                child: Text('Revisão do apontamento'),
+              ),
+            ),
+            _menuSpacer,
+            MenuItem(
+              onTap: () => (subjectClass == null)
+                  ? _showAlert(
+                      context,
+                      Text('Selecione uma turma antes de continuar',
+                          style: Theme.of(context).textTheme.bodyLarge),
+                    )
+                  : GoRouter.of(context)
+                      .go('/attendance_summary', extra: subjectClass),
+              child: const Padding(
+                padding: EdgeInsets.only(left: 24.0),
+                child: Text('Resumo das presenças'),
+              ),
+            ),
+            _menuSpacer,
+          ],
+        );
+      },
+    );
+
+    final String createDestinationTitle = 'Adicionar informações';
+    final Widget createDestination = Builder(
+      builder: (context) {
+        return ListView(
+          children: [
+            Text(
+              createDestinationTitle,
+              maxLines: 1,
+              style: Theme.of(context).textTheme.headlineLarge,
+              overflow: TextOverflow.fade,
+            ),
+            _menuSpacer,
+            MenuItem(
+              onTap: () => GoRouter.of(context).go('/create_subject'),
+              child: const Padding(
+                padding: EdgeInsets.only(left: 24.0),
+                child: Text('Disciplina'),
+              ),
+            ),
+            _menuSpacer,
+            MenuItem(
+              onTap: () => GoRouter.of(context).go('/create_subject_class'),
+              child: const Padding(
+                padding: EdgeInsets.only(left: 24.0),
+                child: Text('Turma'),
+              ),
+            ),
+            _menuSpacer,
+            MenuItem(
+              onTap: () => GoRouter.of(context).go('/create_lesson'),
+              child: const Padding(
+                padding: EdgeInsets.only(left: 24.0),
+                child: Text('Aula'),
+              ),
+            ),
+            _menuSpacer,
+            MenuItem(
+              onTap: () => GoRouter.of(context).go('/create_student'),
+              child: const Padding(
+                padding: EdgeInsets.only(left: 24.0),
+                child: Text('Aluno(a)'),
+              ),
+            ),
+            _menuSpacer,
+            MenuItem(
+              onTap: () => GoRouter.of(context).go('/create_teacher'),
+              child: const Padding(
+                padding: EdgeInsets.only(left: 24.0),
+                child: Text('Professor(a)'),
+              ),
+            ),
+            _menuSpacer,
+            MenuItem(
+              onTap: () => GoRouter.of(context).go('/create_enrollment'),
+              child: const Padding(
+                padding: EdgeInsets.only(left: 24.0),
+                child: Text('Inscrição'),
+              ),
+            ),
+            _menuSpacer,
+          ],
+        );
+      },
+    );
+
+    final views = <Widget>[
+      attendanceDestination,
+      createDestination,
+    ];
+    final viewTriggers = <NavigationDestination>[
+      NavigationDestination(
+        icon: Icon(Icons.schedule),
+        label: attendanceDestinationTitle,
+      ),
+      NavigationDestination(
+        icon: Icon(Icons.add),
+        label: createDestinationTitle,
+      )
+    ];
     return Scaffold(
-      // appBar: AppBar(),
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
@@ -43,163 +205,18 @@ class _LandingScreenState extends State<LandingScreen> {
               ),
               child: Column(
                 children: [
-                  Flexible(
-                    fit: FlexFit.tight,
-                    child: ListView(
-                      children: [
-                        Text(
-                          'Acompanhamento',
-                          maxLines: 1,
-                          style: Theme.of(context).textTheme.headlineLarge,
-                          overflow: TextOverflow.fade,
-                        ),
-                        _menuSpacer,
-                        InkWell(
-                          onTap: () async {
-                            final aux = await GoRouter.of(context)
-                                .push<SelectInformationReturn>('/select_information');
-                            setState(() {
-                              if (aux == null) {
-                                projectLogger.severe("a value weren't returned from /select_lesson");
-                              }
-                              subject = aux?.subject;
-                              subjectClass = aux?.subjectClass;
-                              lesson = aux?.lesson;
-                            });
-                          },
-                          child: SelectedInfos(
-                            subject: (subject == null)
-                                ? ''
-                                : subject!.name,
-                            subjectClass: (subjectClass == null)
-                                ? ''
-                                : subjectClass!.name,
-                            lesson: (lesson == null)
-                                ? ''
-                                : lesson!.utcDateTime.toLocal().toString(),
-                          ),
-                        ),
-                        _menuSpacer,
-                        MenuItem(
-                          onTap: () => (lesson == null)
-                              ? _showAlert(
-                                  context,
-                                  Text('Selecione uma aula antes de continuar',
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .bodyLarge),
-                                )
-                              : GoRouter.of(context)
-                                  .go('/camera_view', extra: lesson),
-                          child: const Padding(
-                            padding: EdgeInsets.only(left: 24.0),
-                            child: Text('Apontamento por câmera'),
-                          ),
-                        ),
-                        _menuSpacer,
-                        MenuItem(
-                          onTap: () => (lesson == null)
-                              ? _showAlert(
-                                  context,
-                                  Text('Selecione uma aula antes de continuar',
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .bodyLarge),
-                                )
-                              : GoRouter.of(context)
-                                  .go('/mark_attendance', extra: lesson),
-                          child: const Padding(
-                            padding: EdgeInsets.only(left: 24.0),
-                            child: Text('Revisão do apontamento'),
-                          ),
-                        ),
-                        _menuSpacer,
-                        MenuItem(
-                          onTap: () => (subjectClass == null)
-                              ? _showAlert(
-                                  context,
-                                  Text('Selecione uma turma antes de continuar',
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .bodyLarge),
-                                )
-                              : GoRouter.of(context)
-                                  .go('/attendance_summary', extra: subjectClass),
-                          child: const Padding(
-                            padding: EdgeInsets.only(left: 24.0),
-                            child: Text('Resumo das presenças'),
-                          ),
-                        ),
-// -----------------------------------------------------------------------------
-                        _menuDivider,
-                        Text(
-                          'Adicionar',
-                          maxLines: 1,
-                          style: Theme.of(context).textTheme.headlineLarge,
-                          overflow: TextOverflow.fade,
-                        ),
-                        _menuSpacer,
-                        MenuItem(
-                          onTap: () =>
-                              GoRouter.of(context).go('/create_subject'),
-                          child: const Padding(
-                            padding: EdgeInsets.only(left: 24.0),
-                            child: Text('Disciplina'),
-                          ),
-                        ),
-                        _menuSpacer,
-                        MenuItem(
-                          onTap: () =>
-                              GoRouter.of(context).go('/create_subject_class'),
-                          child: const Padding(
-                            padding: EdgeInsets.only(left: 24.0),
-                            child: Text('Turma'),
-                          ),
-                        ),
-                        _menuSpacer,
-                        MenuItem(
-                          onTap: () =>
-                              GoRouter.of(context).go('/create_lesson'),
-                          child: const Padding(
-                            padding: EdgeInsets.only(left: 24.0),
-                            child: Text('Aula'),
-                          ),
-                        ),
-                        _menuSpacer,
-                        MenuItem(
-                          onTap: () =>
-                              GoRouter.of(context).go('/create_student'),
-                          child: const Padding(
-                            padding: EdgeInsets.only(left: 24.0),
-                            child: Text('Aluno(a)'),
-                          ),
-                        ),
-                        _menuSpacer,
-                        MenuItem(
-                          onTap: () =>
-                              GoRouter.of(context).go('/create_teacher'),
-                          child: const Padding(
-                            padding: EdgeInsets.only(left: 24.0),
-                            child: Text('Professor(a)'),
-                          ),
-                        ),
-                        _menuSpacer,
-                        MenuItem(
-                          onTap: () =>
-                              GoRouter.of(context).go('/create_enrollment'),
-                          child: const Padding(
-                            padding: EdgeInsets.only(left: 24.0),
-                            child: Text('Inscrição'),
-                          ),
-                        ),
-                        _menuSpacer,
-                      ],
-                    ),
-                  ),
+                  Flexible(fit: FlexFit.tight, child: views[_currentViewIndex]),
                 ],
               ),
             ),
           ),
+        ),
+      ),
+      bottomNavigationBar: NavigationBar(
+        destinations: viewTriggers,
+        selectedIndex: _currentViewIndex,
+        onDestinationSelected: (index) => setState(
+          () => _currentViewIndex = index,
         ),
       ),
     );
