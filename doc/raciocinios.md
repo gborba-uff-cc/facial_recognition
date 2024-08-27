@@ -8,7 +8,8 @@
 - [x] armazenar embeddings para manipulacao futura.
 - [x] criar tela para marcar a presença dos alunos.
 - [X] corrigir manipulação do controlador da camera na tela que visualiza os frames da camera.
-- [ ] remover duplicatas dentre as faces reconhecidas.
+- ~~[ ] remover duplicatas dentre as faces detectadas/reconhecidas pela camera.~~
+- [X] identifacação facial feita através de pontuação, quanto mais faces "parecidas" e quanto "mais parecidas" maior a pontuação para o indivíduo.
 
 ## Comportamento da aplicação
 
@@ -66,24 +67,6 @@ mesmo modelo no formato tflite:
   - output have shape=(n, 512) where (512) is feature array
 
 - lib/models/image_handler function \_biToUniDimCoord duplicated at lib/domain as mapBiToUniDimCoord
-
-### MVP
-
-pensando na ideia de usar mvp na aplicação
-
-```dart
-abstract class IModel {
-  // {add|read|update|delete|transform}
-}
-
-abstract class IView {
-  // {get|clear} something
-}
-
-abstract class IPresenter {
-  // handle comunication between the user, views and models
-}
-```
 
 ### Fluxo: Marcar presenças
 

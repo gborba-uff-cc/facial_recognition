@@ -864,3 +864,18 @@ matricula_aluno_3|dado_facial_2_aluno_3
 matricula_aluno_3|dado_facial_3_aluno_3
 */
 ```
+
+## Revisão 2
+
+- Adicionado foto da face para individuos
+
+### Diagrama ER
+<!-- TODO -->
+
+### Esquema Lógico Relacional
+<!-- TODO -->
+
+### Implementação para SQLite3
+
+#### DDL
+<!-- TODO -->
