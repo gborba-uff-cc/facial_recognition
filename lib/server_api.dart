@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:facial_recognition/dao_classes.dart';
+import 'package:facial_recognition/database.dart';  // REVIEW - to support transactions
 import 'package:facial_recognition/json_converter_classes.dart';
 import 'package:facial_recognition/utils/file_loaders.dart';
 import 'package:facial_recognition/utils/project_logger.dart';
@@ -9,13 +10,14 @@ import 'package:shelf/shelf.dart' as pkg_shelf;
 
 class ServerApi {
   final RoutesLoader routes;
+  final Database database;  // REVIEW - to support transactions
   final Map<String, String> _headerContentTypeJson = {'Content-Type': 'application/json'};
   final UserDAO userDao;
   final UserJsonConverter _userConverter = UserJsonConverter();
   final FaceFeaturesDao faceFeaturesDao;
   final FaceFeaturesJsonConverter _faceFeaturesConverter = FaceFeaturesJsonConverter();
 
-  ServerApi(this.routes, this.userDao, this.faceFeaturesDao);
+  ServerApi(this.routes, this.database, this.userDao, this.faceFeaturesDao);  // REVIEW - to support transactions
 
   pkg_shelf.Handler get handler {
     return pkg_shelf.Cascade()
@@ -27,14 +29,31 @@ class ServerApi {
   pkg_shelf_router.Router get router {
       // route example: /nearest_feature/<turma|[A-Za-z0-9]+>/<feature|[A-Za-z0-9]+>
     return pkg_shelf_router.Router()
+      ..get(routes.getRoute(['server', 'home']), helloWorld)  // TODO - remove
       ..post(routes.getRoute(['server', 'user']), addUser)
       ..get(routes.getRoute(['server', 'user']), getAllUsers)
       ..post(routes.getRoute(['server', 'face_features']), addFaceFeatures)
       ..get(routes.getRoute(['server', 'face_features_by_class']), getFaceFeaturesByClass)
+      ..post('/handlePost', handlePost);  // TODO - remove
   }
 
   pkg_shelf.Response notFound(pkg_shelf.Request request) {
     return pkg_shelf.Response.notFound('no matching URI');
+  }
+
+  // TODO - remove
+  pkg_shelf.Response helloWorld(pkg_shelf.Request request) {
+    return pkg_shelf.Response.ok('hello world from server!');
+  }
+
+  // TODO - remove
+  Future<pkg_shelf.Response> handlePost(pkg_shelf.Request request) async {
+    final body = await request.readAsString();
+    final bodyJson = json.decode(body);
+    return pkg_shelf.Response.ok(
+      json.encode({'response': 'received', 'received': bodyJson}),
+      headers: {'Content-Type': 'application/json'}
+    );
   }
 
 /* template

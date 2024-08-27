@@ -47,4 +47,10 @@ class Database{
   void execute(String sql, [List<Object?> parameters = const []]) => _database.execute(sql, parameters);
 
   pkg_sqlite3.ResultSet select(String sql, [List<Object?> parameters = const []]) => _database.select(sql, parameters);
+
+  void beginTransaction() => _database.execute('BEGIN TRANSACTION;');  // REVIEW - to support transactions
+
+  void commitTransation() => _database.execute('COMMIT TRANSACTION;');  // REVIEW - to support transactions
+
+  void rollbackTransaction() => _database.execute('ROLLBACK TRANSACTION;');  // REVIEW - to support transactions
 }

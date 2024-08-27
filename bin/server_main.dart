@@ -32,6 +32,7 @@ Future<int> main() async {
   final serverRoutes = RoutesLoader(webRoutesResourcePath);
   final serverApi = ServerApi(
     serverRoutes,
+    database,  // REVIEW - to support transactions
     UserDAO(stmtLoader, database),
     FaceFeaturesDao(stmtLoader, database)
   );
