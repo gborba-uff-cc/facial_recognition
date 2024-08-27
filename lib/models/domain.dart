@@ -1,7 +1,6 @@
 import 'dart:typed_data';
 
 import 'package:facial_recognition/models/use_case.dart';
-import 'package:facial_recognition/utils/project_logger.dart';
 
 class Individual {
   String individualRegistration;
@@ -508,7 +507,6 @@ class DomainRepository {
     }
     return result;
   }
-  // TODO
   Map<String, Subject?> getSubjectFromCode(
     Iterable<String> code,
   ) {

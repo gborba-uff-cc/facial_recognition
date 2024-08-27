@@ -1,10 +1,6 @@
-// import 'dart:async';
-
 import 'package:camera/camera.dart' as pkg_camera;
-// import 'package:facial_recognition/models/image_handler.dart';
 import 'package:facial_recognition/screens/widgets/camera_wrapper.dart';
 import 'package:facial_recognition/use_case/camera_identification.dart';
-import 'package:facial_recognition/utils/project_logger.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 

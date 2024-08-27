@@ -5,7 +5,6 @@ import "package:image/image.dart" as pkg_image;
 import "package:facial_recognition/models/domain.dart";
 import "package:facial_recognition/models/use_case.dart";
 import "package:facial_recognition/screens/widgets/form_fields.dart";
-import "package:facial_recognition/utils/project_logger.dart";
 import "package:flutter/material.dart";
 
 class CreateTeacher extends StatefulWidget {

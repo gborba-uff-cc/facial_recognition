@@ -3,7 +3,6 @@ import 'dart:ui';
 
 import 'package:camera/camera.dart' as pkg_camera;
 import 'package:facial_recognition/interfaces.dart';
-import 'package:facial_recognition/utils/project_logger.dart';
 import 'package:flutter/foundation.dart';
 import 'package:image/image.dart' as pkg_image;
 

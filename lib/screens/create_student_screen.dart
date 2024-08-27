@@ -4,7 +4,6 @@ import 'package:facial_recognition/models/domain.dart';
 import 'package:facial_recognition/screens/widgets/create_student.dart';
 import 'package:facial_recognition/screens/widgets/submit_form_button.dart';
 import 'package:facial_recognition/use_case/create_models.dart';
-import 'package:facial_recognition/utils/project_logger.dart';
 import 'package:flutter/material.dart';
 
 class CreateStudentScreen extends StatefulWidget {

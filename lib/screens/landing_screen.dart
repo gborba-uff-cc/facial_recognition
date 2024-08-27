@@ -7,7 +7,6 @@ import 'package:go_router/go_router.dart';
 const _menuBtnPadding = EdgeInsets.all(16.0);
 const _menuSpacer = SizedBox(height: 16.0);
 const _menuBorderRadii = Radius.circular(8.0);
-const _menuDivider = Divider(height: 48.0);
 
 class LandingScreen extends StatefulWidget {
   const LandingScreen({
@@ -29,7 +28,7 @@ class _LandingScreenState extends State<LandingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final String attendanceDestinationTitle = 'Acompanhamento';
+    const String attendanceDestinationTitle = 'Acompanhamento';
     final Widget attendanceDestination = Builder(
       builder: (context) {
         return ListView(
@@ -112,7 +111,7 @@ class _LandingScreenState extends State<LandingScreen> {
       },
     );
 
-    final String createDestinationTitle = 'Adicionar informações';
+    const String createDestinationTitle = 'Adicionar informações';
     final Widget createDestination = Builder(
       builder: (context) {
         return ListView(
@@ -182,11 +181,11 @@ class _LandingScreenState extends State<LandingScreen> {
       createDestination,
     ];
     final viewTriggers = <NavigationDestination>[
-      NavigationDestination(
+      const NavigationDestination(
         icon: Icon(Icons.schedule),
         label: attendanceDestinationTitle,
       ),
-      NavigationDestination(
+      const NavigationDestination(
         icon: Icon(Icons.add),
         label: createDestinationTitle,
       )

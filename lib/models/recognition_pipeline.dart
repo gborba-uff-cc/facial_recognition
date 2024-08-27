@@ -27,7 +27,6 @@ class RecognitionPipeline implements IRecognitionPipeline<pkg_camera.CameraImage
   final IFaceEmbedder _faceEmbedder;
   final IFaceRecognizer<Student, FaceEmbedding> _faceRecognizer;
 
-  // FIXME - URGENT - should receive an image alread rotated and fliped if needed
   @override
   Future<List<pkg_image.Image>> detectFace(
     final pkg_camera.CameraImage image,
