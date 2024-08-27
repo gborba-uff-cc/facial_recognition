@@ -72,6 +72,7 @@ class _CreateTeacherState extends State<CreateTeacher> {
   @override
   Widget build(BuildContext context) {
     final inputPicture = FacePictureField(
+      isOptional: true,
       faceDetector: widget._faceDetector,
       faceEmbedder: widget._faceEmbedder,
       jpgConverter: widget._jpgConverter,

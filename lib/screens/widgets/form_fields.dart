@@ -243,14 +243,18 @@ class Enrollment_ extends _TextField {
 class FacePictureField extends StatefulWidget {
   const FacePictureField({
     super.key,
+    bool isOptional = true,
     required this.onSaved,
     Future<List<pkg_image.Image>> Function(pkg_camera.CameraImage cameiraImage, pkg_camera.CameraDescription cameraDescription)? faceDetector,
     Future<List<Duple<Uint8List, List<double>>>> Function(pkg_image.Image face,)? faceEmbedder,
     Future<Uint8List> Function(pkg_image.Image)? jpgConverter,
-  })  : _faceDetector = faceDetector,
+  })  : _isOptional = isOptional,
+        _faceDetector = faceDetector,
         _faceEmbedder = faceEmbedder,
         _jpgConverter = jpgConverter;
 
+  // TODO - implement optional behaviour
+  final bool _isOptional;
   final void Function(
     pkg_camera.CameraImage?,
     pkg_camera.CameraDescription?,
@@ -276,13 +280,7 @@ class _FacePictureFieldState extends State<FacePictureField> {
 
   // _candidatePicture.embedding may have a value other than null because of the
   // validation and embedding extraction
-  _CandidateFacePicture? _validatingPicture = const _CandidateFacePicture(
-    status: _FacePictureValidationStatus.isValid,
-    image: null,
-    description: null,
-    embedding: null,
-    jpg: null,
-  );
+  _CandidateFacePicture? _validatingPicture;
 
   @override
   Widget build(BuildContext context) {
@@ -313,19 +311,20 @@ class _FacePictureFieldState extends State<FacePictureField> {
           validatingPicture?.image,
           cameraImage,
         );
+        final isFirstValidation = _validatingPicture == null;
 
         // update and validate a candidate picture when:
         // 1. not validating a picture, 2. is another picture
-        if (!isValidating && isAnotherPicture) {
-          if (cameraDescription == null) {
+        if ((!isValidating && isAnotherPicture) || isFirstValidation) {
+          // change later the validation status
+          final thisField = _facePictureFormField.currentState;
+          if (cameraImage != null && cameraDescription == null) {
             projectLogger.severe(
               'CreateStudentScreen: missing camera description for the picture candidate',
             );
           }
           // new picture to validate
           else if (cameraImage != null) {
-            // change later the validation status
-            final thisField = _facePictureFormField.currentState;
             // keep track of the image being validated
             final newValue = _CandidateFacePicture(
               status: _FacePictureValidationStatus.validating,
@@ -339,6 +338,29 @@ class _FacePictureFieldState extends State<FacePictureField> {
             if (thisField != null) {
               asyncValidation(thisField, value);
             }
+          }
+          else if (cameraImage == null) {
+            _CandidateFacePicture newValue;
+            if (widget._isOptional) {
+              newValue = _CandidateFacePicture(
+                status: _FacePictureValidationStatus.isValid,
+                image: value?.image,
+                description: value?.description,
+                embedding: value?.embedding,
+                jpg: value?.jpg,
+              );
+            }
+            else {
+              newValue = _CandidateFacePicture(
+                status: _FacePictureValidationStatus.notValid,
+                image: value?.image,
+                description: value?.description,
+                embedding: value?.embedding,
+                jpg: value?.jpg,
+              );
+            }
+            thisField?.didChange(newValue);
+            _validatingPicture = newValue;
           }
         }
         // still validating or is the same image
@@ -378,6 +400,14 @@ class _FacePictureFieldState extends State<FacePictureField> {
             color: theme.colorScheme.error,
           ),
         );
+        final String thirdLineText = field.hasError
+            ? (field.errorText ?? '')
+            : widget._isOptional
+                ? 'opcional'
+                : '';
+        final thirdLineStyle = field.hasError
+            ? theme.inputDecorationTheme.errorStyle?.copyWith(color: theme.colorScheme.error)
+            : null;
         return Column(
           children: [
             Row(
@@ -441,11 +471,8 @@ class _FacePictureFieldState extends State<FacePictureField> {
             Row(
               children: [
                 Text(
-                  field.hasError ? field.errorText! : '',
-                  style: field.hasError
-                      ? theme.inputDecorationTheme.errorStyle
-                          ?.copyWith(color: theme.colorScheme.error)
-                      : theme.inputDecorationTheme.errorStyle,
+                  thirdLineText,
+                  style: thirdLineStyle,
                 ),
               ],
             )
