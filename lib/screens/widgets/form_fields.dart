@@ -26,8 +26,9 @@ abstract class _TextField extends StatelessWidget {
   final String _helperText;
 }
 
-class Student_ extends _TextField {
-  Student_({
+class StudentFieldRegistration extends _TextField {
+  const StudentFieldRegistration({
+    super.key,
     required super.controller,
     required super.labelText,
     required super.helperText,
@@ -35,8 +36,20 @@ class Student_ extends _TextField {
 
   @override
   Widget build(BuildContext context) {
-    // TODO: implement build
-    throw UnimplementedError();
+    return TextFormField(
+      controller: controller,
+      decoration: InputDecoration(
+        labelText: _labelText,
+        helperText: _helperText,
+      ),
+      validator: (input) {
+        final value = input?.trim();
+        if (value == null || value.characters.isEmpty) {
+          return 'Não pode ser vazio';
+        }
+        return null;
+      },
+    );
   }
 }
 

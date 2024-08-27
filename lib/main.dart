@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import 'package:camera/camera.dart' as pkg_camera;
 import 'package:facial_recognition/models/recognition_pipeline.dart';
+import 'package:facial_recognition/screens/create_enrollment_screen.dart';
 import 'package:image/image.dart' as pkg_image;
 import 'package:facial_recognition/interfaces.dart';
 import 'package:facial_recognition/models/domain.dart';
@@ -186,6 +187,12 @@ class MainApp extends StatelessWidget {
               GoRoute(
                 path: 'create_teacher',
                 builder: (context, state) => CreateTeacherScreen(
+                  useCase: createModels,
+                ),
+              ),
+              GoRoute(
+                path: 'create_enrollment',
+                builder: (context, state) => CreateEnrollmentScreen(
                   useCase: createModels,
                 ),
               ),

@@ -184,6 +184,15 @@ class _LandingScreenState extends State<LandingScreen> {
                           ),
                         ),
                         _menuSpacer,
+                        MenuItem(
+                          onTap: () =>
+                              GoRouter.of(context).go('/create_enrollment'),
+                          child: const Padding(
+                            padding: EdgeInsets.only(left: 24.0),
+                            child: Text('Inscrição'),
+                          ),
+                        ),
+                        _menuSpacer,
                       ],
                     ),
                   ),

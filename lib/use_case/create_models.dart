@@ -270,4 +270,27 @@ class CreateModels {
     final subject = Subject(code: code, name: name);
     _domainRepository.addSubject([subject]);
   }
+
+  void createEnrollment({
+    required String registrationOfStudent,
+    required String year,
+    required String semester,
+    required String codeOfSubject,
+    required String name,
+  }) {
+    final student = _domainRepository.getStudentFromRegistration(
+      [registrationOfStudent],
+    )[registrationOfStudent];
+    final subjectClass = _domainRepository.getSubjectClass(
+        year: int.parse(year),
+        semester: int.parse(semester),
+        subjectCode: codeOfSubject,
+        name: name);
+    if (student != null && subjectClass != null) {
+      final enrollment = Enrollment(
+          student: student,
+          subjectClass: subjectClass,);
+      _domainRepository.addEnrollment([enrollment]);
+    }
+  }
 }

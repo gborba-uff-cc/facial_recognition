@@ -464,6 +464,23 @@ class DomainRepository {
     }
     return result;
   }
+  SubjectClass? getSubjectClass({
+    required int year,
+    required int semester,
+    required String subjectCode,
+    required String name,
+  }) {
+    for (final sC in _subjectClass) {
+      if (sC.year == year &&
+          sC.semester == semester &&
+          sC.subject.code == subjectCode &&
+          sC.name == name
+      ) {
+        return sC;
+      }
+    }
+    return null;
+  }
   Map<SubjectClass, Map<Student, List<Attendance>>> getSubjectClassAttendance(
     final Iterable<SubjectClass> subjectClass,
   ) {
