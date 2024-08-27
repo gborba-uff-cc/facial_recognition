@@ -1,27 +1,101 @@
+import "dart:typed_data";
+
+import "package:camera/camera.dart" as pkg_camera;
+import "package:image/image.dart" as pkg_image;
+import "package:facial_recognition/models/domain.dart";
+import "package:facial_recognition/models/use_case.dart";
 import "package:facial_recognition/screens/widgets/form_fields.dart";
+import "package:facial_recognition/utils/project_logger.dart";
 import "package:flutter/material.dart";
 
-class CreateTeacher extends StatelessWidget {
+class CreateTeacher extends StatefulWidget {
   const CreateTeacher({
     super.key,
+    // [cameraSensorOrientation] degrees the camera image need to be rotated to be upright
+    Future<List<pkg_image.Image>> Function(
+      pkg_camera.CameraImage cameraImage,
+      pkg_camera.CameraDescription cameraDescription,
+    )?
+        faceDetector,
+    Future<List<Duple<Uint8List, List<double>>>> Function(
+      pkg_image.Image face,
+    )?
+        faceEmbedder,
+    Future<Uint8List> Function(pkg_image.Image)? jpgConverter,
+    void Function(pkg_camera.CameraImage?, pkg_camera.CameraDescription?, FaceEmbedding?)? facePictureOnSaved,
     required TextEditingController individualRegistrationController,
+    void Function(String?)? individualRegistrationOnSaved,
     required TextEditingController registrationController,
+    void Function(String?)? registrationOnSaved,
     required TextEditingController nameController,
+    void Function(String?)? nameOnSaved,
     required TextEditingController surnameController,
-  })  : _individualRegistrationController = individualRegistrationController,
+    void Function(String?)? surnameControllerOnSaved,
+  })  : _faceDetector = faceDetector,
+        _faceEmbedder = faceEmbedder,
+        _jpgConverter = jpgConverter,
+        _facePictureOnSaved = facePictureOnSaved,
+        _individualRegistrationController = individualRegistrationController,
+        _individualRegistrationOnSaved = individualRegistrationOnSaved,
         _registrationController = registrationController,
+        _registrationOnSaved = registrationOnSaved,
         _nameController = nameController,
-        _surnameController = surnameController;
+        _nameOnSaved = nameOnSaved,
+        _surnameController = surnameController,
+        _surnameOnSaved = surnameControllerOnSaved;
 
+  final Future<List<pkg_image.Image>> Function(
+    pkg_camera.CameraImage cameraImage,
+    pkg_camera.CameraDescription cameraDescription,
+  )? _faceDetector;
+  final Future<List<Duple<Uint8List, List<double>>>> Function(
+    pkg_image.Image face,
+  )? _faceEmbedder;
+  final Future<Uint8List> Function(
+    pkg_image.Image face,
+  )? _jpgConverter;
+  final void Function(pkg_camera.CameraImage?, pkg_camera.CameraDescription?, FaceEmbedding?)? _facePictureOnSaved;
   final TextEditingController _individualRegistrationController;
+  final void Function(String?)? _individualRegistrationOnSaved;
   final TextEditingController _registrationController;
+  final void Function(String?)? _registrationOnSaved;
   final TextEditingController _nameController;
+  final void Function(String?)? _nameOnSaved;
   final TextEditingController _surnameController;
+  final void Function(String?)? _surnameOnSaved;
 
   @override
+  State<CreateTeacher> createState() => _CreateTeacherState();
+}
+
+class _CreateTeacherState extends State<CreateTeacher> {
+  @override
   Widget build(BuildContext context) {
+    final inputPicture = FacePictureField(
+      faceDetector: widget._faceDetector,
+      faceEmbedder: widget._faceEmbedder,
+      jpgConverter: widget._jpgConverter,
+      onSaved: widget._facePictureOnSaved,
+    );
+
+    final inputRegistration = TextFormField(
+      controller: widget._registrationController,
+      decoration: const InputDecoration(
+        labelText: 'Matrícula',
+        helperText: '',
+      ),
+      validator: (input) {
+        final value = input?.trim();
+        if (value == null || value.characters.isEmpty) {
+          return 'Não pode ser vazio';
+        }
+        return null;
+      },
+      onSaved: widget._registrationOnSaved,
+    );
+
     final inputIndividualRegistration = TextFormField(
-      controller: _individualRegistrationController,
+      controller: widget._individualRegistrationController,
       decoration: const InputDecoration(
         labelText: 'CPF',
         helperText: '',
@@ -33,10 +107,11 @@ class CreateTeacher extends StatelessWidget {
         }
         return null;
       },
+      onSaved: widget._individualRegistrationOnSaved,
     );
 
     final inputName = TextFormField(
-      controller: _nameController,
+      controller: widget._nameController,
       decoration: const InputDecoration(
         labelText: 'Nome',
         helperText: '',
@@ -48,23 +123,22 @@ class CreateTeacher extends StatelessWidget {
         }
         return null;
       },
+      onSaved: widget._nameOnSaved,
     );
 
     final inputSurname = TextFormField(
-      controller: _surnameController,
+      controller: widget._surnameController,
       decoration: const InputDecoration(
         labelText: 'Sobrenome',
         helperText: 'opcional'
       ),
+      onSaved: widget._surnameOnSaved,
     );
 
     return Column(
       children: [
-        TeacherFieldRegistration(
-          controller: _registrationController,
-          labelText: 'Matrícula',
-          helperText: '',
-        ),
+        inputPicture,
+        inputRegistration,
         inputName,
         inputSurname,
         inputIndividualRegistration,

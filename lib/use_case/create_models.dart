@@ -119,6 +119,48 @@ class CreateModels {
     _domainRepository.addTeacher([teacher]);
   }
 
+  void createTeacherFacePicture({
+    required Uint8List jpegFacePicture,
+    required String teacherRegistration,
+  }) {
+    final t = _domainRepository
+        .getTeacherFromRegistration([teacherRegistration])[teacherRegistration];
+    if (t == null) {
+      throw ArgumentError(
+        'could not find a registered teacher',
+        'registration',
+      );
+    }
+    else {
+      final facePicture = FacePicture(
+        faceJpeg: jpegFacePicture,
+        individual: t.individual,
+      );
+      _domainRepository.addFacePicture([facePicture]);
+    }
+  }
+
+  void createTeacherFacialData({
+    required FaceEmbedding embedding,
+    required String teacherRegistration,
+  }){
+    final t = _domainRepository
+        .getTeacherFromRegistration([teacherRegistration])[teacherRegistration];
+    if (t == null) {
+      throw ArgumentError(
+        'could not find a registered teacher',
+        'registration',
+      );
+    }
+    else {
+      final facialData = FacialData(
+        data: embedding,
+        individual: t.individual,
+      );
+      _domainRepository.addFacialData([facialData]);
+    }
+  }
+
   Future<List<pkg_image.Image>> detectFaces(
     final pkg_camera.CameraImage image,
     final pkg_camera.CameraDescription cameraDescription,

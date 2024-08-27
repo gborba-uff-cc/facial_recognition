@@ -1,6 +1,10 @@
+import 'dart:typed_data';
+
+import 'package:facial_recognition/models/domain.dart';
 import 'package:facial_recognition/screens/widgets/create_teacher.dart';
 import 'package:facial_recognition/screens/widgets/submit_form_button.dart';
 import 'package:facial_recognition/use_case/create_models.dart';
+import 'package:facial_recognition/utils/project_logger.dart';
 import 'package:flutter/material.dart';
 
 class CreateTeacherScreen extends StatefulWidget {
@@ -26,6 +30,15 @@ class _CreateTeacherScreenState extends State<CreateTeacherScreen> {
       TextEditingController.fromValue(null);
   final TextEditingController _surname =
       TextEditingController.fromValue(null);
+
+  /// not used to build the widget, just hold retrieved value from the form
+  Uint8List? _facePicture;
+  FaceEmbedding? _faceEmbedding;
+
+  // String _individualRegistrationValue = '';
+  // String _registrationValue = '';
+  // String _nameValue = '';
+  // String _surnameValue = '';
 
   @override
   void dispose() {
@@ -53,23 +66,55 @@ class _CreateTeacherScreenState extends State<CreateTeacherScreen> {
         child: ListView(
           children: [
             Form(
-                key: _teacherForm,
-                child: CreateTeacher(
-                  individualRegistrationController:
-                      _individualRegistration,
-                  registrationController: _registration,
-                  nameController: _name,
-                  surnameController: _surname,
-                )),
+              key: _teacherForm,
+              child: CreateTeacher(
+                faceDetector: widget.useCase.detectFaces,
+                faceEmbedder: widget.useCase.extractEmbedding,
+                jpgConverter: (image) async => widget.useCase.fromImageToJpg(image),
+                facePictureOnSaved: (final cameraImage, final cameraDescription, final faceEmbedding) {
+                  // REVIEW - cameraDescription should not be null?;
+                  final facePicture = cameraDescription == null || cameraImage == null
+                      ? null
+                      : widget.useCase.fromCameraImagetoJpg(
+                          cameraImage,
+                          cameraDescription,
+                        );
+                  _facePicture = facePicture;
+                  _faceEmbedding = faceEmbedding;
+                },
+                individualRegistrationController: _individualRegistration,
+                registrationController: _registration,
+                nameController: _name,
+                surnameController: _surname,
+              ),
+            ),
             SubmitFormButton(
               formKey: _teacherForm,
               action: () {
-                widget.useCase.createTeacher(
-                  individualRegistration: _individualRegistration.text,
-                  registration: _registration.text,
-                  name: _name.text,
-                  surname: _surname.text,
-                );
+                try {
+                  widget.useCase.createTeacher(
+                    individualRegistration: _individualRegistration.text,
+                    registration: _registration.text,
+                    name: _name.text,
+                    surname: _surname.text,
+                  );
+                  final facePicture = _facePicture;
+                  if (facePicture != null) {
+                    widget.useCase.createTeacherFacePicture(
+                      jpegFacePicture: facePicture,
+                      teacherRegistration: _registration.text,
+                    );
+                  }
+                  final faceEmbedding = _faceEmbedding;
+                  if (faceEmbedding != null) {
+                    widget.useCase.createTeacherFacialData(
+                      embedding: faceEmbedding,
+                      teacherRegistration: _registration.text,
+                    );
+                  }
+                } on ArgumentError catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+                }
               },
             ),
           ],
