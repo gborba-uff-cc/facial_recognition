@@ -130,10 +130,14 @@ class CameraIdentification implements ICameraAttendance<pkg_camera.CameraImage, 
     }
 
     _domainRepo.addFaceEmbeddingToCameraNotRecognized(notRecognized, lesson);
+/*
+    //STUB - only for development
     _saveEmbeddingAsNewStudent(notRecognized, lesson);
+ */
   }
 
-  /// FIXME - only for development - register a new student for a face embedding
+/*
+  /// STUB - only for development - register a new student with a face embedding
   void _saveEmbeddingAsNewStudent(
     Iterable<EmbeddingRecognitionResult> notRecognized,
     Lesson lesson,
@@ -175,4 +179,5 @@ class CameraIdentification implements ICameraAttendance<pkg_camera.CameraImage, 
     _domainRepo.addStudent(student);
     _domainRepo.addEnrollment(enrollment);
   }
+*/
 }
