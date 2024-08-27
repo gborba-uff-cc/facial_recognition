@@ -23,6 +23,13 @@ class SubmitFormButton extends StatelessWidget {
         if (formState.validate()) {
           formState.save();
           _action();
+          ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+            const SnackBar(
+              content: Text('Salvo'),
+              duration: Duration(seconds: 2),
+            ),
+          );
+          formState.reset();
           return;
         }
       },

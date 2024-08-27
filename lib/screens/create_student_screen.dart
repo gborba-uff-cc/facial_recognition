@@ -70,11 +70,12 @@ class _CreateStudentScreenState extends State<CreateStudentScreen> {
               child: CreateStudent(
                 faceDetector: widget.useCase.detectFaces,
                 faceEmbedder: widget.useCase.extractEmbedding,
+                jpgConverter: (image) async => widget.useCase.fromImageToJpg(image),
                 facePictureOnSaved: (final cameraImage, final cameraDescription, final faceEmbedding) {
                   // REVIEW - cameraDescription should not be null?;
                   final facePicture = cameraDescription == null || cameraImage == null
                       ? null
-                      : widget.useCase.toJpg(
+                      : widget.useCase.fromCameraImagetoJpg(
                           cameraImage,
                           cameraDescription,
                         );
@@ -90,25 +91,29 @@ class _CreateStudentScreenState extends State<CreateStudentScreen> {
             SubmitFormButton(
               formKey: _studentForm,
               action: () {
-                widget.useCase.createStudent(
-                  individualRegistration: _individualRegistration.text,
-                  registration: _registration.text,
-                  name: _name.text,
-                  surname: _surname.text,
-                );
-                final facePicture = _facePicture;
-                if (facePicture != null) {
-                  widget.useCase.createStudentFacePicture(
-                    jpegFacePicture: facePicture,
-                    studentRegistration: _individualRegistration.text,
+                try {
+                  widget.useCase.createStudent(
+                    individualRegistration: _individualRegistration.text,
+                    registration: _registration.text,
+                    name: _name.text,
+                    surname: _surname.text,
                   );
-                }
-                final faceEmbedding = _faceEmbedding;
-                if (faceEmbedding != null) {
-                  widget.useCase.createStudentFacialData(
-                    embedding: faceEmbedding,
-                    studentRegistration: _individualRegistration.text,
-                  );
+                  final facePicture = _facePicture;
+                  if (facePicture != null) {
+                    widget.useCase.createStudentFacePicture(
+                      jpegFacePicture: facePicture,
+                      studentRegistration: _registration.text,
+                    );
+                  }
+                  final faceEmbedding = _faceEmbedding;
+                  if (faceEmbedding != null) {
+                    widget.useCase.createStudentFacialData(
+                      embedding: faceEmbedding,
+                      studentRegistration: _registration.text,
+                    );
+                  }
+                } on ArgumentError catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
                 }
               },
             ),

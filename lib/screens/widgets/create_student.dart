@@ -21,6 +21,7 @@ class CreateStudent extends StatefulWidget {
       pkg_image.Image face,
     )?
         faceEmbedder,
+    Future<Uint8List> Function(pkg_image.Image)? jpgConverter,
     void Function(pkg_camera.CameraImage?, pkg_camera.CameraDescription?, FaceEmbedding?)? facePictureOnSaved,
     required TextEditingController individualRegistrationController,
     void Function(String?)? individualRegistrationOnSaved,
@@ -32,6 +33,7 @@ class CreateStudent extends StatefulWidget {
     void Function(String?)? surnameControllerOnSaved,
   })  : _faceDetector = faceDetector,
         _faceEmbedder = faceEmbedder,
+        _jpgConverter = jpgConverter,
         _facePictureOnSaved = facePictureOnSaved,
         _individualRegistrationController = individualRegistrationController,
         _individualRegistrationOnSaved = individualRegistrationOnSaved,
@@ -49,6 +51,9 @@ class CreateStudent extends StatefulWidget {
   final Future<List<Duple<Uint8List, List<double>>>> Function(
     pkg_image.Image face,
   )? _faceEmbedder;
+  final Future<Uint8List> Function(
+    pkg_image.Image face,
+  )? _jpgConverter;
   final void Function(pkg_camera.CameraImage?, pkg_camera.CameraDescription?, FaceEmbedding?)? _facePictureOnSaved;
   final TextEditingController _individualRegistrationController;
   final void Function(String?)? _individualRegistrationOnSaved;
@@ -70,6 +75,7 @@ class _CreateStudentState extends State<CreateStudent> {
     final inputPicture = FacePictureField(
       faceDetector: widget._faceDetector,
       faceEmbedder: widget._faceEmbedder,
+      jpgConverter: widget._jpgConverter,
       onSaved: widget._facePictureOnSaved,
     );
 

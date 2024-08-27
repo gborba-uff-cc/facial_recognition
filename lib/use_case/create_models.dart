@@ -132,7 +132,7 @@ class CreateModels {
     return _recognitionPipeline.extractEmbedding([face]);
   }
 
-  Uint8List toJpg(pkg_camera.CameraImage cameraImage, pkg_camera.CameraDescription cameraDescription) {
+  Uint8List fromCameraImagetoJpg(pkg_camera.CameraImage cameraImage, pkg_camera.CameraDescription cameraDescription) {
     return _imageHandler.toJpg(
       _imageHandler.fromCameraImage(
         cameraImage,
@@ -141,21 +141,25 @@ class CreateModels {
     );
   }
 
+  Uint8List fromImageToJpg(pkg_image.Image image) {
+    return pkg_image.encodeJpg(image);
+  }
+
   void createStudent({
     required String individualRegistration,
     required String registration,
     required String name,
     required String surname,
   }) {
-    final existingTeacher = _domainRepository
+    final existingOne = _domainRepository
         .getStudentFromRegistration([registration])[registration];
-    final existingIndividual = _domainRepository.getIndividualFromRegistration(
-        [individualRegistration])[individualRegistration];
-    if (existingTeacher != null) {
+    if (existingOne != null) {
       ArgumentError(
         'already found a registered student',
         'registration',);
     }
+    final existingIndividual = _domainRepository.getIndividualFromRegistration(
+        [individualRegistration])[individualRegistration];
     if (existingIndividual != null) {
       throw ArgumentError(
         'already found a registered individual',
@@ -167,12 +171,12 @@ class CreateModels {
       name: name,
       surname: surname,
     );
-    final teacher = Teacher(
+    final student = Student(
       individual: i,
       registration: registration,
     );
     _domainRepository.addIndividual([i]);
-    _domainRepository.addTeacher([teacher]);
+    _domainRepository.addStudent([student]);
   }
 
   void createStudentFacePicture({
