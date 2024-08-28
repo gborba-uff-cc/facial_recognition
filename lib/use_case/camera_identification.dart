@@ -50,7 +50,7 @@ class CameraIdentification implements ICameraAttendance<pkg_camera.CameraImage, 
       localShowFaceImages(
         jpegsAndEmbeddings.map(
           (e) => e.value1,
-        ).toList()..insert(0, _imageHandler.toJpg(_imageHandler.fromCameraImage(cameraImage, cameraDescription))),
+        ).toList(),
       );
     }
 
