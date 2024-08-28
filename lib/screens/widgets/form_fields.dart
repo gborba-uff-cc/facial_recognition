@@ -246,11 +246,11 @@ class FacePictureField extends StatefulWidget {
     required this.onSaved,
     Future<List<pkg_image.Image>> Function(pkg_camera.CameraImage cameiraImage, pkg_camera.CameraDescription cameraDescription)? faceDetector,
     Future<List<Duple<Uint8List, List<double>>>> Function(pkg_image.Image face,)? faceEmbedder,
-    Future<Uint8List> Function(pkg_image.Image)? jpgConverter,
+    // Future<Uint8List> Function(pkg_image.Image)? jpgConverter,
   })  : _isOptional = isOptional,
         _faceDetector = faceDetector,
-        _faceEmbedder = faceEmbedder,
-        _jpgConverter = jpgConverter;
+        _faceEmbedder = faceEmbedder;
+        // _jpgConverter = jpgConverter;
 
   final bool _isOptional;
   final void Function(
@@ -265,9 +265,9 @@ class FacePictureField extends StatefulWidget {
   final Future<List<Duple<Uint8List, List<double>>>> Function(
     pkg_image.Image face,
   )? _faceEmbedder;
-  final Future<Uint8List> Function(
-    pkg_image.Image face,
-  )? _jpgConverter;
+  // final Future<Uint8List> Function(
+  //   pkg_image.Image face,
+  // )? _jpgConverter;
 
   @override
   State<FacePictureField> createState() => _FacePictureFieldState();
@@ -522,18 +522,18 @@ class _FacePictureFieldState extends State<FacePictureField> {
       newEmbedding = (await embedder(detectedFace)).first.value2;
     }
 
-    Uint8List? newJpg;
-    final jpgConverter = widget._jpgConverter;
-    if (jpgConverter != null && detectedFace != null) {
-      newJpg = await jpgConverter(detectedFace);
-    }
+    // Uint8List? newJpg;
+    // final jpgConverter = widget._jpgConverter;
+    // if (jpgConverter != null && detectedFace != null) {
+    //   newJpg = await jpgConverter(detectedFace);
+    // }
 
     final newValue = _CandidateFacePicture(
       status: newStatus,
       image: currentValue?.image,
       description: currentValue?.description,
       embedding: newEmbedding,
-      jpg: newJpg ?? currentValue?.jpg,
+      jpg: /*newJpg ??*/ currentValue?.jpg,
     );
 
     if (thisField.mounted) {

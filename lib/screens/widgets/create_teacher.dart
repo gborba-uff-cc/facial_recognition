@@ -74,7 +74,7 @@ class _CreateTeacherState extends State<CreateTeacher> {
       isOptional: true,
       faceDetector: widget._faceDetector,
       faceEmbedder: widget._faceEmbedder,
-      jpgConverter: widget._jpgConverter,
+      // jpgConverter: widget._jpgConverter,
       onSaved: widget._facePictureOnSaved,
     );
 

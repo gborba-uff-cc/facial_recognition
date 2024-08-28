@@ -73,10 +73,10 @@ class _CreateStudentState extends State<CreateStudent> {
   Widget build(BuildContext context) {
     projectLogger.fine('_CreateStudentstate.build');
     final inputPicture = FacePictureField(
-      isOptional: false,
+      isOptional: true,
       faceDetector: widget._faceDetector,
       faceEmbedder: widget._faceEmbedder,
-      jpgConverter: widget._jpgConverter,
+      // jpgConverter: widget._jpgConverter,
       onSaved: widget._facePictureOnSaved,
     );
 

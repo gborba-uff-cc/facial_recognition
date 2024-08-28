@@ -30,17 +30,6 @@ class _CameraIdentificationScreenState extends State<CameraIdentificationScreen>
     facesPhotos.clear();
     widget.useCase.showFaceImages = (jpegImages) async {
       if (mounted) {
-/*
-    // NOTE - flip image for the UI
-        final Iterable<Uint8List> flippedForUi = jpegImages.map((img) {
-          final jpg = _imageHandler.fromJpg(img);
-          if (jpg == null) {
-            return img;
-          }
-          return _imageHandler.toJpg(_imageHandler.flipHorizontal(jpg));
-        });
-        setState(() => facesPhotos.addAll(flippedForUi));
- */
         setState(() => facesPhotos.addAll(jpegImages));
       }
     };
