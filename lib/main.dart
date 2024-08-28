@@ -42,7 +42,7 @@ void main() async {
   );
   // sync code goes under here
   final availableCams = futures[0];
-  final domainRepository = kDebugMode ? DomainRepositoryForTests() : DomainRepository();
+  final domainRepository = kDebugMode || kProfileMode ? DomainRepositoryForTests() : DomainRepository();
   projectLogger.fine(availableCams);
   //
   runApp(MainApp(
