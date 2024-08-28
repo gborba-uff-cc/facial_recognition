@@ -1,8 +1,7 @@
-import 'dart:typed_data';
-
 import 'package:camera/camera.dart' as pkg_camera;
 import 'package:facial_recognition/models/recognition_pipeline.dart';
 import 'package:facial_recognition/screens/create_enrollment_screen.dart';
+import 'package:flutter/foundation.dart';
 import 'package:image/image.dart' as pkg_image;
 import 'package:facial_recognition/interfaces.dart';
 import 'package:facial_recognition/models/domain.dart';
@@ -41,9 +40,9 @@ void main() async {
       pkg_camera.availableCameras(),
     ],
   );
-  final availableCams = futures[0];
-  final domainRepository = DomainRepositoryForTests();
   // sync code goes under here
+  final availableCams = futures[0];
+  final domainRepository = kDebugMode ? DomainRepositoryForTests() : DomainRepository();
   projectLogger.fine(availableCams);
   //
   runApp(MainApp(

@@ -607,14 +607,14 @@ class DomainRepositoryForTests extends DomainRepository {
       Teacher(registration: 'tReg0', individual: individuals[0]),
     ]);
     final subjects = List<Subject>.unmodifiable(<Subject>[
-      Subject(code: 'sCode0', name: 'Materia para teste'),
+      Subject(code: 'sC0', name: 'Materia para teste'),
     ]);
     final subjectClasses = List<SubjectClass>.unmodifiable(<SubjectClass>[
       SubjectClass(
         subject: subjects[0],
         year: 2024,
         semester: 01,
-        name: 'Turma A da materia para teste',
+        name: 'a0',
         teacher: teachers[0],
       )
     ]);
