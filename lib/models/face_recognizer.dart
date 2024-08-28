@@ -3,6 +3,7 @@ import 'dart:math';
 
 import 'package:facial_recognition/interfaces.dart';
 import 'package:facial_recognition/models/use_case.dart';
+import 'package:facial_recognition/utils/project_logger.dart';
 
 typedef TConfidence = double;
 typedef TDistance = double;
@@ -149,7 +150,11 @@ class KnnClassifier<TElement extends List<num>, TLabel>
 
       // count occurency of the kNearests neighbors
       for (final labelValueDistance in  distanceStructure.take(kNeighbors)) {
-        final double score = labelValueDistance.distance < recognitionThreshold ? pow(labelValueDistance.distance, 3).toDouble() : 0.0;
+        double score = labelValueDistance.distance < recognitionThreshold ? 1/(pow(labelValueDistance.distance, 3).toDouble()) : 0.0;
+        if (score == double.infinity || score == double.negativeInfinity || score == double.nan) {
+          projectLogger.severe('invalid score; setting to zero');
+          score = 0.0;
+        }
         scoreStructure.update(labelValueDistance.label, (oldScore) => oldScore + score, ifAbsent: () => score,);
       }
       final labelByScore = scoreStructure.entries
