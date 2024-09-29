@@ -1,15 +1,16 @@
-import 'dart:convert';
-import 'dart:io';
+// import 'dart:convert';
+// import 'dart:io';
 
 abstract class JsonLoader {
-  final String jsonFilepath;
-  late final _jsonRead = _loadJson();
+  // final String jsonFilepath;
+  /*late*/ final _jsonRead/* = _loadJson()*/;
 
-  JsonLoader(this.jsonFilepath);
+  // JsonLoader(this.jsonFilepath);
+  JsonLoader(dynamic json): _jsonRead = json;
 
-  dynamic _loadJson() {
-    return jsonDecode(File(jsonFilepath).readAsStringSync());
-  }
+  // dynamic _loadJson() {
+  //   return jsonDecode(File(jsonFilepath).readAsStringSync());
+  // }
 
   /// NOTE - key sequence should be made of only [String] and [int]
   T _getValue<T>(List keySequence) {
@@ -30,7 +31,7 @@ abstract class JsonLoader {
 class RoutesLoader extends JsonLoader {
   final _routeParam = RegExp(r'(<[^>]+>)');
 
-  RoutesLoader(filepath): super(filepath);
+  RoutesLoader(String filepath): super(filepath);
 
   String getRoute(final List<String> keySequence) {
     return super._getValue<String>(keySequence);
@@ -57,7 +58,7 @@ class RoutesLoader extends JsonLoader {
 }
 
 class SqlStatementsLoader extends JsonLoader{
-  SqlStatementsLoader(filename): super(filename);
+  SqlStatementsLoader(json): super(json);
 
   String getStatement(final List<String> keySequence) {
     return super._getValue<String>(keySequence);
