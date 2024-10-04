@@ -1,7 +1,9 @@
+import 'dart:ffi';
 import 'dart:typed_data';
 
 import 'package:facial_recognition/interfaces.dart';
 import 'package:facial_recognition/models/use_case.dart';
+import 'package:facial_recognition/utils/algorithms.dart';
 import 'package:facial_recognition/utils/file_loaders.dart';
 import 'package:facial_recognition/utils/project_logger.dart';
 import 'package:sqlite3/sqlite3.dart' as pkg_sqlite3;
@@ -688,7 +690,7 @@ class DomainRepositoryForTests extends DomainRepository {
 }
 
 class SQLite3DomainRepository implements IDomainRepository {
-  final pkg_sqlite3.Database _database;
+  late final pkg_sqlite3.Database _database;
   final SqlStatementsLoader _statementsLoader;
 
   SQLite3DomainRepository({
@@ -696,12 +698,17 @@ class SQLite3DomainRepository implements IDomainRepository {
     required final SqlStatementsLoader statementsLoader,
   })  : _database = pkg_sqlite3.sqlite3.open(databasePath),
         _statementsLoader = statementsLoader {
+
+    _enforceForeignKeys();
+
     _createDatabase();
   }
 
+  void _enforceForeignKeys()  => _database.execute('PRAGMA foreign_keys = ON;');
   void _beginTransaction()    => _database.execute('BEGIN TRANSACTION;');
-  void _commitTransaction()    => _database.execute('COMMIT TRANSACTION;');
+  void _commitTransaction()   => _database.execute('COMMIT TRANSACTION;');
   void _rollbackTransaction() => _database.execute('ROLLBACK TRANSACTION;');
+  String _pictureMd5(Uint8List picture) => pkg_crypto.md5.convert(picture).toString();
 
   void _createDatabase() {
     final statements = _statementsLoader.getStatements([
@@ -715,7 +722,24 @@ class SQLite3DomainRepository implements IDomainRepository {
       ['lesson','ddl','create'],
       ['enrollment','ddl','create'],
       ['attendance','ddl','create'],
+      ['notRecognizedFromCamera','ddl','create'],
+      ['recognizedFromCamera','ddl','create'],
+      ['deferredRecognitionPool','ddl','create'],
     ]);
+    // final tablesCreated = _databaseTables();
+    // statements.every(
+    //   (createSql) => tablesCreated.any((row) {
+    //     String tableName = createSql;
+    //     String prefix = 'CREATE TABLE';
+    //     if (tableName.startsWith(prefix)) {
+    //       tableName = tableName.replaceFirst(prefix, '');
+    //     }
+    //     prefix = 'IF NOT EXISTS'
+    //     row['name'] == createSql;
+    //   }),
+    // );
+
+    _beginTransaction();
     bool shouldCommit = true;
     dynamic errorOrException;
     try {
@@ -757,8 +781,8 @@ class SQLite3DomainRepository implements IDomainRepository {
           ':year': element.lesson.subjectClass.year,
           ':semester': element.lesson.subjectClass.semester,
           ':name': element.lesson.subjectClass.name,
-          ':utcDateTime': element.lesson.utcDateTime,
-          ':studentRegisration': element.student.registration,
+          ':utcDateTime': element.lesson.utcDateTime.toIso8601String(),
+          ':studentRegistration': element.student.registration,
         });
       }
     }
@@ -799,7 +823,7 @@ class SQLite3DomainRepository implements IDomainRepository {
           ':year': element.subjectClass.year,
           ':semester': element.subjectClass.semester,
           ':name': element.subjectClass.name,
-          ':studentRegisration': element.student.registration,
+          ':studentRegistration': element.student.registration,
         });
       }
     }
@@ -825,7 +849,10 @@ class SQLite3DomainRepository implements IDomainRepository {
   }
 
   @override
-  void addFaceEmbeddingToCameraNotRecognized(Iterable<EmbeddingRecognitionResult> notRecognized, Lesson lesson) {
+  void addFaceEmbeddingToCameraNotRecognized(
+    Iterable<EmbeddingRecognitionResult> notRecognized,
+    Lesson lesson,
+  ) {
     final insert = _database.prepare(
       _statementsLoader
           .getStatement(['notRecognizedFromCamera', 'dml', 'insert']),
@@ -836,16 +863,17 @@ class SQLite3DomainRepository implements IDomainRepository {
     dynamic errorOrException;
     try {
       for (var element in notRecognized) {
-        final pictureMd5 = pkg_crypto.md5.convert(element.inputFace.buffer.asUint8List());
+        final pictureMd5 = _pictureMd5(element.inputFace);
+        final embedding = listDoubleToBytes(element.inputFaceEmbedding);
         insert.executeMap({
           ':subjectCode': lesson.subjectClass.subject.code,
           ':year': lesson.subjectClass.year,
           ':semester': lesson.subjectClass.semester,
           ':name': lesson.subjectClass.name,
-          ':utcDateTime': lesson.utcDateTime,
+          ':utcDateTime': lesson.utcDateTime.toIso8601String(),
           ':picture': element.inputFace,
           ':pictureMd5': pictureMd5,
-          ':embedding': element.inputFaceEmbedding,
+          ':embedding': embedding,
           ':nearestStudentRegistration': element.nearestStudent?.registration,
         });
       }
@@ -883,16 +911,17 @@ class SQLite3DomainRepository implements IDomainRepository {
     dynamic errorOrException;
     try {
       for (var element in recognized) {
-        final pictureMd5 = pkg_crypto.md5.convert(element.inputFace.buffer.asUint8List());
+        final pictureMd5 = _pictureMd5(element.inputFace);
+        final embedding = listDoubleToBytes(element.inputFaceEmbedding);
         insert.executeMap({
           ':subjectCode': lesson.subjectClass.subject.code,
           ':year': lesson.subjectClass.year,
           ':semester': lesson.subjectClass.semester,
           ':name': lesson.subjectClass.name,
-          ':utcDateTime': lesson.utcDateTime,
+          ':utcDateTime': lesson.utcDateTime.toIso8601String(),
           ':picture': element.inputFace,
           ':pictureMd5': pictureMd5,
-          ':embedding': element.inputFaceEmbedding,
+          ':embedding': embedding,
           ':nearestStudentRegistration': element.nearestStudent?.registration,
         });
       }
@@ -930,16 +959,17 @@ class SQLite3DomainRepository implements IDomainRepository {
     dynamic errorOrException;
     try {
       for (var element in embedding) {
-        final pictureMd5 = pkg_crypto.md5.convert(element.value1.buffer.asUint8List());
+        final pictureMd5 = _pictureMd5(element.value1);
+        final embedding = listDoubleToBytes(element.value2);
         insert.executeMap({
           ':subjectCode': lesson.subjectClass.subject.code,
           ':year': lesson.subjectClass.year,
           ':semester': lesson.subjectClass.semester,
           ':name': lesson.subjectClass.name,
-          ':utcDateTime': lesson.utcDateTime,
+          ':utcDateTime': lesson.utcDateTime.toIso8601String(),
           ':picture': element.value1,
           ':pictureMd5': pictureMd5,
-          ':embedding': element.value2,
+          ':embedding': embedding,
         });
       }
     }
@@ -977,7 +1007,7 @@ class SQLite3DomainRepository implements IDomainRepository {
       for (final element in facePicture) {
         insertFacePicture.executeMap({
           ':picture': element.faceJpeg,
-          ':individualRegisration': element.individual.individualRegistration,
+          ':individualRegistration': element.individual.individualRegistration,
         });
       }
     }
@@ -1013,9 +1043,10 @@ class SQLite3DomainRepository implements IDomainRepository {
     dynamic errorOrException;
     try {
       for (final element in facialData) {
+        final data = listDoubleToBytes(element.data);
         insertFacialData.executeMap({
-          ':data': element.data,
-          ':individualRegisration': element.individual.individualRegistration,
+          ':data': data,
+          ':individualRegistration': element.individual.individualRegistration,
         });
       }
     }
@@ -1045,6 +1076,13 @@ class SQLite3DomainRepository implements IDomainRepository {
     final insertIndividual = _database.prepare(
       _statementsLoader.getStatement(['individual', 'dml', 'insert']),
     );
+/*   final insertIndividual = _database.prepare(
+'''INSERT INTO individual (
+  individualRegistration, name, surname
+) VALUES (
+  :individualRegistration, :name, :surname
+);'''
+  ); */
 
     _beginTransaction();
     bool shouldCommit = true;
@@ -1052,7 +1090,7 @@ class SQLite3DomainRepository implements IDomainRepository {
     try {
       for (final element in individual) {
         insertIndividual.executeMap({
-          ':individualRegisration': element.individualRegistration,
+          ':individualRegistration': element.individualRegistration,
           ':name': element.name,
           ':surname': element.surname,
         });
@@ -1095,7 +1133,7 @@ class SQLite3DomainRepository implements IDomainRepository {
           ':year': element.subjectClass.year,
           ':semester': element.subjectClass.semester,
           ':name': element.subjectClass.name,
-          ':utcDateTime': element.utcDateTime,
+          ':utcDateTime': element.utcDateTime.toIso8601String(),
           ':teacherRegistration': element.teacher.registration,
         });
       }
@@ -1335,45 +1373,30 @@ class SQLite3DomainRepository implements IDomainRepository {
         return Map.unmodifiable({});
       }
 
-      // final Map<String, Student> students = {};
-      // for (final row in selected) {
-      //   final String? registration = row['registration'];
-      //   if (registration != null && !students.containsKey(registration)) {
-      //     students[registration] = Student(
-      //       registration: registration,
-      //       individual: Individual(
-      //         individualRegistration: row['individualRegistration'],
-      //         name: row['name'],
-      //         surname: row['surname'],
-      //       ),
-      //     );
-      //   }
-      // }
-
       final Map<String, Student> students = {};
-      final resultValue = selected
-          .map(
-            (e) => EmbeddingRecognitionResult(
-              inputFace: e['picture'],
-              inputFaceEmbedding: e['embedding'],
-              recognized: false,
-              // nearestStudent: students['nearestStudentRegistration'],
-              nearestStudent: e['registration'] == null
-                  ? null
-                  : students.putIfAbsent(
-                      e['registration'],
-                      () => Student(
-                        registration: e['registration'],
-                        individual: Individual(
-                          individualRegistration: e['individualRegistration'],
-                          name: e['name'],
-                          surname: e['surname'],
-                        ),
+      final resultValue = selected.map(
+        (e) {
+          final embedding = listBytesToDouble(e['embedding']);
+          return EmbeddingRecognitionResult(
+            inputFace: e['picture'],
+            inputFaceEmbedding: embedding,
+            recognized: false,
+            nearestStudent: e['registration'] == null
+                ? null
+                : students.putIfAbsent(
+                    e['registration'],
+                    () => Student(
+                      registration: e['registration'],
+                      individual: Individual(
+                        individualRegistration: e['individualRegistration'],
+                        name: e['name'],
+                        surname: e['surname'],
                       ),
                     ),
-            ),
-          )
-          .toList(growable: false);
+                  ),
+          );
+        },
+      ).toList(growable: false);
       result[l] = resultValue;
     }
 
@@ -1414,45 +1437,31 @@ class SQLite3DomainRepository implements IDomainRepository {
         return Map.unmodifiable(const {});
       }
 
-      // final Map<String, Student> students = {};
-      // for (final row in selected) {
-      //   final String? registration = row['nearestStudentRegistration'];
-      //   if (registration != null && !students.containsKey(registration)) {
-      //     students[registration] = Student(
-      //       registration: registration,
-      //       individual: Individual(
-      //         individualRegistration: row['individualRegistration'],
-      //         name: row['name'],
-      //         surname: row['surname'],
-      //       ),
-      //     );
-      //   }
-      // }
-
       final Map<String, Student> students = {};
-      final resultValue = selected
-          .map(
-            (e) => EmbeddingRecognitionResult(
-              inputFace: e['picture'],
-              inputFaceEmbedding: e['embedding'],
-              recognized: false,
-              // nearestStudent: students['nearestStudentRegistration'],
-              nearestStudent: e['registration'] == null
-                  ? null
-                  : students.putIfAbsent(
-                      e['registration'],
-                      () => Student(
-                        registration: e['registration'],
-                        individual: Individual(
-                          individualRegistration: e['individualRegistration'],
-                          name: e['name'],
-                          surname: e['surname'],
-                        ),
+      final resultValue = selected.map(
+        (e) {
+          final embedding = listBytesToDouble(e['embedding']);
+          return EmbeddingRecognitionResult(
+            inputFace: e['picture'],
+            inputFaceEmbedding: embedding,
+            recognized: false,
+            // nearestStudent: students['nearestStudentRegistration'],
+            nearestStudent: e['registration'] == null
+                ? null
+                : students.putIfAbsent(
+                    e['registration'],
+                    () => Student(
+                      registration: e['registration'],
+                      individual: Individual(
+                        individualRegistration: e['individualRegistration'],
+                        name: e['name'],
+                        surname: e['surname'],
                       ),
                     ),
-            ),
-          )
-          .toList(growable: false);
+                  ),
+          );
+        },
+      ).toList(growable: false);
       result[l] = resultValue;
     }
 
@@ -1492,14 +1501,15 @@ class SQLite3DomainRepository implements IDomainRepository {
         return Map.unmodifiable({});
       }
 
-      final resultValue = selected
-          .map(
-            (e) => Duple<JpegPictureBytes, FaceEmbedding>(
-              e['picture'],
-              e['embedding'],
-            ),
-          )
-          .toList(growable: false);
+      final resultValue = selected.map(
+        (e) {
+          final embedding = listBytesToDouble(e['embedding']);
+          return Duple<JpegPictureBytes, FaceEmbedding>(
+            e['picture'],
+            embedding,
+          );
+        },
+      ).toList(growable: false);
       result[l] = resultValue;
     }
 
@@ -1511,22 +1521,19 @@ class SQLite3DomainRepository implements IDomainRepository {
   Map<Student, FacePicture?> getFacePictureFromStudent(
     Iterable<Student> student,
   ) {
-    final Map<Lesson, FacePicture> result = {};
+    final Map<Student, FacePicture?> result = {};
     final select = _database.prepare(
       _statementsLoader.getStatement(
-        ['dql', 'deferredRecognitionPoolByLesson'],
+        ['dql', 'facePictureByStudentRegistration'],
       ),
     );
 
-    for (final l in student) {
+    final Map<String, Individual> individuals = {};
+    for (final s in student) {
       pkg_sqlite3.ResultSet selected;
       try {
         selected = select.selectMap({
-          ':subjectCode': l.subjectClass.subject.code,
-          ':year': l.subjectClass.year,
-          ':semester': l.subjectClass.semester,
-          ':name': l.subjectClass.name,
-          ':utcDateTime': l.utcDateTime,
+          ':registration': s.registration,
         });
       } on ArgumentError catch (e) {
         select.dispose();
@@ -1538,15 +1545,27 @@ class SQLite3DomainRepository implements IDomainRepository {
         return Map.unmodifiable({});
       }
 
-      final resultValue = selected
-          .map(
-            (e) => Duple<JpegPictureBytes, FaceEmbedding>(
-              e['picture'],
-              e['embedding'],
+      if (selected.isEmpty) {
+        result[s] = null;
+      }
+      else {
+        if (selected.length > 1) {
+          projectLogger.warning('more than 1 face picture related to the same student; proceeding with one;');
+        }
+        final row = selected[0];
+        final resultValue = FacePicture(
+          faceJpeg: row['picture'],
+          individual: individuals.putIfAbsent(
+            row['individualRegistration'],
+            () => Individual(
+              individualRegistration: row['individualRegistration'],
+              name: row['name'],
+              surname: row['surname'],
             ),
-          )
-          .toList(growable: false);
-      result[l] = resultValue;
+          ),
+        );
+        result[s] = resultValue;
+      }
     }
 
     select.dispose();
@@ -1554,89 +1573,926 @@ class SQLite3DomainRepository implements IDomainRepository {
   }
 
   @override
-  Map<Teacher, FacePicture?> getFacePictureFromTeacher(Iterable<Teacher> teacher) {
-    // TODO: implement getFacePictureFromTeacher
-    throw UnimplementedError();
+  Map<Teacher, FacePicture?> getFacePictureFromTeacher(
+    Iterable<Teacher> teacher,
+  ) {
+    final Map<Teacher, FacePicture?> result = {};
+    final select = _database.prepare(
+      _statementsLoader.getStatement(
+        ['dql', 'facePictureByTeacherRegistration'],
+      ),
+    );
+
+    final Map<String, Individual> individuals = {};
+    for (final t in teacher) {
+      pkg_sqlite3.ResultSet selected;
+      try {
+        selected = select.selectMap({
+          ':registration': t.registration,
+        });
+      } on ArgumentError catch (e) {
+        select.dispose();
+        projectLogger.severe(e);
+        return Map.unmodifiable({});
+      } on pkg_sqlite3.SqliteException catch (e) {
+        select.dispose();
+        projectLogger.severe(e);
+        return Map.unmodifiable({});
+      }
+
+      if (selected.isEmpty) {
+        result[t] = null;
+      }
+      else {
+        if (selected.length > 1) {
+          projectLogger.warning('more than 1 face picture related to the same student; proceeding with one;');
+        }
+        final row = selected[0];
+        final resultValue = FacePicture(
+          faceJpeg: row['picture'],
+          individual: individuals.putIfAbsent(
+            row['individualRegistration'],
+            () => Individual(
+              individualRegistration: row['individualRegistration'],
+              name: row['name'],
+              surname: row['surname'],
+            ),
+          ),
+        );
+        result[t] = resultValue;
+      }
+    }
+
+    select.dispose();
+    return Map.unmodifiable(result);
   }
 
   @override
-  Map<Student, List<FacialData>> getFacialDataFromStudent(Iterable<Student> student) {
-    // TODO: implement getFacialDataFromStudent
-    throw UnimplementedError();
+  Map<Student, List<FacialData>> getFacialDataFromStudent(
+    Iterable<Student> student,
+  ) {
+    final Map<Student, List<FacialData>> result = {};
+    final select = _database.prepare(
+      _statementsLoader.getStatement(
+        ['dql', 'facialDataByStudentRegistration'],
+      ),
+    );
+
+    final Map<String, Individual> individuals = {};
+    for (final s in student) {
+      pkg_sqlite3.ResultSet selected;
+      try {
+        selected = select.selectMap({
+          ':registration': s.registration,
+        });
+      } on ArgumentError catch (e) {
+        select.dispose();
+        projectLogger.severe(e);
+        return Map.unmodifiable({});
+      } on pkg_sqlite3.SqliteException catch (e) {
+        select.dispose();
+        projectLogger.severe(e);
+        return Map.unmodifiable({});
+      }
+
+      final resultValue = selected.map(
+        (e) {
+          final data = listBytesToDouble(e['data']);
+          return FacialData(
+            data: data,
+            individual: individuals.putIfAbsent(
+              e['individualRegistration'],
+              () => Individual(
+                individualRegistration: e['individualRegistration'],
+                name: e['name'],
+                surname: e['surname'],
+              ),
+            ),
+          );
+        },
+      ).toList(growable: false);
+      result[s] = resultValue;
+    }
+
+    select.dispose();
+    return Map.unmodifiable(result);
   }
 
   @override
-  Map<Teacher, List<FacialData>> getFacialDataFromTeacher(Iterable<Teacher> teacher) {
-    // TODO: implement getFacialDataFromTeacher
-    throw UnimplementedError();
+  Map<Teacher, List<FacialData>> getFacialDataFromTeacher(
+    Iterable<Teacher> teacher,
+  ) {
+    final Map<Teacher, List<FacialData>> result = {};
+    final select = _database.prepare(
+      _statementsLoader.getStatement(
+        ['dql', 'facialDataByStudentRegistration'],
+      ),
+    );
+
+    final Map<String, Individual> individuals = {};
+    for (final t in teacher) {
+      pkg_sqlite3.ResultSet selected;
+      try {
+        selected = select.selectMap({
+          ':registration': t.registration,
+        });
+      } on ArgumentError catch (e) {
+        select.dispose();
+        projectLogger.severe(e);
+        return Map.unmodifiable({});
+      } on pkg_sqlite3.SqliteException catch (e) {
+        select.dispose();
+        projectLogger.severe(e);
+        return Map.unmodifiable({});
+      }
+
+      final resultValue = selected.map(
+        (e) {
+          final data = listBytesToDouble(e['data']);
+          return FacialData(
+            data: data,
+            individual: individuals.putIfAbsent(
+              e['individualRegistration'],
+              () => Individual(
+                individualRegistration: e['individualRegistration'],
+                name: e['name'],
+                surname: e['surname'],
+              ),
+            ),
+          );
+        },
+      ).toList(growable: false);
+      result[t] = resultValue;
+    }
+
+    select.dispose();
+    return Map.unmodifiable(result);
   }
 
   @override
-  Map<String, Individual?> getIndividualFromRegistration(Iterable<String> individualRegistration) {
-    // TODO: implement getIndividualFromRegistration
-    throw UnimplementedError();
+  Map<String, Individual?> getIndividualFromRegistration(
+    Iterable<String> individualRegistration,
+  ) {
+    final Map<String, Individual?> result = {};
+    final select = _database.prepare(
+      _statementsLoader.getStatement(
+        ['dql', 'individualByRegistration'],
+      ),
+    );
+
+    for (final i in individualRegistration) {
+      pkg_sqlite3.ResultSet selected;
+      try {
+        selected = select.selectMap({
+          ':individualRegistration': i,
+        });
+      } on ArgumentError catch (e) {
+        select.dispose();
+        projectLogger.severe(e);
+        return Map.unmodifiable({});
+      } on pkg_sqlite3.SqliteException catch (e) {
+        select.dispose();
+        projectLogger.severe(e);
+        return Map.unmodifiable({});
+      }
+
+      if (selected.isEmpty) {
+        result[i] = null;
+      }
+      else {
+        if (selected.length > 1) {
+          projectLogger.warning('more than 1 face picture related to the same student; proceeding with one;');
+        }
+        final row = selected[0];
+        result.putIfAbsent(
+          i,
+          () => row['individualRegistration'] == null
+              ? null
+              : Individual(
+                  individualRegistration: row['individualRegistration'],
+                  name: row['name'],
+                  surname: row['surname'],
+                ),
+        );
+      }
+    }
+
+    select.dispose();
+    return Map.unmodifiable(result);
   }
 
   @override
-  Map<SubjectClass, List<Lesson>> getLessonFromSubjectClass(Iterable<SubjectClass> subjectClass) {
-    // TODO: implement getLessonFromSubjectClass
-    throw UnimplementedError();
+  Map<SubjectClass, List<Lesson>> getLessonFromSubjectClass(
+    Iterable<SubjectClass> subjectClass,
+  ) {
+    final Map<SubjectClass, List<Lesson>> result = {};
+    final select = _database.prepare(
+      _statementsLoader.getStatement(
+        ['dql', 'lessonBySubjectClass'],
+      ),
+    );
+
+    for (final c in subjectClass) {
+      pkg_sqlite3.ResultSet selected;
+      try {
+        selected = select.selectMap({
+          ':subjectCode': c.subject.code,
+          ':year': c.year,
+          ':semester': c.semester,
+          ':name': c.name,
+        });
+      }
+      on ArgumentError catch (e) {
+        select.dispose();
+        projectLogger.severe(e);
+        return Map.unmodifiable(const {});
+      }
+      on pkg_sqlite3.SqliteException catch (e) {
+        select.dispose();
+        projectLogger.severe(e);
+        return Map.unmodifiable(const {});
+      }
+
+      final Map<String, Teacher> teachers = {};
+      // final SubjectClass readClass = SubjectClass(
+      //   subject: Subject(
+      //     code: selected[0]['subjectCode'],
+      //     name: selected[0]['subjectName'],
+      //   ),
+      //   year: selected[0]['year'],
+      //   semester: selected[0]['semester'],
+      //   name: selected[0]['name'],
+      //   teacher: teachers.putIfAbsent(
+      //           selected[0]['cTeacherRegistration'],
+      //           () => Teacher(
+      //             registration: selected[0]['cTeacherRegistration'],
+      //             individual: Individual(
+      //               individualRegistration: selected[0]['cTeacherIndividualRegistration'],
+      //               name: selected[0]['cTeacherName'],
+      //               surname: selected[0]['cTeacherSurname'],
+      //             ),
+      //           ),
+      //         ),
+      // );
+      // REVIEW not using the class information returned from query
+      final resultValue = selected
+          .map(
+            (e) {
+              final dateTime = DateTime.parse(e['utcDateTime']);
+              return Lesson(
+              subjectClass: c,
+              teacher: teachers.putIfAbsent(
+                e['lTeacherRegistration'],
+                () => Teacher(
+                  registration: e['lTeacherRegistration'],
+                  individual: Individual(
+                    individualRegistration: e['lTeacherIndividualRegistration'],
+                    name: e['lTeacherName'],
+                    surname: e['lTeacherSurname'],
+                  ),
+                ),
+              ),
+              utcDateTime: dateTime,
+            );},
+          )
+          .toList(growable: false);
+      result[c] = resultValue;
+    }
+
+    select.dispose();
+    return Map.unmodifiable(result);
   }
 
   @override
-  Map<String, Student?> getStudentFromRegistration(Iterable<String> registration) {
-    // TODO: implement getStudentFromRegistration
-    throw UnimplementedError();
+  Map<String, Student?> getStudentFromRegistration(
+    Iterable<String> registration,
+  ) {
+    final Map<String, Student?> result = {};
+    final select = _database.prepare(
+      _statementsLoader.getStatement(
+        ['dql', 'studentByRegistration'],
+      ),
+    );
+
+    for (final r in registration) {
+      pkg_sqlite3.ResultSet selected;
+      try {
+        selected = select.selectMap({
+          ':registration': r,
+        });
+      } on ArgumentError catch (e) {
+        select.dispose();
+        projectLogger.severe(e);
+        return Map.unmodifiable({});
+      } on pkg_sqlite3.SqliteException catch (e) {
+        select.dispose();
+        projectLogger.severe(e);
+        return Map.unmodifiable({});
+      }
+
+      if (selected.isEmpty) {
+        result[r] = null;
+      }
+      else {
+        if (selected.length > 1) {
+          projectLogger.warning('more than 1 student related to the same registration; proceeding with one;');
+        }
+        final row = selected[0];
+        result.putIfAbsent(
+          r,
+          () => row['registration'] == null
+              ? null
+              : Student(
+                  registration: r,
+                  individual: Individual(
+                    individualRegistration: row['individualRegistration'],
+                    name: row['name'],
+                    surname: row['surname'],
+                  ),
+                ),
+        );
+      }
+    }
+
+    select.dispose();
+    return Map.unmodifiable(result);
   }
 
   @override
-  Map<SubjectClass, List<Student>> getStudentFromSubjectClass(Iterable<SubjectClass> subjectClass) {
-    // TODO: implement getStudentFromSubjectClass
-    throw UnimplementedError();
+  Map<SubjectClass, List<Student>> getStudentFromSubjectClass(
+    Iterable<SubjectClass> subjectClass,
+  ) {
+    final Map<SubjectClass, List<Student>> result = {};
+    final select = _database.prepare(
+      _statementsLoader.getStatement(
+        ['dql', 'studentFromSubjectClass'],
+      ),
+    );
+
+    for (final c in subjectClass) {
+      pkg_sqlite3.ResultSet selected;
+      try {
+        selected = select.selectMap({
+          ':subjectCode': c.subject.code,
+          ':year': c.year,
+          ':semester': c.semester,
+          ':name': c.name,
+        });
+      }
+      on ArgumentError catch (e) {
+        select.dispose();
+        projectLogger.severe(e);
+        return Map.unmodifiable(const {});
+      }
+      on pkg_sqlite3.SqliteException catch (e) {
+        select.dispose();
+        projectLogger.severe(e);
+        return Map.unmodifiable(const {});
+      }
+
+      final Map<String, Student> student = {};
+      final resultValue = selected
+          .map(
+            (e) => student.putIfAbsent(
+              e['sRegistration'],
+              () => Student(
+                registration: e['sRegistration'],
+                individual: Individual(
+                  individualRegistration: e['sIndividualRegistration'],
+                  name: e['sName'],
+                  surname: e['sSurname'],
+                ),
+              ),
+            ),
+          )
+          .toList(growable: false);
+      result[c] = resultValue;
+    }
+
+    select.dispose();
+    return Map.unmodifiable(result);
   }
 
   @override
-  SubjectClass? getSubjectClass({required int year, required int semester, required String subjectCode, required String name}) {
-    // TODO: implement getSubjectClass
-    throw UnimplementedError();
+  SubjectClass? getSubjectClass({
+    required String subjectCode,
+    required int year,
+    required int semester,
+    required String name,
+  }) {
+    final select = _database.prepare(
+      _statementsLoader.getStatement(
+        ['dql', 'subjectClass'],
+      ),
+    );
+
+    pkg_sqlite3.ResultSet selected;
+    try {
+      selected = select.selectMap({
+        ':subjectCode': subjectCode,
+        ':year': year,
+        ':semester': semester,
+        ':name': name,
+      });
+    }
+    on ArgumentError catch (e) {
+      select.dispose();
+      projectLogger.severe(e);
+      return null;
+    }
+    on pkg_sqlite3.SqliteException catch (e) {
+      select.dispose();
+      projectLogger.severe(e);
+      return null;
+    }
+
+    if (selected.isEmpty) {
+      projectLogger.warning('no subject class found;');
+      return null;
+    }
+    else if (selected.length > 1) {
+      projectLogger.warning('more than 1 student related to the same registration; proceeding with one;');
+    }
+
+    final row = selected[0];
+    final result = SubjectClass(
+      subject: Subject(
+        code: row['subjectCode'],
+        name: row['subjectName'],
+      ),
+      year: row['year'],
+      semester: row['semester'],
+      name: row['name'],
+      teacher: Teacher(
+        registration: row['cTeacherRegistration'],
+        individual: Individual(
+          individualRegistration: row['cTeacherIndividualRegistration'],
+          name: row['cTeacherName'],
+          surname: row['cTeacherSurname'],
+        ),
+      ),
+    );
+    return result;
   }
 
   @override
-  Map<SubjectClass, Map<Student, List<Attendance>>> getSubjectClassAttendance(Iterable<SubjectClass> subjectClass) {
-    // TODO: implement getSubjectClassAttendance
-    throw UnimplementedError();
+  Map<SubjectClass, Map<Student, List<Attendance>>> getSubjectClassAttendance(
+    Iterable<SubjectClass> subjectClass,
+  ) {
+    final Map<SubjectClass, Map<Student, List<Attendance>>> result = {};
+    final select = _database.prepare(
+      _statementsLoader.getStatement(
+        ['dql', 'facialDataByStudentRegistration'],
+      ),
+    );
+
+    for (final sc in subjectClass) {
+      pkg_sqlite3.ResultSet selected;
+      try {
+        selected = select.selectMap({
+          ':subjectCode': sc.subject.code,
+          ':year': sc.year,
+          ':semester': sc.semester,
+          ':name': sc.name,
+        });
+      }
+      on ArgumentError catch (e) {
+        select.dispose();
+        projectLogger.severe(e);
+        return Map.unmodifiable({});
+      }
+      on pkg_sqlite3.SqliteException catch (e) {
+        select.dispose();
+        projectLogger.severe(e);
+        return Map.unmodifiable({});
+      }
+
+      final Map<String, Student> students = {};
+      final Map<String, Lesson> lessons = {};
+      final Map<Student, List<Attendance>> attendancesByStudents = {};
+      // REVIEW - not using the subject class info returned from query
+      for (final e in selected) {
+        final sKey = e['sRegistration'];
+        if (!students.containsKey(sKey)) {
+          students[sKey] = Student(
+            registration: e['sRegistration'],
+            individual: Individual(
+              individualRegistration: e['sIndividualRegistration'],
+              name: e['sName'],
+              surname: e['sSurname'],
+            ),
+          );
+        }
+        final lKey = e['utcDateTime'];
+        if (!lessons.containsKey(lKey)) {
+          final dateTime = DateTime.parse(e['utcDateTime']);
+          lessons[lKey] = Lesson(
+            subjectClass: sc,
+            utcDateTime: dateTime,
+            teacher: Teacher(
+              registration: e['lTeacherRegistration'],
+              individual: Individual(
+                individualRegistration:
+                    e['lTeacherIndividualRegistration'],
+                name: e['lTeacherName'],
+                surname: e['lTeacherSurname'],
+              ),
+            ),
+          );
+        }
+        final aKey = students[sKey]!;
+        if (!attendancesByStudents.containsKey(aKey)) {
+          attendancesByStudents[aKey] = <Attendance>[];
+        }
+        final attendance = Attendance(
+              student: students[sKey]!,
+              lesson: lessons[lKey]!,
+            );
+        attendancesByStudents[aKey]!.add(attendance);
+      }
+
+      result[sc] = Map.unmodifiable(attendancesByStudents);
+    }
+
+    select.dispose();
+    return Map.unmodifiable(result);
   }
 
   @override
-  Map<Subject, List<SubjectClass>> getSubjectClassFromSubject(Iterable<Subject> subject) {
-    // TODO: implement getSubjectClassFromSubject
-    throw UnimplementedError();
+  Map<Subject, List<SubjectClass>> getSubjectClassFromSubject(
+    Iterable<Subject> subject,
+  ) {
+    final Map<Subject, List<SubjectClass>> result = {};
+    final select = _database.prepare(
+      _statementsLoader.getStatement(
+        ['dql', 'classBySubject'],
+      ),
+    );
+
+    for (final s in subject) {
+      pkg_sqlite3.ResultSet selected;
+      try {
+        selected = select.selectMap({
+          ':subjectCode': s.code,
+        });
+      }
+      on ArgumentError catch (e) {
+        select.dispose();
+        projectLogger.severe(e);
+        return Map.unmodifiable(const {});
+      }
+      on pkg_sqlite3.SqliteException catch (e) {
+        select.dispose();
+        projectLogger.severe(e);
+        return Map.unmodifiable(const {});
+      }
+
+      final Map<String, Teacher> teachers = {};
+      // REVIEW - not using the subject info returned from query
+      final resultValue = selected
+          .map(
+            (e) => SubjectClass(
+              subject: s,
+              year: e['year'],
+              semester: e['semester'],
+              name: e['name'],
+              teacher: teachers.putIfAbsent(
+                e['cTeacherRegistration'],
+                () => Teacher(
+                  registration: e['cTeacherRegistration'],
+                  individual: Individual(
+                    individualRegistration: e['cTeacherIndividualRegistration'],
+                    name: e['cTeacherName'],
+                    surname: e['cTeacherSurname'],
+                  ),
+                ),
+              )
+            ) ,
+          )
+          .toList(growable: false);
+      result[s] = resultValue;
+    }
+
+    select.dispose();
+    return Map.unmodifiable(result);
   }
 
   @override
-  Map<String, Subject?> getSubjectFromCode(Iterable<String> code) {
-    // TODO: implement getSubjectFromCode
-    throw UnimplementedError();
+  Map<String, Subject?> getSubjectFromCode(
+    Iterable<String> code
+  ) {
+    final Map<String, Subject?> result = {};
+    final select = _database.prepare(
+      _statementsLoader.getStatement(
+        ['dql', 'classBySubject'],
+      ),
+    );
+
+    for (final c in code) {
+      pkg_sqlite3.ResultSet selected;
+      try {
+        selected = select.selectMap({
+          ':code': code,
+        });
+      }
+      on ArgumentError catch (e) {
+        select.dispose();
+        projectLogger.severe(e);
+        return Map.unmodifiable(const {});
+      }
+      on pkg_sqlite3.SqliteException catch (e) {
+        select.dispose();
+        projectLogger.severe(e);
+        return Map.unmodifiable(const {});
+      }
+
+      if (selected.isEmpty) {
+        result[c] = null;
+      }
+      else {
+        if (selected.length > 1) {
+          projectLogger.warning('more than 1 subject related to the same code; proceeding with one;');
+        }
+        final row = selected[0];
+        final resultValue = Subject(code: row['code'], name: row['name']);
+        if (!result.containsKey(c)) {
+          result[c] = resultValue;
+        }
+      }
+    }
+
+    select.dispose();
+    return Map.unmodifiable(result);
   }
 
   @override
   Map<String, Teacher?> getTeacherFromRegistration(Iterable<String> registration) {
-    // TODO: implement getTeacherFromRegistration
-    throw UnimplementedError();
+    final Map<String, Teacher?> result = {};
+    final select = _database.prepare(
+      _statementsLoader.getStatement(
+        ['dql', 'teacherByRegistration'],
+      ),
+    );
+
+    for (final r in registration) {
+      pkg_sqlite3.ResultSet selected;
+      try {
+        selected = select.selectMap({
+          ':registration': registration,
+        });
+      }
+      on ArgumentError catch (e) {
+        select.dispose();
+        projectLogger.severe(e);
+        return Map.unmodifiable(const {});
+      }
+      on pkg_sqlite3.SqliteException catch (e) {
+        select.dispose();
+        projectLogger.severe(e);
+        return Map.unmodifiable(const {});
+      }
+
+      if (selected.isEmpty) {
+        result[r] = null;
+      }
+      else {
+        if (selected.length > 1) {
+          projectLogger.warning('more than 1 subject related to the same code; proceeding with one;');
+        }
+        final row = selected[0];
+        final resultValue = Teacher(
+          registration: row[registration],
+          individual: Individual(
+            individualRegistration: row['individualRegistration'],
+            name: row['name'],
+            surname: row['surname'],
+          ),
+        );
+        if (!result.containsKey(r)) {
+          result[r] = resultValue;
+        }
+      }
+    }
+
+    select.dispose();
+    return Map.unmodifiable(result);
   }
 
   @override
-  void removeFaceEmbeddingNotRecognizedFromCamera(Iterable<EmbeddingRecognitionResult> recognition, Lesson lesson) {
-    // TODO: implement removeFaceEmbeddingNotRecognizedFromCamera
+  void removeFaceEmbeddingNotRecognizedFromCamera(
+    Iterable<EmbeddingRecognitionResult> recognition,
+    Lesson lesson,
+  ) {
+    final delete = _database.prepare(
+      _statementsLoader.getStatement(
+        ['notRecognizedFromCamera', 'dml', 'delete'],
+      ),
+    );
+
+    for (final r in recognition) {
+
+      final String pictureMd5 = _pictureMd5(r.inputFace);
+      try {
+        delete.executeMap({
+          ':subjectCode': lesson.subjectClass.subject.code,
+          ':year': lesson.subjectClass.year,
+          ':semester': lesson.subjectClass.semester,
+          ':name': lesson.subjectClass.name,
+          ':utcDateTime': lesson.utcDateTime,
+          ':pictureMd5': pictureMd5,
+        });
+      }
+      on ArgumentError catch (e) {
+        delete.dispose();
+        projectLogger.severe(e);
+      }
+      on pkg_sqlite3.SqliteException catch (e) {
+        delete.dispose();
+        projectLogger.severe(e);
+      }
+    }
+
+    delete.dispose();
   }
 
   @override
-  void removeFaceEmbeddingRecognizedFromCamera(Iterable<EmbeddingRecognitionResult> recognition, Lesson lesson) {
-    // TODO: implement removeFaceEmbeddingRecognizedFromCamera
+  void removeFaceEmbeddingRecognizedFromCamera(
+    Iterable<EmbeddingRecognitionResult> recognition,
+    Lesson lesson,
+  ) {
+    final delete = _database.prepare(
+      _statementsLoader.getStatement(
+        ['recognizedFromCamera', 'dml', 'delete'],
+      ),
+    );
+
+    for (final r in recognition) {
+
+      final String pictureMd5 = _pictureMd5(r.inputFace);
+      try {
+        delete.executeMap({
+          ':subjectCode': lesson.subjectClass.subject.code,
+          ':year': lesson.subjectClass.year,
+          ':semester': lesson.subjectClass.semester,
+          ':name': lesson.subjectClass.name,
+          ':utcDateTime': lesson.utcDateTime,
+          ':pictureMd5': pictureMd5,
+        });
+      }
+      on ArgumentError catch (e) {
+        delete.dispose();
+        projectLogger.severe(e);
+      }
+      on pkg_sqlite3.SqliteException catch (e) {
+        delete.dispose();
+        projectLogger.severe(e);
+      }
+    }
+
+    delete.dispose();
   }
 
   @override
-  void replaceRecordOfRecognitionResultFromCamera(EmbeddingRecognitionResult oldRecord, EmbeddingRecognitionResult newRecord, Lesson lesson) {
-    // TODO: implement replaceRecordOfRecognitionResultFromCamera
+  void replaceRecordOfRecognitionResultFromCamera(
+    EmbeddingRecognitionResult oldRecord,
+    EmbeddingRecognitionResult newRecord,
+    Lesson lesson,
+  ) {
+    bool shouldCommit = true;
+    dynamic errorOrExceptionDelete;
+    dynamic errorOrExceptionInsert;
+
+    // remove old
+    _beginTransaction();
+    pkg_sqlite3.PreparedStatement deleteOld;
+    if (oldRecord.recognized) {
+      deleteOld = _database.prepare(
+        _statementsLoader.getStatement(
+          ['recognizedFromCamera', 'dml', 'delete'],
+        ),
+      );
+
+      final pictureMd5 = _pictureMd5(oldRecord.inputFace);
+      try {
+        deleteOld.executeMap({
+          ':subjectCode': lesson.subjectClass.subject.code,
+          ':year': lesson.subjectClass.year,
+          ':semester': lesson.subjectClass.semester,
+          ':name': lesson.subjectClass.name,
+          ':utcDateTime': lesson.utcDateTime,
+          ':pictureMd5': pictureMd5,
+        });
+      }
+      on ArgumentError catch (e) {
+        errorOrExceptionDelete = e;
+        shouldCommit = false;
+      }
+      on pkg_sqlite3.SqliteException catch (e) {
+        errorOrExceptionDelete = e;
+        shouldCommit = false;
+      }
+    }
+    else {
+      deleteOld = _database.prepare(
+        _statementsLoader.getStatement(
+          ['notRecognizedFromCamera', 'dml', 'delete'],
+        ),
+      );
+
+      final pictureMd5 = _pictureMd5(oldRecord.inputFace);
+      try {
+        deleteOld.executeMap({
+          ':subjectCode': lesson.subjectClass.subject.code,
+          ':year': lesson.subjectClass.year,
+          ':semester': lesson.subjectClass.semester,
+          ':name': lesson.subjectClass.name,
+          ':utcDateTime': lesson.utcDateTime,
+          ':pictureMd5': pictureMd5,
+        });
+      }
+      on ArgumentError catch (e) {
+        errorOrExceptionDelete = e;
+        shouldCommit = false;
+      }
+      on pkg_sqlite3.SqliteException catch (e) {
+        errorOrExceptionDelete = e;
+        shouldCommit = false;
+      }
+    }
+    deleteOld.dispose();
+
+    // place new
+    pkg_sqlite3.PreparedStatement insertNew;
+    if (newRecord.recognized) {
+      insertNew = _database.prepare(
+        _statementsLoader
+            .getStatement(['recognizedFromCamera', 'dml', 'insert']),
+      );
+      final pictureMd5 = _pictureMd5(newRecord.inputFace);
+      try{
+        insertNew.executeMap({
+          ':subjectCode': lesson.subjectClass.subject.code,
+          ':year': lesson.subjectClass.year,
+          ':semester': lesson.subjectClass.semester,
+          ':name': lesson.subjectClass.name,
+          ':utcDateTime': lesson.utcDateTime,
+          ':picture': newRecord.inputFace,
+          ':pictureMd5': pictureMd5,
+          ':embedding': newRecord.inputFaceEmbedding,
+          ':nearestStudentRegistration': newRecord.nearestStudent?.registration,
+        });
+      }
+      on ArgumentError catch (e) {
+        errorOrExceptionInsert = e;
+        shouldCommit = false;
+      }
+      on pkg_sqlite3.SqliteException catch (e) {
+        errorOrExceptionInsert = e;
+        shouldCommit = false;
+      }
+    }
+    else {
+      insertNew = _database.prepare(
+        _statementsLoader
+            .getStatement(['notRecognizedFromCamera', 'dml', 'insert']),
+      );
+
+      final pictureMd5 = _pictureMd5(newRecord.inputFace);
+      try{
+        insertNew.executeMap({
+          ':subjectCode': lesson.subjectClass.subject.code,
+          ':year': lesson.subjectClass.year,
+          ':semester': lesson.subjectClass.semester,
+          ':name': lesson.subjectClass.name,
+          ':utcDateTime': lesson.utcDateTime,
+          ':picture': newRecord.inputFace,
+          ':pictureMd5': pictureMd5,
+          ':embedding': newRecord.inputFaceEmbedding,
+          ':nearestStudentRegistration': newRecord.nearestStudent?.registration,
+        });
+      }
+      on ArgumentError catch (e) {
+        errorOrExceptionInsert = e;
+        shouldCommit = false;
+      }
+      on pkg_sqlite3.SqliteException catch (e) {
+        errorOrExceptionInsert = e;
+        shouldCommit = false;
+      }
+    }
+    insertNew.dispose();
+
+    if (shouldCommit) {
+      _commitTransaction();
+    }
+    else {
+      if (errorOrExceptionDelete != null) {
+        projectLogger.severe(errorOrExceptionDelete);
+      }
+      if (errorOrExceptionInsert != null) {
+        projectLogger.severe(errorOrExceptionInsert);
+      }
+      _rollbackTransaction();
+    }
   }
 }

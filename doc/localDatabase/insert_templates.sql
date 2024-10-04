@@ -19,11 +19,7 @@ WITH _class AS (SELECT auto_id FROM class WHERE subjectCode = :subjectCode AND y
 
 WITH _class AS (SELECT auto_id FROM class WHERE subjectCode = :subjectCode AND year = :year AND semester = :semester AND name = :name) INSERT INTO enrollment (studentRegistration, classId) SELECT :studentRegistration, auto_id FROM _class;
 
-WITH _class AS (SELECT auto_id FROM class WHERE subjectCode = :subjectCode AND year = :year AND semester = :semester AND name = :name) INSERT INTO enrollment (studentRegistration, classId) SELECT :studentRegistration, auto_id FROM _class;
-
 WITH _class AS (SELECT auto_id FROM class WHERE subjectCode = :subjectCode AND year = :year AND semester = :semester AND name = :name), _lesson AS (SELECT auto_id FROM lesson WHERE classId = (SELECT auto_id FROM _class) AND utcDateTime = :utcDateTime) INSERT INTO attendance (studentRegistration, lessonId) SELECT :studentRegistration, auto_id FROM _lesson;
-
-WITH _class AS (SELECT auto_id FROM class WHERE subjectCode = :subjectCode AND year = :year AND semester = :semester AND name = :name), _lesson AS (SELECT auto_id FROM lesson WHERE classId = (SELECT auto_id FROM _class) AND utcDateTime = :utcDateTime) INSERT INTO notRecognizedFromCamera (picture, pictureMd5, embedding, nearestStudentRegistration, lessonId) SELECT :picture, :pictureMd5, :embedding, :nearestStudentRegistration, auto_id FROM _lesson;
 
 WITH _class AS (SELECT auto_id FROM class WHERE subjectCode = :subjectCode AND year = :year AND semester = :semester AND name = :name), _lesson AS (SELECT auto_id FROM lesson WHERE classId = (SELECT auto_id FROM _class) AND utcDateTime = :utcDateTime) INSERT INTO notRecognizedFromCamera (picture, pictureMd5, embedding, nearestStudentRegistration, lessonId) SELECT :picture, :pictureMd5, :embedding, :nearestStudentRegistration, auto_id FROM _lesson;
 
