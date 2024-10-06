@@ -1685,7 +1685,7 @@ class SQLite3DomainRepository implements IDomainRepository {
     final Map<Teacher, List<FacialData>> result = {};
     final select = _database.prepare(
       _statementsLoader.getStatement(
-        ['dql', 'facialDataByStudentRegistration'],
+        ['dql', 'facialDataByTeacherRegistration'],
       ),
     );
 
@@ -1903,7 +1903,7 @@ class SQLite3DomainRepository implements IDomainRepository {
           () => row['registration'] == null
               ? null
               : Student(
-                  registration: r,
+                  registration: row['registration'],
                   individual: Individual(
                     individualRegistration: row['individualRegistration'],
                     name: row['name'],
@@ -2042,7 +2042,7 @@ class SQLite3DomainRepository implements IDomainRepository {
     final Map<SubjectClass, Map<Student, List<Attendance>>> result = {};
     final select = _database.prepare(
       _statementsLoader.getStatement(
-        ['dql', 'facialDataByStudentRegistration'],
+        ['dql', 'attendance'],
       ),
     );
 
@@ -2226,7 +2226,9 @@ class SQLite3DomainRepository implements IDomainRepository {
   }
 
   @override
-  Map<String, Teacher?> getTeacherFromRegistration(Iterable<String> registration) {
+  Map<String, Teacher?> getTeacherFromRegistration(
+    Iterable<String> registration,
+  ) {
     final Map<String, Teacher?> result = {};
     final select = _database.prepare(
       _statementsLoader.getStatement(
@@ -2238,7 +2240,7 @@ class SQLite3DomainRepository implements IDomainRepository {
       pkg_sqlite3.ResultSet selected;
       try {
         selected = select.selectMap({
-          ':registration': registration,
+          ':registration': r,
         });
       }
       on ArgumentError catch (e) {
@@ -2257,20 +2259,22 @@ class SQLite3DomainRepository implements IDomainRepository {
       }
       else {
         if (selected.length > 1) {
-          projectLogger.warning('more than 1 subject related to the same code; proceeding with one;');
+          projectLogger.warning('more than 1 teacher related to the same registration; proceeding with one;');
         }
         final row = selected[0];
-        final resultValue = Teacher(
-          registration: row[registration],
-          individual: Individual(
-            individualRegistration: row['individualRegistration'],
-            name: row['name'],
-            surname: row['surname'],
-          ),
+        result.putIfAbsent(
+          r,
+          () => row['registration'] == null
+              ? null
+              : Teacher(
+                  registration: row['registration'],
+                  individual: Individual(
+                    individualRegistration: row['individualRegistration'],
+                    name: row['name'],
+                    surname: row['surname'],
+                  ),
+                ),
         );
-        if (!result.containsKey(r)) {
-          result[r] = resultValue;
-        }
       }
     }
 
