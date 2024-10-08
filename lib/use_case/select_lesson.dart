@@ -1,3 +1,4 @@
+import 'package:facial_recognition/interfaces.dart';
 import 'package:facial_recognition/models/domain.dart';
 
 class SelectLesson {
@@ -5,7 +6,7 @@ class SelectLesson {
       this._domainRepository,
   );
 
-  final DomainRepository _domainRepository;
+  final IDomainRepository _domainRepository;
 
   List<Subject> getSubjects() => _domainRepository.getAllSubjects();
 

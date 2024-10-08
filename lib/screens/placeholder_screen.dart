@@ -1,3 +1,4 @@
+import 'package:facial_recognition/interfaces.dart';
 import 'package:facial_recognition/models/domain.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -5,7 +6,7 @@ import 'package:go_router/go_router.dart';
 class PlaceholderScreen extends StatefulWidget {
   factory PlaceholderScreen({
     Key? key,
-    required DomainRepository domainRepository,
+    required IDomainRepository domainRepository,
     List<String> nextScreens = const [],
   }) {
     return PlaceholderScreen._private(
@@ -21,7 +22,7 @@ class PlaceholderScreen extends StatefulWidget {
     this.nextScreens = const [],
   });
 
-  final DomainRepository domainRepository;
+  final IDomainRepository domainRepository;
   final List<String> nextScreens;
 
   @override

@@ -1,3 +1,4 @@
+import 'package:facial_recognition/interfaces.dart';
 import 'package:facial_recognition/models/domain.dart';
 import 'package:facial_recognition/screens/select_information_return.dart';
 import 'package:facial_recognition/utils/project_logger.dart';
@@ -14,7 +15,7 @@ class LandingScreen extends StatefulWidget {
     required this.domainRepository,
   });
 
-  final DomainRepository domainRepository;
+  final IDomainRepository domainRepository;
 
   @override
   State<LandingScreen> createState() => _LandingScreenState();

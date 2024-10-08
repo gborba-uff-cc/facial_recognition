@@ -1,3 +1,4 @@
+import 'package:facial_recognition/interfaces.dart';
 import 'package:facial_recognition/models/domain.dart';
 import 'package:facial_recognition/models/use_case.dart';
 
@@ -8,7 +9,7 @@ class MarkAttendance {
   );
 
   final Lesson lesson;
-  final DomainRepository domainRepository;
+  final IDomainRepository domainRepository;
 
   Iterable<EmbeddingRecognitionResult> getRecognitionFromCamera() {
     final recognized = domainRepository.getCameraRecognized([lesson])[lesson];

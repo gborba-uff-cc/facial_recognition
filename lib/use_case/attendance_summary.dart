@@ -1,3 +1,4 @@
+import 'package:facial_recognition/interfaces.dart';
 import 'package:facial_recognition/models/domain.dart';
 
 class AttendanceSummary {
@@ -6,7 +7,7 @@ class AttendanceSummary {
     this.subjectClass,
   );
 
-  final DomainRepository domainRepository;
+  final IDomainRepository domainRepository;
   final SubjectClass subjectClass;
 
   Map<Student, FacePicture?> getStudentFaceImage() {

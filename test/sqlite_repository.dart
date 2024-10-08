@@ -4,6 +4,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:facial_recognition/models/domain.dart';
+import 'package:facial_recognition/models/domain_repository.dart';
 import 'package:facial_recognition/models/use_case.dart';
 import 'package:facial_recognition/utils/algorithms.dart';
 import 'package:facial_recognition/utils/file_loaders.dart';

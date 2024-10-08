@@ -8,7 +8,7 @@ import 'package:facial_recognition/models/domain.dart';
 
 class CreateModels {
   CreateModels(
-    DomainRepository domainRepository,
+    IDomainRepository domainRepository,
     IImageHandler<pkg_camera.CameraImage, pkg_camera.CameraDescription, pkg_image.Image, Uint8List> imageHandler,
     IRecognitionPipeline<pkg_camera.CameraImage, pkg_camera.CameraDescription, pkg_image.Image, Uint8List,
       Student, FaceEmbedding> recognitionPipeline,
@@ -16,7 +16,7 @@ class CreateModels {
         _recognitionPipeline = recognitionPipeline,
         _imageHandler = imageHandler;
 
-  final DomainRepository _domainRepository;
+  final IDomainRepository _domainRepository;
   final IRecognitionPipeline<
       pkg_camera.CameraImage,
       pkg_camera.CameraDescription,

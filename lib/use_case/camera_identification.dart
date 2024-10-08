@@ -15,7 +15,7 @@ class CameraIdentification implements ICameraAttendance<pkg_camera.CameraImage, 
     IImageHandler<pkg_camera.CameraImage, pkg_camera.CameraDescription,
             pkg_image.Image, Uint8List>
         imageHandler,
-    DomainRepository domainRepository,
+    IDomainRepository domainRepository,
     this.showFaceImages,
     this.lesson,
   )   : _imageHandler = imageHandler,
@@ -27,7 +27,7 @@ class CameraIdentification implements ICameraAttendance<pkg_camera.CameraImage, 
 
   final IRecognitionPipeline<pkg_camera.CameraImage, pkg_camera.CameraDescription, pkg_image.Image, Uint8List,
       Student, FaceEmbedding> _recognitionPipeline;
-  final DomainRepository _domainRepo;
+  final IDomainRepository _domainRepo;
   void Function(Iterable<Uint8List> jpegImages)? showFaceImages;
   final Lesson lesson;
 

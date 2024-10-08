@@ -31,6 +31,8 @@ import 'package:facial_recognition/utils/project_logger.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import 'models/domain_repository.dart';
+
 void main() async {
   // hide async code with a splash screen
   runApp(const Placeholder());
