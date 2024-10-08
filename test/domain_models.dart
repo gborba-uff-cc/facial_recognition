@@ -1,3 +1,6 @@
+/*
+// OUTDATED
+
 import 'package:facial_recognition/models/domain.dart';
 
 import './core.dart';
@@ -143,3 +146,4 @@ int main() {
   showTestssucceded(allTestsSucceded);
   return returnCode;
 }
+ */

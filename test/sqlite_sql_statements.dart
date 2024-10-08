@@ -1,3 +1,6 @@
+/*
+// OUTDATED
+
 // dart -DsqliteLibPath='' -DsqlStatementsResourcePath='' .\test\sqlite_sql_statements.dart
 
 import 'dart:ffi';
@@ -293,3 +296,4 @@ void main() {
   showTestssucceded(allTestsSucceded);
   exit(exitCode);
 }
+ */

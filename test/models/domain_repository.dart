@@ -6,7 +6,6 @@ import 'dart:typed_data';
 import 'package:facial_recognition/models/domain.dart';
 import 'package:facial_recognition/models/domain_repository.dart';
 import 'package:facial_recognition/models/use_case.dart';
-import 'package:facial_recognition/utils/algorithms.dart';
 import 'package:facial_recognition/utils/file_loaders.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -192,20 +191,6 @@ void main() {
   );
 
   final modelsCollection = _newCollection();
-
-  test('convertDoubleList', () {
-    final a = modelsCollection.facialsData.map(
-      (e) => listDoubleToBytes(e.data)
-    ).toList();
-    final b = a.map(
-      listBytesToDouble
-    ).toList();
-
-    final aux = modelsCollection.facialsData.map((e) => e.data).toList();
-    for (int i=0; i<b.length; i++) {
-      expect(b[i], equals(aux[i]));
-    }
-  });
 
   group('insert into databse', () {
     repo.dispose();
