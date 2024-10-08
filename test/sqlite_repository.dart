@@ -8,13 +8,8 @@ import 'package:facial_recognition/models/use_case.dart';
 import 'package:facial_recognition/utils/algorithms.dart';
 import 'package:facial_recognition/utils/file_loaders.dart';
 import 'package:flutter/foundation.dart';
-// import 'package:flutter/material.dart';
-// import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-// import 'package:test/test.dart';
 import 'package:sqlite3/open.dart' as pkg_sqlite3_open;
-
-// Widget instantiateApp() => MaterialApp(home: Placeholder(),);
 
 class _ModelsCollection {
   final List<Individual> individuals;
@@ -29,6 +24,7 @@ class _ModelsCollection {
   final List<Attendance> attendances;
   final List<EmbeddingRecognitionResult> faceNotRecognized;
   final List<EmbeddingRecognitionResult> faceRecognized;
+  final List<Duple<JpegPictureBytes, FaceEmbedding>> deferred;
 
   _ModelsCollection({
     required this.individuals,
@@ -43,6 +39,7 @@ class _ModelsCollection {
     required this.attendances,
     required this.faceNotRecognized,
     required this.faceRecognized,
+    required this.deferred,
   });
 }
 
@@ -137,6 +134,12 @@ _ModelsCollection _newCollection() {
       recognized: true,
     ),
   ]);
+  final deferred = List<Duple<JpegPictureBytes, FaceEmbedding>>.unmodifiable(<
+      Duple<JpegPictureBytes, FaceEmbedding>>[
+    Duple(Uint8List.fromList([1, 1, 1, 1]), [0.1, 0.1, 0.1, 0.1]),
+    Duple(Uint8List.fromList([1, 1, 2, 1]), [0.1, 0.1, 0.2, 0.1]),
+    Duple(Uint8List.fromList([1, 1, 3, 1]), [0.1, 0.1, 0.3, 0.1]),
+  ]);
 
   return _ModelsCollection(
     individuals: individuals,
@@ -151,6 +154,7 @@ _ModelsCollection _newCollection() {
     attendances: attendances,
     faceNotRecognized: facesNotRecognized,
     faceRecognized: facesRecognized,
+    deferred: deferred,
   );
 }
 
@@ -180,7 +184,8 @@ void main() {
   final jsonSqlStatements = jsonDecode(File(jsonSqlStatementsPath).readAsStringSync());
   final sqlStatementLoader = SqlStatementsLoader(jsonSqlStatements);
   pkg_sqlite3_open.open.overrideFor(pkg_sqlite3_open.OperatingSystem.windows, () => DynamicLibrary.open(r'bin\sqlite3.dll'));
-  final repo = SQLite3DomainRepository(
+  // clear database before tests
+  SQLite3DomainRepository repo = SQLite3DomainRepository(
     databasePath: databasePath,
     statementsLoader: sqlStatementLoader,
   );
@@ -201,59 +206,76 @@ void main() {
     }
   });
 
-  test('addIndividual', () {
-    repo.addIndividual(modelsCollection.individuals);
-  });
-
-  test('addFacialData', () {
-    repo.addFacialData(modelsCollection.facialsData);
-  });
-
-  test('addFacePicture', () {
-    repo.addFacePicture(modelsCollection.facePictures);
-  });
-
-  test('addStudent', () {
-    repo.addStudent(modelsCollection.students);
-  });
-
-  test('addTeacher', () {
-    repo.addTeacher(modelsCollection.teachers);
-  });
-
-  test('addSubject', () {
-    repo.addSubject(modelsCollection.subjects);
-  });
-
-  test('addClass', () {
-    repo.addSubjectClass(modelsCollection.classes);
-  });
-
-  test('addEnrollment', () {
-    repo.addEnrollment(modelsCollection.enrollments);
-  });
-
-  test('addLesson', () {
-    repo.addLesson(modelsCollection.lessons);
-  });
-
-  test('addAttendance', () {
-    repo.addAttendance(modelsCollection.attendances);
-  });
-
-  test('addNotRecognized', () {
-    repo.addFaceEmbeddingToCameraNotRecognized(
-      modelsCollection.faceNotRecognized,
-      modelsCollection.lessons[0],
+  group('insert into databse', () {
+    repo.dispose();
+    File(databasePath).writeAsStringSync('');
+    repo = SQLite3DomainRepository(
+      databasePath: databasePath,
+      statementsLoader: sqlStatementLoader,
     );
+
+    test('addIndividual', () {
+      repo.addIndividual(modelsCollection.individuals);
+    });
+
+    test('addFacialData', () {
+      repo.addFacialData(modelsCollection.facialsData);
+    });
+
+    test('addFacePicture', () {
+      repo.addFacePicture(modelsCollection.facePictures);
+    });
+
+    test('addStudent', () {
+      repo.addStudent(modelsCollection.students);
+    });
+
+    test('addTeacher', () {
+      repo.addTeacher(modelsCollection.teachers);
+    });
+
+    test('addSubject', () {
+      repo.addSubject(modelsCollection.subjects);
+    });
+
+    test('addClass', () {
+      repo.addSubjectClass(modelsCollection.classes);
+    });
+
+    test('addEnrollment', () {
+      repo.addEnrollment(modelsCollection.enrollments);
+    });
+
+    test('addLesson', () {
+      repo.addLesson(modelsCollection.lessons);
+    });
+
+    test('addAttendance', () {
+      repo.addAttendance(modelsCollection.attendances);
+    });
+
+    test('addNotRecognized', () {
+      repo.addFaceEmbeddingToCameraNotRecognized(
+        modelsCollection.faceNotRecognized,
+        modelsCollection.lessons[0],
+      );
+    });
+
+    test('addRecognized', () {
+      repo.addFaceEmbeddingToCameraRecognized(
+        modelsCollection.faceRecognized,
+        modelsCollection.lessons[0],
+      );
+    });
+
+    test('addFaceEmbeddingToDeferredPool', () {
+      repo.addFaceEmbeddingToDeferredPool(
+        modelsCollection.deferred,
+        modelsCollection.lessons[0],
+      );
+    });
   });
 
-  test('addRecognized', () {
-    repo.addFaceEmbeddingToCameraRecognized(
-      modelsCollection.faceRecognized,
-      modelsCollection.lessons[0],
-    );
-  });
 
   group('get from database', () {
     test('getIndividualFromRegistration', () {
@@ -583,6 +605,34 @@ void main() {
       }
     });
 
+    test('getSubjectFromCode', () {
+      final expected = <String, Subject?>{
+        modelsCollection.subjects[0].code: modelsCollection.subjects[0],
+        modelsCollection.subjects[1].code: modelsCollection.subjects[1],
+        'code': null,
+      };
+
+      final actual = repo.getSubjectFromCode(
+        expected.keys,
+      );
+
+      expect(actual, hasLength(expected.length));
+      for (final e in expected.keys) {
+        final expectedElement = expected[e];
+        final actualElement = actual[e];
+        if (expectedElement == null) {
+          expect(actualElement, isNull);
+        } else {
+          expect(
+              actualElement,
+              isA<Subject>()
+                  .having((p0) => p0.code, 'code', equals(expectedElement.code))
+                  .having(
+                      (p0) => p0.name, 'name', equals(expectedElement.name)));
+        }
+      }
+    });
+
     test('getSubjectClass', () {
       final expected = [...modelsCollection.classes];
 
@@ -606,6 +656,151 @@ void main() {
               .having((p0) => p0.teacher.individual.name, 'teacherName', equals(e.teacher.individual.name))
               .having((p0) => p0.teacher.individual.surname, 'teacherSurname', equals(e.teacher.individual.surname)),
         );
+      }
+    });
+
+    test('getSubjectClassAttendance', () {
+      final extra = SubjectClass(
+          subject: modelsCollection.subjects[0],
+          year: 2024,
+          semester: 0,
+          name: '_',
+          teacher: modelsCollection.teachers[0],
+      );
+      final expected = <SubjectClass, Map<Student, List<Attendance>>>{
+        modelsCollection.classes[0]: {
+          modelsCollection.students[0]: [
+            modelsCollection.attendances[0],
+          ],
+          // modelsCollection.students[1]: [],
+          modelsCollection.students[2]: [],
+          modelsCollection.students[3]: [
+            modelsCollection.attendances[1],
+          ],
+        },
+        modelsCollection.classes[1]: {
+          modelsCollection.students[0]: [
+            modelsCollection.attendances[2],
+          ],
+          modelsCollection.students[1]: [
+            modelsCollection.attendances[3],
+          ],
+          modelsCollection.students[2]: [],
+          modelsCollection.students[3]: [],
+        },
+        extra: {}
+      };
+
+      final actual = repo.getSubjectClassAttendance(
+        expected.keys,
+      );
+/*
+      for (final e1 in actual.entries) {
+        print('class: ${e1.key.subject.code} ${e1.key.year} ${e1.key.semester} ${e1.key.name}');
+        for (final e2 in e1.value.entries) {
+          print('student: ${e2.key.registration}');
+          for (final e3 in e2.value) {
+            print('attendance: ${e3.lesson.utcDateTime}');
+          }
+        }
+      }
+ */
+      expect(actual, hasLength(expected.length));
+      // ignore: prefer_function_declarations_over_variables
+      final attendanceSortKey = (Attendance e) => '${e.lesson.subjectClass.subject.code}${e.lesson.subjectClass.year}${e.lesson.subjectClass.semester}${e.lesson.subjectClass.name}${e.lesson.subjectClass.teacher.registration}';
+      for (final e in expected.keys) {
+        final expectedMap = expected[e]!;
+        final actualMap = actual[e]!;
+        expect(expectedMap, isNotNull);
+        expect(actualMap, isNotNull);
+        expect(actualMap, hasLength(expectedMap.length));
+        for (final i in expectedMap.keys) {
+          final expectedList = expectedMap[i]!;
+          final actualList = actualMap[i]!;
+          expect(expectedList, isNotNull);
+          expect(actualList, isNotNull);
+          expect(actualList, hasLength(expectedList.length));
+          expectedList.sort((a, b) => attendanceSortKey(a).compareTo(attendanceSortKey(b)));
+          actualList.sort((a, b) => attendanceSortKey(a).compareTo(attendanceSortKey(b)));
+
+          for (int i=0; i<expectedList.length; i++) {
+            expect(
+              actualList[i],
+              isA<Attendance>()
+                  .having((p0) => p0.student.registration, 'studentRegistration', equals(expectedList[i].student.registration))
+                  .having((p0) => p0.student.individual.individualRegistration, 'studentRegistration', equals(expectedList[i].student.individual.individualRegistration))
+                  .having((p0) => p0.student.individual.name, 'studentName', equals(expectedList[i].student.individual.name))
+                  .having((p0) => p0.student.individual.surname, 'studentSurname', equals(expectedList[i].student.individual.surname))
+                  .having((p0) => p0.lesson.subjectClass.subject.code, 'subjectCode', equals(expectedList[i].lesson.subjectClass.subject.code))
+                  .having((p0) => p0.lesson.subjectClass.subject.name, 'subjectName', equals(expectedList[i].lesson.subjectClass.subject.name))
+                  .having((p0) => p0.lesson.subjectClass.year, 'classYears', equals(expectedList[i].lesson.subjectClass.year))
+                  .having((p0) => p0.lesson.subjectClass.semester, 'classSemester', equals(expectedList[i].lesson.subjectClass.semester))
+                  .having((p0) => p0.lesson.subjectClass.name, 'className', equals(expectedList[i].lesson.subjectClass.name))
+                  .having((p0) => p0.lesson.subjectClass.teacher.registration, 'classTeacherRegistration', equals(expectedList[i].lesson.subjectClass.teacher.registration))
+                  .having((p0) => p0.lesson.subjectClass.teacher.individual.individualRegistration, 'classTeacherIndividualRegistration', equals(expectedList[i].lesson.subjectClass.teacher.individual.individualRegistration))
+                  .having((p0) => p0.lesson.subjectClass.teacher.individual.name, 'classTeacherName', equals(expectedList[i].lesson.subjectClass.teacher.individual.name))
+                  .having((p0) => p0.lesson.subjectClass.teacher.individual.surname, 'classTeacherSurname', equals(expectedList[i].lesson.subjectClass.teacher.individual.surname))
+                  .having((p0) => p0.lesson.utcDateTime, 'lessonUtcDateTime', equals(expectedList[i].lesson.utcDateTime))
+                  .having((p0) => p0.lesson.teacher.registration, 'lessonTeacherRegistration', equals(expectedList[i].lesson.teacher.registration))
+                  .having((p0) => p0.lesson.teacher.individual.individualRegistration, 'lessonTeacherIndividualRegistration', equals(expectedList[i].lesson.teacher.individual.individualRegistration))
+                  .having((p0) => p0.lesson.teacher.individual.name, 'lessonTeacherName', equals(expectedList[i].lesson.teacher.individual.name))
+                  .having((p0) => p0.lesson.teacher.individual.surname, 'lessonTeacherSurname', equals(expectedList[i].lesson.teacher.individual.surname))
+            );
+          }
+        }
+      }
+    });
+
+    test('getSubjectClassFromSubject', () {
+      final extra = Subject(
+        code: '_',
+        name: '_',
+      );
+      final expected = <Subject, List<SubjectClass>>{
+        modelsCollection.subjects[0]: [modelsCollection.classes[0]],
+        modelsCollection.subjects[1]: [modelsCollection.classes[1]],
+        extra: []
+      };
+
+      final actual = repo.getSubjectClassFromSubject(
+        expected.keys,
+      );
+
+      expect(actual, hasLength(expected.length));
+      // ignore: prefer_function_declarations_over_variables
+      final classSortKey = (SubjectClass c) => '${c.subject.code}:${c.year}${c.semester}${c.name}${c.teacher.registration}';
+      for (final e in expected.keys) {
+        final expectedList = expected[e]!;
+        final actualList = actual[e]!;
+        expect(expectedList, isNotNull);
+        expect(actualList, isNotNull);
+        expect(actualList, hasLength(expectedList.length));
+        expectedList.sort((a, b) => classSortKey(a).compareTo(classSortKey(b)));
+        actualList.sort((a, b) => classSortKey(a).compareTo(classSortKey(b)));
+        for (int i = 0; i < expectedList.length; i++) {
+          expect(
+            actualList[i],
+            isA<SubjectClass>()
+                .having((p0) => p0.subject.code, 'subjectCode',
+                    equals(expectedList[i].subject.code))
+                .having((p0) => p0.subject.name, 'subjectName',
+                    equals(expectedList[i].subject.name))
+                .having((p0) => p0.year, 'classYear',
+                    equals(expectedList[i].year))
+                .having((p0) => p0.semester, 'classSemester',
+                    equals(expectedList[i].semester))
+                .having((p0) => p0.name, 'className',
+                    equals(expectedList[i].name))
+                .having((p0) => p0.teacher.registration, 'teacherRegistration',
+                    equals(expectedList[i].teacher.registration))
+                .having((p0) => p0.teacher.individual.individualRegistration, 'teacherIndividualRegistration',
+                    equals(expectedList[i].teacher.individual.individualRegistration))
+                .having((p0) => p0.teacher.individual.name, 'teacherName',
+                    equals(expectedList[i].teacher.individual.name))
+                .having((p0) => p0.teacher.individual.surname, 'teacherSurname',
+                    equals(expectedList[i].teacher.individual.surname)),
+          );
+        }
       }
     });
 
@@ -669,96 +864,426 @@ void main() {
       }
     });
 
-    test('getSubjectClassAttendance', () {
-      final extra = SubjectClass(
-          subject: modelsCollection.subjects[0],
-          year: 2024,
-          semester: 0,
-          name: '_',
-          teacher: modelsCollection.teachers[0],
-      );
-      final expected = <SubjectClass, Map<Student, List<Attendance>>>{
-        modelsCollection.classes[0]: {
-          modelsCollection.students[0]: [
-            modelsCollection.attendances[0],
-          ],
-          // modelsCollection.students[1]: [],
-          modelsCollection.students[2]: [],
-          modelsCollection.students[3]: [
-            modelsCollection.attendances[1],
-          ],
-        },
-        modelsCollection.classes[1]: {
-          modelsCollection.students[0]: [
-            modelsCollection.attendances[2],
-          ],
-          modelsCollection.students[1]: [
-            modelsCollection.attendances[3],
-          ],
-          modelsCollection.students[2]: [],
-          modelsCollection.students[3]: [],
-        },
-        extra: {}
+    test('getCameraNotRecognized', () {
+      final expected =<Lesson, List<EmbeddingRecognitionResult>>{
+        modelsCollection.lessons[0]: modelsCollection.faceNotRecognized.toList(),
+        modelsCollection.lessons[1]: [],
       };
-
-      final actual = repo.getSubjectClassAttendance(
-        expected.keys,
-      );
-
-      for (final e1 in actual.entries) {
-        print('class: ${e1.key.subject.code} ${e1.key.year} ${e1.key.semester} ${e1.key.name}');
-        for (final e2 in e1.value.entries) {
-          print('student: ${e2.key.registration}');
-          for (final e3 in e2.value) {
-            print('attendance: ${e3.lesson.utcDateTime}');
-          }
+      final actual = repo.getCameraNotRecognized(expected.keys);
+/*
+      for (final e1 in expected.entries) {
+        print('lesson: ${e1.key.subjectClass.subject.code} ${e1.key.subjectClass.year} ${e1.key.subjectClass.semester} ${e1.key.subjectClass.name} ${e1.key.utcDateTime}');
+        for (final e2 in e1.value) {
+          print('embeddingRecognitionResult: ${e2.inputFace} ${e2.inputFaceEmbedding} ${e2.nearestStudent?.registration} ${e2.nearestStudent?.individual.individualRegistration} ${e2.nearestStudent?.individual.name} ${e2.nearestStudent?.individual.surname} ${e2.recognized}');
         }
       }
-
+      for (final e1 in actual.entries) {
+        print('lesson: ${e1.key.subjectClass.subject.code} ${e1.key.subjectClass.year} ${e1.key.subjectClass.semester} ${e1.key.subjectClass.name} ${e1.key.utcDateTime}');
+        for (final e2 in e1.value) {
+          print('embeddingRecognitionResult: ${e2.inputFace} ${e2.inputFaceEmbedding} ${e2.nearestStudent?.registration} ${e2.nearestStudent?.individual.individualRegistration} ${e2.nearestStudent?.individual.name} ${e2.nearestStudent?.individual.surname} ${e2.recognized}');
+        }
+      }
+ */
       expect(actual, hasLength(expected.length));
-      // ignore: prefer_function_declarations_over_variables
-      final attendanceSortKey = (Attendance e) => '${e.lesson.subjectClass.subject.code}${e.lesson.subjectClass.year}${e.lesson.subjectClass.semester}${e.lesson.subjectClass.name}${e.lesson.subjectClass.teacher.registration}';
       for (final e in expected.keys) {
-        final expectedMap = expected[e]!;
-        final actualMap = actual[e]!;
-        expect(expectedMap, isNotNull);
-        expect(actualMap, isNotNull);
-        expect(actualMap, hasLength(expectedMap.length));
-        for (final i in expectedMap.keys) {
-          final expectedList = expectedMap[i]!;
-          final actualList = actualMap[i]!;
-          expect(expectedList, isNotNull);
-          expect(actualList, isNotNull);
-          expect(actualList, hasLength(expectedList.length));
-          expectedList.sort((a, b) => attendanceSortKey(a).compareTo(attendanceSortKey(b)));
-          actualList.sort((a, b) => attendanceSortKey(a).compareTo(attendanceSortKey(b)));
+        final expectedList = expected[e]!
+          ..sort(
+            (a, b) => compareNumLists(a.inputFace, b.inputFace),
+          );
+        final actualList = actual[e]!.toList()
+          ..sort(
+            (a, b) => compareNumLists(a.inputFace, b.inputFace),
+          );
 
-          for (int i=0; i<expectedList.length; i++) {
-            expect(
-              actualList[i],
-              isA<Attendance>()
-                  .having((p0) => p0.student.registration, 'studentRegistration', equals(expectedList[i].student.registration))
-                  .having((p0) => p0.student.individual.individualRegistration, 'studentRegistration', equals(expectedList[i].student.individual.individualRegistration))
-                  .having((p0) => p0.student.individual.name, 'studentName', equals(expectedList[i].student.individual.name))
-                  .having((p0) => p0.student.individual.surname, 'studentSurname', equals(expectedList[i].student.individual.surname))
-                  .having((p0) => p0.lesson.subjectClass.subject.code, 'subjectCode', equals(expectedList[i].lesson.subjectClass.subject.code))
-                  .having((p0) => p0.lesson.subjectClass.subject.name, 'subjectName', equals(expectedList[i].lesson.subjectClass.subject.name))
-                  .having((p0) => p0.lesson.subjectClass.year, 'classYears', equals(expectedList[i].lesson.subjectClass.year))
-                  .having((p0) => p0.lesson.subjectClass.semester, 'classSemester', equals(expectedList[i].lesson.subjectClass.semester))
-                  .having((p0) => p0.lesson.subjectClass.name, 'className', equals(expectedList[i].lesson.subjectClass.name))
-                  .having((p0) => p0.lesson.subjectClass.teacher.registration, 'classTeacherRegistration', equals(expectedList[i].lesson.subjectClass.teacher.registration))
-                  .having((p0) => p0.lesson.subjectClass.teacher.individual.individualRegistration, 'classTeacherIndividualRegistration', equals(expectedList[i].lesson.subjectClass.teacher.individual.individualRegistration))
-                  .having((p0) => p0.lesson.subjectClass.teacher.individual.name, 'classTeacherName', equals(expectedList[i].lesson.subjectClass.teacher.individual.name))
-                  .having((p0) => p0.lesson.subjectClass.teacher.individual.surname, 'classTeacherSurname', equals(expectedList[i].lesson.subjectClass.teacher.individual.surname))
-                  .having((p0) => p0.lesson.utcDateTime, 'lessonUtcDateTime', equals(expectedList[i].lesson.utcDateTime))
-                  .having((p0) => p0.lesson.teacher.registration, 'lessonTeacherRegistration', equals(expectedList[i].lesson.teacher.registration))
-                  .having((p0) => p0.lesson.teacher.individual.individualRegistration, 'lessonTeacherIndividualRegistration', equals(expectedList[i].lesson.teacher.individual.individualRegistration))
-                  .having((p0) => p0.lesson.teacher.individual.name, 'lessonTeacherName', equals(expectedList[i].lesson.teacher.individual.name))
-                  .having((p0) => p0.lesson.teacher.individual.surname, 'lessonTeacherSurname', equals(expectedList[i].lesson.teacher.individual.surname))
-            );
-          }
+        expect(actualList, hasLength(expectedList.length));
+        for (int i=0; i<expectedList.length; i++) {
+          final expectedElement = expectedList[i];
+          final actualElement = actualList[i];
+          expect(
+            actualElement,
+            isA<EmbeddingRecognitionResult>()
+                .having((p0) => p0.inputFace, 'inputFace', equals(expectedElement.inputFace))
+                .having((p0) => p0.inputFaceEmbedding, 'faceEmbedding', equals(expectedElement.inputFaceEmbedding))
+                .having((p0) => p0.nearestStudent?.registration, 'nearestStudentRegistration', equals(expectedElement.nearestStudent?.registration))
+                .having((p0) => p0.nearestStudent?.individual.individualRegistration, 'nearestStudentIndividualRegistration', equals(expectedElement.nearestStudent?.individual.individualRegistration))
+                .having((p0) => p0.nearestStudent?.individual.name, 'nearestStudentName', equals(expectedElement.nearestStudent?.individual.name))
+                .having((p0) => p0.nearestStudent?.individual.surname, 'nearestStudentSurname', equals(expectedElement.nearestStudent?.individual.surname))
+                .having((p0) => p0.recognized, 'recognized', equals(false))
+          );
         }
       }
     });
+
+    test('getCameraRecognized', () {
+      final expected =<Lesson, List<EmbeddingRecognitionResult>>{
+        modelsCollection.lessons[0]: modelsCollection.faceRecognized.toList(),
+        modelsCollection.lessons[1]: [],
+      };
+      final actual = repo.getCameraRecognized(expected.keys);
+/*
+      for (final e1 in expected.entries) {
+        print('lesson: ${e1.key.subjectClass.subject.code} ${e1.key.subjectClass.year} ${e1.key.subjectClass.semester} ${e1.key.subjectClass.name} ${e1.key.utcDateTime}');
+        for (final e2 in e1.value) {
+          print('embeddingRecognitionResult: ${e2.inputFace} ${e2.inputFaceEmbedding} ${e2.nearestStudent?.registration} ${e2.nearestStudent?.individual.individualRegistration} ${e2.nearestStudent?.individual.name} ${e2.nearestStudent?.individual.surname} ${e2.recognized}');
+        }
+      }
+      for (final e1 in actual.entries) {
+        print('lesson: ${e1.key.subjectClass.subject.code} ${e1.key.subjectClass.year} ${e1.key.subjectClass.semester} ${e1.key.subjectClass.name} ${e1.key.utcDateTime}');
+        for (final e2 in e1.value) {
+          print('embeddingRecognitionResult: ${e2.inputFace} ${e2.inputFaceEmbedding} ${e2.nearestStudent?.registration} ${e2.nearestStudent?.individual.individualRegistration} ${e2.nearestStudent?.individual.name} ${e2.nearestStudent?.individual.surname} ${e2.recognized}');
+        }
+      }
+ */
+      expect(actual, hasLength(expected.length));
+      for (final e in expected.keys) {
+        final expectedList = expected[e]!
+          ..sort(
+            (a, b) => compareNumLists(a.inputFace, b.inputFace),
+          );
+        final actualList = actual[e]!.toList()
+          ..sort(
+            (a, b) => compareNumLists(a.inputFace, b.inputFace),
+          );
+
+        expect(actualList, hasLength(expectedList.length));
+        for (int i=0; i<expectedList.length; i++) {
+          final expectedElement = expectedList[i];
+          final actualElement = actualList[i];
+          expect(
+            actualElement,
+            isA<EmbeddingRecognitionResult>()
+                .having((p0) => p0.inputFace, 'inputFace', equals(expectedElement.inputFace))
+                .having((p0) => p0.inputFaceEmbedding, 'faceEmbedding', equals(expectedElement.inputFaceEmbedding))
+                .having((p0) => p0.nearestStudent?.registration, 'nearestStudentRegistration', equals(expectedElement.nearestStudent?.registration))
+                .having((p0) => p0.nearestStudent?.individual.individualRegistration, 'nearestStudentIndividualRegistration', equals(expectedElement.nearestStudent?.individual.individualRegistration))
+                .having((p0) => p0.nearestStudent?.individual.name, 'nearestStudentName', equals(expectedElement.nearestStudent?.individual.name))
+                .having((p0) => p0.nearestStudent?.individual.surname, 'nearestStudentSurname', equals(expectedElement.nearestStudent?.individual.surname))
+                .having((p0) => p0.recognized, 'recognized', equals(true))
+          );
+        }
+      }
+    });
+
+    test('getDeferredFacesEmbedding', () {
+      final expected =<Lesson, List<Duple<JpegPictureBytes, FaceEmbedding>>>{
+        modelsCollection.lessons[0]: modelsCollection.deferred.toList(),
+        modelsCollection.lessons[1]: [],
+      };
+      final actual = repo.getDeferredFacesEmbedding(expected.keys);
+/*
+      for (final e1 in expected.entries) {
+        print('lesson: ${e1.key.subjectClass.subject.code} ${e1.key.subjectClass.year} ${e1.key.subjectClass.semester} ${e1.key.subjectClass.name} ${e1.key.utcDateTime}');
+        for (final e2 in e1.value) {
+          print('embeddingRecognitionResult: ${e2.inputFace} ${e2.inputFaceEmbedding} ${e2.nearestStudent?.registration} ${e2.nearestStudent?.individual.individualRegistration} ${e2.nearestStudent?.individual.name} ${e2.nearestStudent?.individual.surname} ${e2.recognized}');
+        }
+      }
+      for (final e1 in actual.entries) {
+        print('lesson: ${e1.key.subjectClass.subject.code} ${e1.key.subjectClass.year} ${e1.key.subjectClass.semester} ${e1.key.subjectClass.name} ${e1.key.utcDateTime}');
+        for (final e2 in e1.value) {
+          print('embeddingRecognitionResult: ${e2.inputFace} ${e2.inputFaceEmbedding} ${e2.nearestStudent?.registration} ${e2.nearestStudent?.individual.individualRegistration} ${e2.nearestStudent?.individual.name} ${e2.nearestStudent?.individual.surname} ${e2.recognized}');
+        }
+      }
+ */
+      expect(actual, hasLength(expected.length));
+      for (final e in expected.keys) {
+        final expectedList = expected[e]!
+          ..sort(
+            (a, b) => compareNumLists(a.value2, b.value2),
+          );
+        final actualList = actual[e]!.toList()
+          ..sort(
+            (a, b) => compareNumLists(a.value2, b.value2),
+          );
+
+        expect(actualList, hasLength(expectedList.length));
+        for (int i=0; i<expectedList.length; i++) {
+          final expectedElement = expectedList[i];
+          final actualElement = actualList[i];
+          expect(
+            actualElement,
+            isA<Duple<JpegPictureBytes, FaceEmbedding>>()
+                .having((p0) => p0.value1, 'jpegPictureBytes', equals(expectedElement.value1))
+                .having((p0) => p0.value2, 'faceEmbedding', equals(expectedElement.value2))
+          );
+        }
+      }
+    });
+  });
+
+  group('remove from database', () {
+    test('removeFaceEmbeddingNotRecognizedFromCamera', () {
+      repo.removeFaceEmbeddingNotRecognizedFromCamera(
+        [modelsCollection.faceNotRecognized[1]],
+        modelsCollection.lessons[0],
+      );
+
+      // remove
+      final expected = {
+        modelsCollection.lessons[0]: modelsCollection.faceNotRecognized
+            .getRange(0, modelsCollection.faceNotRecognized.length-1)
+            .toList()
+      };
+      final actual = repo.getCameraNotRecognized([modelsCollection.lessons[0]]);
+
+      expect(actual, hasLength(expected.length));
+      for (final e in expected.keys) {
+        final expectedList = expected[e]!
+          ..sort(
+            (a, b) => compareNumLists(a.inputFace, b.inputFace),
+          );
+        final actualList = actual[e]!.toList()
+          ..sort(
+            (a, b) => compareNumLists(a.inputFace, b.inputFace),
+          );
+
+        expect(actualList, hasLength(expectedList.length));
+        for (int i=0; i<expectedList.length; i++) {
+          final expectedElement = expectedList[i];
+          final actualElement = actualList[i];
+          expect(
+            actualElement,
+            isA<EmbeddingRecognitionResult>()
+                .having((p0) => p0.inputFace, 'inputFace', equals(expectedElement.inputFace))
+                .having((p0) => p0.inputFaceEmbedding, 'faceEmbedding', equals(expectedElement.inputFaceEmbedding))
+                .having((p0) => p0.nearestStudent?.registration, 'nearestStudentRegistration', equals(expectedElement.nearestStudent?.registration))
+                .having((p0) => p0.nearestStudent?.individual.individualRegistration, 'nearestStudentIndividualRegistration', equals(expectedElement.nearestStudent?.individual.individualRegistration))
+                .having((p0) => p0.nearestStudent?.individual.name, 'nearestStudentName', equals(expectedElement.nearestStudent?.individual.name))
+                .having((p0) => p0.nearestStudent?.individual.surname, 'nearestStudentSurname', equals(expectedElement.nearestStudent?.individual.surname))
+                .having((p0) => p0.recognized, 'recognized', equals(false))
+          );
+        }
+      }
+
+      // insert again
+      repo.addFaceEmbeddingToCameraNotRecognized(
+        [modelsCollection.faceNotRecognized[1]],
+        modelsCollection.lessons[0],
+      );
+    });
+
+    test('removeFaceEmbeddingRecognizedFromCamera', () {
+      repo.removeFaceEmbeddingRecognizedFromCamera(
+        [modelsCollection.faceRecognized[1]],
+        modelsCollection.lessons[0],
+      );
+
+      // remove
+      final expected = {
+        modelsCollection.lessons[0]: modelsCollection.faceRecognized
+            .getRange(0, modelsCollection.faceRecognized.length-1)
+            .toList()
+      };
+      final actual = repo.getCameraRecognized([modelsCollection.lessons[0]]);
+
+      expect(actual, hasLength(expected.length));
+      for (final e in expected.keys) {
+        final expectedList = expected[e]!
+          ..sort(
+            (a, b) => compareNumLists(a.inputFace, b.inputFace),
+          );
+        final actualList = actual[e]!.toList()
+          ..sort(
+            (a, b) => compareNumLists(a.inputFace, b.inputFace),
+          );
+
+        expect(actualList, hasLength(expectedList.length));
+        for (int i=0; i<expectedList.length; i++) {
+          final expectedElement = expectedList[i];
+          final actualElement = actualList[i];
+          expect(
+            actualElement,
+            isA<EmbeddingRecognitionResult>()
+                .having((p0) => p0.inputFace, 'inputFace', equals(expectedElement.inputFace))
+                .having((p0) => p0.inputFaceEmbedding, 'faceEmbedding', equals(expectedElement.inputFaceEmbedding))
+                .having((p0) => p0.nearestStudent?.registration, 'nearestStudentRegistration', equals(expectedElement.nearestStudent?.registration))
+                .having((p0) => p0.nearestStudent?.individual.individualRegistration, 'nearestStudentIndividualRegistration', equals(expectedElement.nearestStudent?.individual.individualRegistration))
+                .having((p0) => p0.nearestStudent?.individual.name, 'nearestStudentName', equals(expectedElement.nearestStudent?.individual.name))
+                .having((p0) => p0.nearestStudent?.individual.surname, 'nearestStudentSurname', equals(expectedElement.nearestStudent?.individual.surname))
+                .having((p0) => p0.recognized, 'recognized', equals(true))
+          );
+        }
+      }
+
+      // insert again
+      repo.addFaceEmbeddingToCameraRecognized(
+        [modelsCollection.faceRecognized[1]],
+        modelsCollection.lessons[0],
+      );
+    });
+  });
+
+  group('replace on database', () {
+        test('replaceRecordOfRecognitionResultFromCamera', () {
+      final oldRecord1 = modelsCollection.faceNotRecognized[0];
+      final newRecord1 = EmbeddingRecognitionResult(
+        inputFace: oldRecord1.inputFace,
+        inputFaceEmbedding: oldRecord1.inputFaceEmbedding,
+        recognized: !oldRecord1.recognized,
+        nearestStudent: oldRecord1.nearestStudent
+      );
+      final expected11 = {
+        modelsCollection.lessons[0]: [
+          modelsCollection.faceNotRecognized[1],
+        ],
+      };
+      final expected12 = {
+        modelsCollection.lessons[0]: [
+          modelsCollection.faceRecognized[0],
+          modelsCollection.faceRecognized[1],
+          newRecord1,
+        ],
+      };
+      repo.replaceRecordOfRecognitionResultFromCamera(
+        oldRecord1,
+        newRecord1,
+        modelsCollection.lessons[0],
+      );
+      final actual11 = repo.getCameraNotRecognized(
+        [modelsCollection.lessons[0]],
+      );
+      final actual12 = repo.getCameraRecognized(
+        [modelsCollection.lessons[0]],
+      );
+
+      expect(actual11, hasLength(expected11.length));
+      for (final e in expected11.keys) {
+        final expectedList = expected11[e]!
+          ..sort(
+            (a, b) => compareNumLists(a.inputFace, b.inputFace),
+          );
+        final actualList = actual11[e]!.toList()
+          ..sort(
+            (a, b) => compareNumLists(a.inputFace, b.inputFace),
+          );
+
+        expect(actualList, hasLength(expectedList.length));
+        for (int i=0; i<expectedList.length; i++) {
+          final expectedElement = expectedList[i];
+          final actualElement = actualList[i];
+          expect(
+            actualElement,
+            isA<EmbeddingRecognitionResult>()
+                .having((p0) => p0.inputFace, 'inputFace', equals(expectedElement.inputFace))
+                .having((p0) => p0.inputFaceEmbedding, 'faceEmbedding', equals(expectedElement.inputFaceEmbedding))
+                .having((p0) => p0.nearestStudent?.registration, 'nearestStudentRegistration', equals(expectedElement.nearestStudent?.registration))
+                .having((p0) => p0.nearestStudent?.individual.individualRegistration, 'nearestStudentIndividualRegistration', equals(expectedElement.nearestStudent?.individual.individualRegistration))
+                .having((p0) => p0.nearestStudent?.individual.name, 'nearestStudentName', equals(expectedElement.nearestStudent?.individual.name))
+                .having((p0) => p0.nearestStudent?.individual.surname, 'nearestStudentSurname', equals(expectedElement.nearestStudent?.individual.surname))
+                .having((p0) => p0.recognized, 'recognized', equals(false))
+          );
+        }
+      }
+
+      expect(actual12, hasLength(expected12.length));
+      for (final e in expected12.keys) {
+        final expectedList = expected12[e]!
+          ..sort(
+            (a, b) => compareNumLists(a.inputFace, b.inputFace),
+          );
+        final actualList = actual12[e]!.toList()
+          ..sort(
+            (a, b) => compareNumLists(a.inputFace, b.inputFace),
+          );
+
+        expect(actualList, hasLength(expectedList.length));
+        for (int i=0; i<expectedList.length; i++) {
+          final expectedElement = expectedList[i];
+          final actualElement = actualList[i];
+          expect(
+            actualElement,
+            isA<EmbeddingRecognitionResult>()
+                .having((p0) => p0.inputFace, 'inputFace', equals(expectedElement.inputFace))
+                .having((p0) => p0.inputFaceEmbedding, 'faceEmbedding', equals(expectedElement.inputFaceEmbedding))
+                .having((p0) => p0.nearestStudent?.registration, 'nearestStudentRegistration', equals(expectedElement.nearestStudent?.registration))
+                .having((p0) => p0.nearestStudent?.individual.individualRegistration, 'nearestStudentIndividualRegistration', equals(expectedElement.nearestStudent?.individual.individualRegistration))
+                .having((p0) => p0.nearestStudent?.individual.name, 'nearestStudentName', equals(expectedElement.nearestStudent?.individual.name))
+                .having((p0) => p0.nearestStudent?.individual.surname, 'nearestStudentSurname', equals(expectedElement.nearestStudent?.individual.surname))
+                .having((p0) => p0.recognized, 'recognized', equals(true))
+          );
+        }
+      }
+
+      final oldRecord2 = newRecord1;
+      final newRecord2 = oldRecord1;
+      final expected21 = {
+        modelsCollection.lessons[0]: modelsCollection.faceNotRecognized.toList(),
+      };
+      final expected22 = {
+        modelsCollection.lessons[0]: modelsCollection.faceRecognized.toList(),
+      };
+      repo.replaceRecordOfRecognitionResultFromCamera(
+        oldRecord2,
+        newRecord2,
+        modelsCollection.lessons[0],
+      );
+      final actual21 = repo.getCameraNotRecognized(
+        [modelsCollection.lessons[0]],
+      );
+      final actual22 = repo.getCameraRecognized(
+        [modelsCollection.lessons[0]],
+      );
+
+      expect(actual21, hasLength(expected21.length));
+      for (final e in expected21.keys) {
+        final expectedList = expected21[e]!
+          ..sort(
+            (a, b) => compareNumLists(a.inputFace, b.inputFace),
+          );
+        final actualList = actual21[e]!.toList()
+          ..sort(
+            (a, b) => compareNumLists(a.inputFace, b.inputFace),
+          );
+
+        expect(actualList, hasLength(expectedList.length));
+        for (int i=0; i<expectedList.length; i++) {
+          final expectedElement = expectedList[i];
+          final actualElement = actualList[i];
+          expect(
+            actualElement,
+            isA<EmbeddingRecognitionResult>()
+                .having((p0) => p0.inputFace, 'inputFace', equals(expectedElement.inputFace))
+                .having((p0) => p0.inputFaceEmbedding, 'faceEmbedding', equals(expectedElement.inputFaceEmbedding))
+                .having((p0) => p0.nearestStudent?.registration, 'nearestStudentRegistration', equals(expectedElement.nearestStudent?.registration))
+                .having((p0) => p0.nearestStudent?.individual.individualRegistration, 'nearestStudentIndividualRegistration', equals(expectedElement.nearestStudent?.individual.individualRegistration))
+                .having((p0) => p0.nearestStudent?.individual.name, 'nearestStudentName', equals(expectedElement.nearestStudent?.individual.name))
+                .having((p0) => p0.nearestStudent?.individual.surname, 'nearestStudentSurname', equals(expectedElement.nearestStudent?.individual.surname))
+                .having((p0) => p0.recognized, 'recognized', equals(false))
+          );
+        }
+      }
+
+      expect(actual22, hasLength(expected22.length));
+      for (final e in expected22.keys) {
+        final expectedList = expected22[e]!
+          ..sort(
+            (a, b) => compareNumLists(a.inputFace, b.inputFace),
+          );
+        final actualList = actual22[e]!.toList()
+          ..sort(
+            (a, b) => compareNumLists(a.inputFace, b.inputFace),
+          );
+
+        expect(actualList, hasLength(expectedList.length));
+        for (int i=0; i<expectedList.length; i++) {
+          final expectedElement = expectedList[i];
+          final actualElement = actualList[i];
+          expect(
+            actualElement,
+            isA<EmbeddingRecognitionResult>()
+                .having((p0) => p0.inputFace, 'inputFace', equals(expectedElement.inputFace))
+                .having((p0) => p0.inputFaceEmbedding, 'faceEmbedding', equals(expectedElement.inputFaceEmbedding))
+                .having((p0) => p0.nearestStudent?.registration, 'nearestStudentRegistration', equals(expectedElement.nearestStudent?.registration))
+                .having((p0) => p0.nearestStudent?.individual.individualRegistration, 'nearestStudentIndividualRegistration', equals(expectedElement.nearestStudent?.individual.individualRegistration))
+                .having((p0) => p0.nearestStudent?.individual.name, 'nearestStudentName', equals(expectedElement.nearestStudent?.individual.name))
+                .having((p0) => p0.nearestStudent?.individual.surname, 'nearestStudentSurname', equals(expectedElement.nearestStudent?.individual.surname))
+                .having((p0) => p0.recognized, 'recognized', equals(true))
+          );
+        }
+      }
+    });
+  });
+
+  tearDownAll(() {
+    repo.dispose();
   });
 }

@@ -69,6 +69,8 @@ abstract class ICameraAttendance<CI, CD> {
 typedef DistanceFunction<TElement> = double Function(TElement a, TElement b);
 
 abstract class IDomainRepository{
+  void dispose();
+
   void addAttendance(Iterable<Attendance> attendance);
 
   void addEnrollment(Iterable<Enrollment> enrollment);

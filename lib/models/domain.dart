@@ -1,4 +1,3 @@
-import 'dart:ffi';
 import 'dart:typed_data';
 
 import 'package:facial_recognition/interfaces.dart';
@@ -238,6 +237,9 @@ class DomainRepository  implements IDomainRepository {
   final Map<Lesson, List<EmbeddingRecognitionResult>> _faceRecognizedFromCamera = {};
   final Map<Lesson, List<EmbeddingRecognitionResult>> _faceNotRecognizedFromCamera = {};
 // ---------------------------
+
+  @override
+  void dispose() {}
 
   @override
   void addIndividual(
@@ -702,6 +704,11 @@ class SQLite3DomainRepository implements IDomainRepository {
     _enforceForeignKeys();
 
     _createDatabase();
+  }
+
+  @override
+  void dispose() {
+    _database.dispose();
   }
 
   void _enforceForeignKeys()  => _database.execute('PRAGMA foreign_keys = ON;');
@@ -1359,7 +1366,7 @@ class SQLite3DomainRepository implements IDomainRepository {
           ':year': l.subjectClass.year,
           ':semester': l.subjectClass.semester,
           ':name': l.subjectClass.name,
-          ':utcDateTime': l.utcDateTime,
+          ':utcDateTime': l.utcDateTime.toIso8601String(),
         });
       }
       on ArgumentError catch (e) {
@@ -1423,7 +1430,7 @@ class SQLite3DomainRepository implements IDomainRepository {
           ':year': l.subjectClass.year,
           ':semester': l.subjectClass.semester,
           ':name': l.subjectClass.name,
-          ':utcDateTime': l.utcDateTime,
+          ':utcDateTime': l.utcDateTime.toIso8601String(),
         });
       }
       on ArgumentError catch (e) {
@@ -1444,7 +1451,7 @@ class SQLite3DomainRepository implements IDomainRepository {
           return EmbeddingRecognitionResult(
             inputFace: e['picture'],
             inputFaceEmbedding: embedding,
-            recognized: false,
+            recognized: true,
             // nearestStudent: students['nearestStudentRegistration'],
             nearestStudent: e['registration'] == null
                 ? null
@@ -1489,7 +1496,7 @@ class SQLite3DomainRepository implements IDomainRepository {
           ':year': l.subjectClass.year,
           ':semester': l.subjectClass.semester,
           ':name': l.subjectClass.name,
-          ':utcDateTime': l.utcDateTime,
+          ':utcDateTime': l.utcDateTime.toIso8601String(),
         });
       } on ArgumentError catch (e) {
         select.dispose();
@@ -2046,6 +2053,8 @@ class SQLite3DomainRepository implements IDomainRepository {
       ),
     );
 
+    final Map<String, SubjectClass> classes = {};
+    final Map<String, Subject> subjects = {};
     for (final sc in subjectClass) {
       pkg_sqlite3.ResultSet selected;
       try {
@@ -2068,47 +2077,82 @@ class SQLite3DomainRepository implements IDomainRepository {
       }
 
       final Map<String, Student> students = {};
-      final Map<String, Lesson> lessons = {};
+      final Map<String, Teacher> teachers = {};
+      final Map<int, Lesson> lessons = {};
       final Map<Student, List<Attendance>> attendancesByStudents = {};
-      // REVIEW - not using the subject class info returned from query
       for (final e in selected) {
-        final sKey = e['sRegistration'];
-        if (!students.containsKey(sKey)) {
-          students[sKey] = Student(
-            registration: e['sRegistration'],
+        final subjectKey = e['subjectCode']!;
+        if (!subjects.containsKey(subjectKey)) {
+          subjects[subjectKey] = Subject(
+            code: e['subjectCode'],
+            name: e['subjectName'],
+          );
+        }
+        final classTeacherKey = e['classTeacherRegistration']!;
+        if (!teachers.containsKey(classTeacherKey)) {
+          teachers[classTeacherKey] = Teacher(
+            registration: e['classTeacherRegistration'],
             individual: Individual(
-              individualRegistration: e['sIndividualRegistration'],
-              name: e['sName'],
-              surname: e['sSurname'],
+              individualRegistration: e['classTeacherIndividualRegistration'],
+              name: e['classTeacherName'],
+              surname: e['classTeacherSurname'],
             ),
           );
         }
-        final lKey = e['utcDateTime'];
-        if (!lessons.containsKey(lKey)) {
-          final dateTime = DateTime.parse(e['utcDateTime']);
-          lessons[lKey] = Lesson(
-            subjectClass: sc,
-            utcDateTime: dateTime,
-            teacher: Teacher(
-              registration: e['lTeacherRegistration'],
-              individual: Individual(
-                individualRegistration:
-                    e['lTeacherIndividualRegistration'],
-                name: e['lTeacherName'],
-                surname: e['lTeacherSurname'],
-              ),
+        final cKey = '${e['subjectCode']!}:${e['classYear']!}:${e['classSemester']!}:${e['className']!}';
+        if (!classes.containsKey(cKey)) {
+          classes[cKey] = SubjectClass(
+            subject: subjects[subjectKey]!,
+            year: e['classYear'],
+            semester: e['classSemester'],
+            name: e['className'],
+            teacher: teachers[classTeacherKey]!,
+          );
+        }
+
+        final sKey = e['studentRegistration']!;
+        if (!students.containsKey(sKey)) {
+          students[sKey] = Student(
+            registration: e['studentRegistration'],
+            individual: Individual(
+              individualRegistration: e['studentIndividualRegistration'],
+              name: e['studentName'],
+              surname: e['studentSurname'],
             ),
+          );
+        }
+        final lessonTeacherKey = e['lessonTeacherRegistration'];
+        if (lessonTeacherKey != null && !teachers.containsKey(lessonTeacherKey)) {
+          teachers[lessonTeacherKey] = Teacher(
+            registration: e['lessonTeacherRegistration'],
+            individual: Individual(
+              individualRegistration: e['lessonTeacherIndividualRegistration'],
+              name: e['lessonTeacherName'],
+              surname: e['lessonTeacherSurname'],
+            ),
+          );
+        }
+        final int? lKey = e['lessonId'];
+        if (lKey != null && !lessons.containsKey(lKey)) {
+          final dateTime = DateTime.parse(e['lessonDateTime']);
+          lessons[lKey] = Lesson(
+            subjectClass: classes[cKey]!,
+            utcDateTime: dateTime,
+            // teachers[lessonTeacherKey] != null <-> lessonTeacherKey != null
+            teacher: teachers[lessonTeacherKey]!,
           );
         }
         final aKey = students[sKey]!;
         if (!attendancesByStudents.containsKey(aKey)) {
           attendancesByStudents[aKey] = <Attendance>[];
         }
-        final attendance = Attendance(
-              student: students[sKey]!,
-              lesson: lessons[lKey]!,
-            );
-        attendancesByStudents[aKey]!.add(attendance);
+        if (lKey != null) {
+          final attendance = Attendance(
+            student: students[sKey]!,
+            lesson: lessons[lKey]!,
+          );
+          attendancesByStudents[aKey]!.add(attendance);
+        }
       }
 
       result[sc] = Map.unmodifiable(attendancesByStudents);
@@ -2184,7 +2228,7 @@ class SQLite3DomainRepository implements IDomainRepository {
     final Map<String, Subject?> result = {};
     final select = _database.prepare(
       _statementsLoader.getStatement(
-        ['dql', 'classBySubject'],
+        ['dql', 'subjectByCode'],
       ),
     );
 
@@ -2192,7 +2236,7 @@ class SQLite3DomainRepository implements IDomainRepository {
       pkg_sqlite3.ResultSet selected;
       try {
         selected = select.selectMap({
-          ':code': code,
+          ':code': c,
         });
       }
       on ArgumentError catch (e) {
@@ -2294,7 +2338,6 @@ class SQLite3DomainRepository implements IDomainRepository {
     );
 
     for (final r in recognition) {
-
       final String pictureMd5 = _pictureMd5(r.inputFace);
       try {
         delete.executeMap({
@@ -2302,7 +2345,7 @@ class SQLite3DomainRepository implements IDomainRepository {
           ':year': lesson.subjectClass.year,
           ':semester': lesson.subjectClass.semester,
           ':name': lesson.subjectClass.name,
-          ':utcDateTime': lesson.utcDateTime,
+          ':utcDateTime': lesson.utcDateTime.toIso8601String(),
           ':pictureMd5': pictureMd5,
         });
       }
@@ -2339,7 +2382,7 @@ class SQLite3DomainRepository implements IDomainRepository {
           ':year': lesson.subjectClass.year,
           ':semester': lesson.subjectClass.semester,
           ':name': lesson.subjectClass.name,
-          ':utcDateTime': lesson.utcDateTime,
+          ':utcDateTime': lesson.utcDateTime.toIso8601String(),
           ':pictureMd5': pictureMd5,
         });
       }
@@ -2383,7 +2426,7 @@ class SQLite3DomainRepository implements IDomainRepository {
           ':year': lesson.subjectClass.year,
           ':semester': lesson.subjectClass.semester,
           ':name': lesson.subjectClass.name,
-          ':utcDateTime': lesson.utcDateTime,
+          ':utcDateTime': lesson.utcDateTime.toIso8601String(),
           ':pictureMd5': pictureMd5,
         });
       }
@@ -2410,7 +2453,7 @@ class SQLite3DomainRepository implements IDomainRepository {
           ':year': lesson.subjectClass.year,
           ':semester': lesson.subjectClass.semester,
           ':name': lesson.subjectClass.name,
-          ':utcDateTime': lesson.utcDateTime,
+          ':utcDateTime': lesson.utcDateTime.toIso8601String(),
           ':pictureMd5': pictureMd5,
         });
       }
@@ -2433,16 +2476,17 @@ class SQLite3DomainRepository implements IDomainRepository {
             .getStatement(['recognizedFromCamera', 'dml', 'insert']),
       );
       final pictureMd5 = _pictureMd5(newRecord.inputFace);
+      final embedding = listDoubleToBytes(newRecord.inputFaceEmbedding);
       try{
         insertNew.executeMap({
           ':subjectCode': lesson.subjectClass.subject.code,
           ':year': lesson.subjectClass.year,
           ':semester': lesson.subjectClass.semester,
           ':name': lesson.subjectClass.name,
-          ':utcDateTime': lesson.utcDateTime,
+          ':utcDateTime': lesson.utcDateTime.toIso8601String(),
           ':picture': newRecord.inputFace,
           ':pictureMd5': pictureMd5,
-          ':embedding': newRecord.inputFaceEmbedding,
+          ':embedding': embedding,
           ':nearestStudentRegistration': newRecord.nearestStudent?.registration,
         });
       }
@@ -2462,16 +2506,17 @@ class SQLite3DomainRepository implements IDomainRepository {
       );
 
       final pictureMd5 = _pictureMd5(newRecord.inputFace);
+      final embedding = listDoubleToBytes(newRecord.inputFaceEmbedding);
       try{
         insertNew.executeMap({
           ':subjectCode': lesson.subjectClass.subject.code,
           ':year': lesson.subjectClass.year,
           ':semester': lesson.subjectClass.semester,
           ':name': lesson.subjectClass.name,
-          ':utcDateTime': lesson.utcDateTime,
+          ':utcDateTime': lesson.utcDateTime.toIso8601String(),
           ':picture': newRecord.inputFace,
           ':pictureMd5': pictureMd5,
-          ':embedding': newRecord.inputFaceEmbedding,
+          ':embedding': embedding,
           ':nearestStudentRegistration': newRecord.nearestStudent?.registration,
         });
       }
