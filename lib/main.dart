@@ -44,7 +44,7 @@ void main() async {
   );
   // sync code goes under here
   final availableCams = futures[0];
-  final domainRepository = kDebugMode || kProfileMode ? DomainRepositoryForTests() : DomainRepository();
+  final domainRepository = kDebugMode || kProfileMode ? InMemoryDomainRepositoryForTests() : InMemoryDomainRepository();
   projectLogger.fine(availableCams);
   //
   runApp(MainApp(
@@ -61,7 +61,7 @@ class MainApp extends StatelessWidget {
   });
 
   final List<pkg_camera.CameraDescription> cameras;
-  final DomainRepository domainRepository;
+  final InMemoryDomainRepository domainRepository;
 
   @override
   Widget build(BuildContext context) {

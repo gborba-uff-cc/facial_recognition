@@ -7,8 +7,8 @@ import 'package:facial_recognition/utils/file_loaders.dart';
 import 'package:facial_recognition/utils/project_logger.dart';
 import 'package:sqlite3/sqlite3.dart' as pkg_sqlite3;
 
-class DomainRepository  implements IDomainRepository {
-  DomainRepository();
+class InMemoryDomainRepository  implements IDomainRepository {
+  InMemoryDomainRepository();
 
   final Set<Individual> _individual = {};
   final Set<FacialData> _facialData = {};
@@ -429,9 +429,9 @@ class DomainRepository  implements IDomainRepository {
   }
 }
 
-class DomainRepositoryForTests extends DomainRepository {
-  factory DomainRepositoryForTests() {
-    final d = DomainRepositoryForTests._private();
+class InMemoryDomainRepositoryForTests extends InMemoryDomainRepository {
+  factory InMemoryDomainRepositoryForTests() {
+    final d = InMemoryDomainRepositoryForTests._private();
 
     final individuals = List<Individual>.unmodifiable(<Individual>[
       Individual(individualRegistration: 'cpf0', name: 'Individuo1'),
@@ -476,7 +476,7 @@ class DomainRepositoryForTests extends DomainRepository {
     return d;
   }
 
-  DomainRepositoryForTests._private();
+  InMemoryDomainRepositoryForTests._private();
 }
 
 class SQLite3DomainRepository implements IDomainRepository {
