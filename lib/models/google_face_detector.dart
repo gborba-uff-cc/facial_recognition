@@ -1,22 +1,21 @@
 import 'dart:typed_data';
 import 'dart:ui';
 
-import 'package:camera/camera.dart';
 import 'package:facial_recognition/interfaces.dart';
 import 'package:facial_recognition/utils/project_logger.dart';
 import 'package:flutter/foundation.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 
 class GoogleFaceDetector
-    implements IFaceDetector<CameraImage> {
-  final FaceDetector _detector = FaceDetector(
+    implements IFaceDetector {
+  final FaceDetector _detector;
+
+  ///
+  GoogleFaceDetector() : _detector = FaceDetector(
     options: FaceDetectorOptions(
       performanceMode: FaceDetectorMode.fast,
     ),
   );
-
-  ///
-  GoogleFaceDetector();
 
   ///
   void close() {
@@ -24,14 +23,21 @@ class GoogleFaceDetector
   }
 
   ///
-  // FIXME - change to receive an rgba buffer instead of a cameraImage
   @override
-  Future<List<Rect>> detect (
-    final CameraImage image,
-    [final int controllerSensorOrientation = 0]
-  ) async {
+  Future<List<Rect>> detect ({
+    required final Uint8List image,
+    required final width,
+    required final height,
+    final int imageRollDegree = 0,
+    required final int bytesRowStride,
+  }) async {
     try {
-      final input = _toInputImage(image, controllerSensorOrientation);
+      final input = _toInputImage(
+        image: image,
+        width: width,
+        height: height,
+        bytesRowStride: bytesRowStride
+      );
       final faces = await _detector.processImage(input);
 
       return faces
@@ -50,50 +56,30 @@ class GoogleFaceDetector
   }
 
   /// Convert a [image] from camera to an image used by the Google ML Kit
-  InputImage _toInputImage(CameraImage image, int controllerSensorOrientation) {
+  InputImage _toInputImage({
+    required final Uint8List image,
+    required final int width,
+    required final int height,
+    final int imageRollDegree = 0,
+    required final int bytesRowStride,
+  }) {
     final imageRotation =
-        InputImageRotationValue.fromRawValue(controllerSensorOrientation);
+        InputImageRotationValue.fromRawValue(imageRollDegree);
     if (imageRotation == null) {
       throw Exception("Couldn't identify the sensor orientation value");
     }
 
     final inputImageFormat =
-        InputImageFormatValue.fromRawValue(image.format.raw);
-    if (inputImageFormat == null) {
-      throw Exception("Couldn't identify the image format type");
-    }
+        InputImageFormat.bgra8888;
 
-    final planeData = image.planes
-        .map(
-          (Plane plane) => InputImagePlaneMetadata(
-            bytesPerRow: plane.bytesPerRow,
-            height: plane.height,
-            width: plane.width,
-          ),
-        )
-        .toList(growable: false);
-
-    final imageSize = Size(image.width.toDouble(), image.height.toDouble());
-    final inputImageData = InputImageData(
+    final imageSize = Size(width.toDouble(), height.toDouble());
+    final inputImageData = InputImageMetadata(
       size: imageSize,
-      imageRotation: imageRotation,
-      inputImageFormat: inputImageFormat,
-      planeData: planeData,
+      rotation: imageRotation,
+      format: inputImageFormat,
+      bytesPerRow: bytesRowStride, // rgba
     );
 
-    final bytes = Uint8List(
-      image.planes.fold(
-        0,
-        (previousValue, plane) => previousValue + plane.bytes.length,
-      ),
-    );
-    int start = 0;
-    for (final plane in image.planes) {
-      int end = start + plane.bytes.length;
-      bytes.setRange(start, end, plane.bytes);
-      start = end;
-    }
-
-    return InputImage.fromBytes(bytes: bytes, inputImageData: inputImageData);
+    return InputImage.fromBytes(metadata: inputImageData, bytes: image,);
   }
 }

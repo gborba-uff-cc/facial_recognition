@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'dart:ui';
 
 import 'package:facial_recognition/models/domain.dart';
@@ -20,8 +21,14 @@ abstract class IRecognitionPipeline<CI, CD, I, J, L, V> {
   );
 }
 
-abstract class IFaceDetector<CI> {
-  Future<List<Rect>> detect(final CI image, [final int controllerSensorOrientation = 0]);
+abstract class IFaceDetector {
+  Future<List<Rect>> detect({
+    required final Uint8List image,
+    required final width,
+    required final height,
+    final int imageRollDegree = 0,
+    required final int bytesRowStride,
+  });
 }
 
 abstract class IImageHandler<CI, CD, I, J> {
@@ -32,6 +39,7 @@ abstract class IImageHandler<CI, CD, I, J> {
   J toJpg(final I image);
   I? fromJpg(final J jpgBytes);
   List<List<List<int>>> toRgbMatrix(final I image);
+  Uint8List toRgbaBuffer(I image);
 }
 
 abstract class IFaceEmbedder {

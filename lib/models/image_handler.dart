@@ -224,4 +224,31 @@ class ImageHandler
       growable: false,
     );
   }
+
+  @override
+  Uint8List toRgbaBuffer(
+    pkg_image.Image image,
+  ) {
+    final buffer = WriteBuffer(startCapacity: image.length*4);
+    // pixels are laid from top left to right bottom
+    for (final pixel in image) {
+      buffer.putUint8(pixel.r.toInt());
+      buffer.putUint8(pixel.g.toInt());
+      buffer.putUint8(pixel.b.toInt());
+      buffer.putUint8(255);
+    }
+    return buffer.done().buffer.asUint8List();
+  }
 }
+
+// class toRgbaBufferReturn {
+//   toRgbaBufferReturn({
+//     required this.buffer,
+//     required this.width,
+//     required this.height,
+//   });
+
+//   final Uint8List buffer;
+//   final int width;
+//   final int height;
+// }
