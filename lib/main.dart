@@ -1,52 +1,80 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:camera/camera.dart' as pkg_camera;
-import 'package:facial_recognition/models/recognition_pipeline.dart';
-import 'package:facial_recognition/screens/create_enrollment_screen.dart';
-import 'package:flutter/foundation.dart';
-import 'package:image/image.dart' as pkg_image;
 import 'package:facial_recognition/interfaces.dart';
 import 'package:facial_recognition/models/domain.dart';
 import 'package:facial_recognition/models/face_recognizer.dart';
 import 'package:facial_recognition/models/facenet_face_embedder.dart';
 import 'package:facial_recognition/models/google_face_detector.dart';
 import 'package:facial_recognition/models/image_handler.dart';
+import 'package:facial_recognition/models/recognition_pipeline.dart';
 import 'package:facial_recognition/screens/attendance_summary_screen.dart';
 import 'package:facial_recognition/screens/camera_identification_screen.dart';
+import 'package:facial_recognition/screens/create_enrollment_screen.dart';
 import 'package:facial_recognition/screens/create_lesson_screen.dart';
 import 'package:facial_recognition/screens/create_student_screen.dart';
 import 'package:facial_recognition/screens/create_subject_class_screen.dart';
 import 'package:facial_recognition/screens/create_subject_screen.dart';
 import 'package:facial_recognition/screens/create_teacher_screen.dart';
+import 'package:facial_recognition/screens/fast_view.dart';
 import 'package:facial_recognition/screens/grid_student_selector_screen.dart';
 import 'package:facial_recognition/screens/landing_screen.dart';
 import 'package:facial_recognition/screens/mark_attendance_screen.dart';
-import 'package:facial_recognition/screens/select_information_screen.dart';
 import 'package:facial_recognition/screens/one_shot_camera.dart';
+import 'package:facial_recognition/screens/select_information_screen.dart';
 import 'package:facial_recognition/use_case/attendance_summary.dart';
 import 'package:facial_recognition/use_case/camera_identification.dart';
 import 'package:facial_recognition/use_case/create_models.dart';
 import 'package:facial_recognition/use_case/mark_attendance.dart';
 import 'package:facial_recognition/use_case/select_lesson.dart';
 import 'package:facial_recognition/utils/distance.dart';
+import 'package:facial_recognition/utils/file_loaders.dart';
 import 'package:facial_recognition/utils/project_logger.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image/image.dart' as pkg_image;
+import 'package:path/path.dart' as pkg_path;
+import 'package:path_provider/path_provider.dart' as pkg_path_provider;
 
 import 'models/domain_repository.dart';
 
 void main() async {
+  const relativeSqlStatementsJsonPath = 'assets/sqlStatements_v2.json';
+  const relativeDatabasePath = 'database.sqlite3';
+
   // hide async code with a splash screen
   runApp(const Placeholder());
+
   // start async code as soon as possible
   final futures = await Future.wait(
     [
       pkg_camera.availableCameras(),
+      pkg_path_provider.getApplicationDocumentsDirectory(),
+      rootBundle.loadStructuredData<SqlStatementsLoader>(
+        relativeSqlStatementsJsonPath,
+        (content) => Future.value(SqlStatementsLoader(jsonDecode(content))),
+      ),
     ],
+    eagerError: true,
   );
   // sync code goes under here
-  final availableCams = futures[0];
-  final domainRepository = kDebugMode || kProfileMode ? InMemoryDomainRepositoryForTests() : InMemoryDomainRepository();
-  projectLogger.fine(availableCams);
-  //
+  final List<pkg_camera.CameraDescription> availableCams =
+      futures[0] as List<pkg_camera.CameraDescription>;
+  final Directory appDocuments = futures[1] as Directory;
+  final SqlStatementsLoader sqlStatementsLoader = futures[2] as SqlStatementsLoader;
+  final String databasePath = pkg_path.canonicalize(
+    pkg_path.join(appDocuments.path, relativeDatabasePath),
+  );
+
+  // final domainRepository = kDebugMode || kProfileMode ? InMemoryDomainRepositoryForTests() : InMemoryDomainRepository();
+  final domainRepository = SQLite3DomainRepository(
+    databasePath: databasePath,
+    statementsLoader: sqlStatementsLoader,
+  );
+
   runApp(MainApp(
     cameras: availableCams,
     domainRepository: domainRepository,
@@ -61,7 +89,7 @@ class MainApp extends StatelessWidget {
   });
 
   final List<pkg_camera.CameraDescription> cameras;
-  final InMemoryDomainRepository domainRepository;
+  final IDomainRepository domainRepository;
 
   @override
   Widget build(BuildContext context) {
