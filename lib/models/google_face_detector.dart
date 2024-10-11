@@ -25,7 +25,7 @@ class GoogleFaceDetector
   ///
   @override
   Future<List<Rect>> detect ({
-    required final Uint8List image,
+    required final Uint8List bgraBuffer,
     required final width,
     required final height,
     final int imageRollDegree = 0,
@@ -33,7 +33,7 @@ class GoogleFaceDetector
   }) async {
     try {
       final input = _toInputImage(
-        image: image,
+        bgraBuffer: bgraBuffer,
         width: width,
         height: height,
         bytesRowStride: bytesRowStride
@@ -55,9 +55,9 @@ class GoogleFaceDetector
     );
   }
 
-  /// Convert a [image] from camera to an image used by the Google ML Kit
+  /// Convert a [bgraBuffer] from camera to an image used by the Google ML Kit
   InputImage _toInputImage({
-    required final Uint8List image,
+    required final Uint8List bgraBuffer,
     required final int width,
     required final int height,
     final int imageRollDegree = 0,
@@ -77,9 +77,9 @@ class GoogleFaceDetector
       size: imageSize,
       rotation: imageRotation,
       format: inputImageFormat,
-      bytesPerRow: bytesRowStride, // rgba
+      bytesPerRow: bytesRowStride,
     );
 
-    return InputImage.fromBytes(metadata: inputImageData, bytes: image,);
+    return InputImage.fromBytes(metadata: inputImageData, bytes: bgraBuffer,);
   }
 }

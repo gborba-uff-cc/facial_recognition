@@ -16,7 +16,6 @@ class ImageHandler
     final pkg_camera.CameraImage image,
     final pkg_camera.CameraDescription description,
   ) {
-    final int rollDegrees = description.sensorOrientation;
     final rgbBuffer = _yCbCr420ToRgbBuffer(
       width: image.width,
       height: image.height,
@@ -26,7 +25,6 @@ class ImageHandler
       width: image.width,
       height: image.height,
       rgbBytes: rgbBuffer,
-      rollDegreeRotation: rollDegrees,
     );
     return newImage;
   }
@@ -146,7 +144,6 @@ class ImageHandler
     required final int width,
     required final int height,
     required final ByteBuffer rgbBytes,
-    required final int rollDegreeRotation,
   }) {
     final image = pkg_image.Image.fromBytes(
       width: width,
@@ -155,11 +152,7 @@ class ImageHandler
       order: pkg_image.ChannelOrder.rgb,
     );
 
-    final rotatedImage = pkg_image.copyRotate(
-      image,
-      angle: rollDegreeRotation,
-    );
-    return rotatedImage;
+    return image;
   }
 
   /// Return new images from subareas of [image].
@@ -190,6 +183,18 @@ class ImageHandler
   @override
   pkg_image.Image flipHorizontal(pkg_image.Image image) {
     return pkg_image.flipHorizontal(image);
+  }
+
+  @override
+  pkg_image.Image rotateImage(
+    pkg_image.Image image,
+    num angle,
+  ) {
+    return pkg_image.copyRotate(
+      image,
+      angle: angle,
+      interpolation: pkg_image.Interpolation.nearest,
+    );
   }
 
   ///
@@ -226,15 +231,15 @@ class ImageHandler
   }
 
   @override
-  Uint8List toRgbaBuffer(
+  Uint8List toBgraBuffer(
     pkg_image.Image image,
   ) {
     final buffer = WriteBuffer(startCapacity: image.length*4);
     // pixels are laid from top left to right bottom
     for (final pixel in image) {
-      buffer.putUint8(pixel.r.toInt());
-      buffer.putUint8(pixel.g.toInt());
       buffer.putUint8(pixel.b.toInt());
+      buffer.putUint8(pixel.g.toInt());
+      buffer.putUint8(pixel.r.toInt());
       buffer.putUint8(255);
     }
     return buffer.done().buffer.asUint8List();

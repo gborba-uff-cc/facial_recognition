@@ -151,7 +151,7 @@ class KnnClassifier<TElement extends List<num>, TLabel>
       // count occurency of the kNearests neighbors
       for (final labelValueDistance in  distanceStructure.take(kNeighbors)) {
         double score = labelValueDistance.distance < recognitionThreshold ? 1/(pow(labelValueDistance.distance, 3).toDouble()) : 0.0;
-        if (score == double.infinity || score == double.negativeInfinity || score == double.nan) {
+        if (score.isInfinite || score.isNaN) {
           projectLogger.severe('invalid score; setting to zero');
           score = 0.0;
         }

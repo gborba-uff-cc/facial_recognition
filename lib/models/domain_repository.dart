@@ -571,14 +571,16 @@ class SQLite3DomainRepository implements IDomainRepository {
     dynamic errorOrException;
     try {
       for (final element in attendance) {
-        insertAttendace.executeMap({
-          ':subjectCode': element.lesson.subjectClass.subject.code,
-          ':year': element.lesson.subjectClass.year,
-          ':semester': element.lesson.subjectClass.semester,
-          ':name': element.lesson.subjectClass.name,
-          ':utcDateTime': element.lesson.utcDateTime.toIso8601String(),
-          ':studentRegistration': element.student.registration,
-        });
+        insertAttendace.executeWith(
+          pkg_sqlite3.StatementParameters.named({
+            ':subjectCode': element.lesson.subjectClass.subject.code,
+            ':year': element.lesson.subjectClass.year,
+            ':semester': element.lesson.subjectClass.semester,
+            ':name': element.lesson.subjectClass.name,
+            ':utcDateTime': element.lesson.utcDateTime.toIso8601String(),
+            ':studentRegistration': element.student.registration,
+          }),
+        );
       }
     }
     on ArgumentError catch (e) {
@@ -613,13 +615,15 @@ class SQLite3DomainRepository implements IDomainRepository {
     dynamic errorOrException;
     try {
       for (final element in enrollment) {
-        insertEnrollment.executeMap({
-          ':subjectCode': element.subjectClass.subject.code,
-          ':year': element.subjectClass.year,
-          ':semester': element.subjectClass.semester,
-          ':name': element.subjectClass.name,
-          ':studentRegistration': element.student.registration,
-        });
+        insertEnrollment.executeWith(
+          pkg_sqlite3.StatementParameters.named({
+            ':subjectCode': element.subjectClass.subject.code,
+            ':year': element.subjectClass.year,
+            ':semester': element.subjectClass.semester,
+            ':name': element.subjectClass.name,
+            ':studentRegistration': element.student.registration,
+          }),
+        );
       }
     }
     on ArgumentError catch (e) {
@@ -660,17 +664,19 @@ class SQLite3DomainRepository implements IDomainRepository {
       for (var element in notRecognized) {
         final pictureMd5 = _pictureMd5(element.inputFace);
         final embedding = listDoubleToBytes(element.inputFaceEmbedding);
-        insert.executeMap({
-          ':subjectCode': lesson.subjectClass.subject.code,
-          ':year': lesson.subjectClass.year,
-          ':semester': lesson.subjectClass.semester,
-          ':name': lesson.subjectClass.name,
-          ':utcDateTime': lesson.utcDateTime.toIso8601String(),
-          ':picture': element.inputFace,
-          ':pictureMd5': pictureMd5,
-          ':embedding': embedding,
-          ':nearestStudentRegistration': element.nearestStudent?.registration,
-        });
+        insert.executeWith(
+          pkg_sqlite3.StatementParameters.named({
+            ':subjectCode': lesson.subjectClass.subject.code,
+            ':year': lesson.subjectClass.year,
+            ':semester': lesson.subjectClass.semester,
+            ':name': lesson.subjectClass.name,
+            ':utcDateTime': lesson.utcDateTime.toIso8601String(),
+            ':picture': element.inputFace,
+            ':pictureMd5': pictureMd5,
+            ':embedding': embedding,
+            ':nearestStudentRegistration': element.nearestStudent?.registration,
+          }),
+        );
       }
     }
     on ArgumentError catch (e) {
@@ -708,17 +714,19 @@ class SQLite3DomainRepository implements IDomainRepository {
       for (var element in recognized) {
         final pictureMd5 = _pictureMd5(element.inputFace);
         final embedding = listDoubleToBytes(element.inputFaceEmbedding);
-        insert.executeMap({
-          ':subjectCode': lesson.subjectClass.subject.code,
-          ':year': lesson.subjectClass.year,
-          ':semester': lesson.subjectClass.semester,
-          ':name': lesson.subjectClass.name,
-          ':utcDateTime': lesson.utcDateTime.toIso8601String(),
-          ':picture': element.inputFace,
-          ':pictureMd5': pictureMd5,
-          ':embedding': embedding,
-          ':nearestStudentRegistration': element.nearestStudent?.registration,
-        });
+        insert.executeWith(
+          pkg_sqlite3.StatementParameters.named({
+            ':subjectCode': lesson.subjectClass.subject.code,
+            ':year': lesson.subjectClass.year,
+            ':semester': lesson.subjectClass.semester,
+            ':name': lesson.subjectClass.name,
+            ':utcDateTime': lesson.utcDateTime.toIso8601String(),
+            ':picture': element.inputFace,
+            ':pictureMd5': pictureMd5,
+            ':embedding': embedding,
+            ':nearestStudentRegistration': element.nearestStudent?.registration,
+          }),
+        );
       }
     }
     on ArgumentError catch (e) {
@@ -756,16 +764,18 @@ class SQLite3DomainRepository implements IDomainRepository {
       for (var element in embedding) {
         final pictureMd5 = _pictureMd5(element.value1);
         final embedding = listDoubleToBytes(element.value2);
-        insert.executeMap({
-          ':subjectCode': lesson.subjectClass.subject.code,
-          ':year': lesson.subjectClass.year,
-          ':semester': lesson.subjectClass.semester,
-          ':name': lesson.subjectClass.name,
-          ':utcDateTime': lesson.utcDateTime.toIso8601String(),
-          ':picture': element.value1,
-          ':pictureMd5': pictureMd5,
-          ':embedding': embedding,
-        });
+        insert.executeWith(
+          pkg_sqlite3.StatementParameters.named({
+            ':subjectCode': lesson.subjectClass.subject.code,
+            ':year': lesson.subjectClass.year,
+            ':semester': lesson.subjectClass.semester,
+            ':name': lesson.subjectClass.name,
+            ':utcDateTime': lesson.utcDateTime.toIso8601String(),
+            ':picture': element.value1,
+            ':pictureMd5': pictureMd5,
+            ':embedding': embedding,
+          }),
+        );
       }
     }
     on ArgumentError catch (e) {
@@ -800,10 +810,13 @@ class SQLite3DomainRepository implements IDomainRepository {
     dynamic errorOrException;
     try {
       for (final element in facePicture) {
-        insertFacePicture.executeMap({
-          ':picture': element.faceJpeg,
-          ':individualRegistration': element.individual.individualRegistration,
-        });
+        insertFacePicture.executeWith(
+          pkg_sqlite3.StatementParameters.named({
+            ':picture': element.faceJpeg,
+            ':individualRegistration':
+                element.individual.individualRegistration,
+          }),
+        );
       }
     }
     on ArgumentError catch (e) {
@@ -839,10 +852,13 @@ class SQLite3DomainRepository implements IDomainRepository {
     try {
       for (final element in facialData) {
         final data = listDoubleToBytes(element.data);
-        insertFacialData.executeMap({
-          ':data': data,
-          ':individualRegistration': element.individual.individualRegistration,
-        });
+        insertFacialData.executeWith(
+          pkg_sqlite3.StatementParameters.named({
+            ':data': data,
+            ':individualRegistration':
+                element.individual.individualRegistration,
+          }),
+        );
       }
     }
     on ArgumentError catch (e) {
@@ -884,11 +900,13 @@ class SQLite3DomainRepository implements IDomainRepository {
     dynamic errorOrException;
     try {
       for (final element in individual) {
-        insertIndividual.executeMap({
-          ':individualRegistration': element.individualRegistration,
-          ':name': element.name,
-          ':surname': element.surname,
-        });
+        insertIndividual.executeWith(
+          pkg_sqlite3.StatementParameters.named({
+            ':individualRegistration': element.individualRegistration,
+            ':name': element.name,
+            ':surname': element.surname,
+          }),
+        );
       }
     }
     on ArgumentError catch (e) {
@@ -923,14 +941,16 @@ class SQLite3DomainRepository implements IDomainRepository {
     dynamic errorOrException;
     try {
       for (final element in lesson) {
-        insertLesson.executeMap({
-          ':subjectCode': element.subjectClass.subject.code,
-          ':year': element.subjectClass.year,
-          ':semester': element.subjectClass.semester,
-          ':name': element.subjectClass.name,
-          ':utcDateTime': element.utcDateTime.toIso8601String(),
-          ':teacherRegistration': element.teacher.registration,
-        });
+        insertLesson.executeWith(
+          pkg_sqlite3.StatementParameters.named({
+            ':subjectCode': element.subjectClass.subject.code,
+            ':year': element.subjectClass.year,
+            ':semester': element.subjectClass.semester,
+            ':name': element.subjectClass.name,
+            ':utcDateTime': element.utcDateTime.toIso8601String(),
+            ':teacherRegistration': element.teacher.registration,
+          }),
+        );
       }
     }
     on ArgumentError catch (e) {
@@ -965,10 +985,13 @@ class SQLite3DomainRepository implements IDomainRepository {
     dynamic errorOrException;
     try {
       for (final element in student) {
-        insertStudent.executeMap({
-          ':registration': element.registration,
-          ':individualRegistration': element.individual.individualRegistration,
-        });
+        insertStudent.executeWith(
+          pkg_sqlite3.StatementParameters.named({
+            ':registration': element.registration,
+            ':individualRegistration':
+                element.individual.individualRegistration,
+          }),
+        );
       }
     }
     on ArgumentError catch (e) {
@@ -1003,10 +1026,12 @@ class SQLite3DomainRepository implements IDomainRepository {
     dynamic errorOrException;
     try {
       for (final element in subject) {
-        insertSubject.executeMap({
-          ':code': element.code,
-          ':name': element.name,
-        });
+        insertSubject.executeWith(
+          pkg_sqlite3.StatementParameters.named({
+            ':code': element.code,
+            ':name': element.name,
+          }),
+        );
       }
     }
     on ArgumentError catch (e) {
@@ -1041,13 +1066,15 @@ class SQLite3DomainRepository implements IDomainRepository {
     dynamic errorOrException;
     try {
       for (final element in subjectClass) {
-        insertClass.executeMap({
-          ':subjectCode': element.subject.code,
-          ':year': element.year,
-          ':semester': element.semester,
-          ':name': element.name,
-          ':teacherRegistration': element.teacher.registration,
-        });
+        insertClass.executeWith(
+          pkg_sqlite3.StatementParameters.named({
+            ':subjectCode': element.subject.code,
+            ':year': element.year,
+            ':semester': element.semester,
+            ':name': element.name,
+            ':teacherRegistration': element.teacher.registration,
+          }),
+        );
       }
     }
     on ArgumentError catch (e) {
@@ -1082,10 +1109,13 @@ class SQLite3DomainRepository implements IDomainRepository {
     dynamic errorOrException;
     try {
       for (final element in teacher) {
-        insertTeacher.executeMap({
-          ':registration': element.registration,
-          ':individualRegistration': element.individual.individualRegistration,
-        });
+        insertTeacher.executeWith(
+          pkg_sqlite3.StatementParameters.named({
+            ':registration': element.registration,
+            ':individualRegistration':
+                element.individual.individualRegistration,
+          }),
+        );
       }
     }
     on ArgumentError catch (e) {
@@ -1149,13 +1179,15 @@ class SQLite3DomainRepository implements IDomainRepository {
     for (final l in lesson) {
       pkg_sqlite3.ResultSet selected;
       try {
-        selected = select.selectMap({
-          ':subjectCode': l.subjectClass.subject.code,
-          ':year': l.subjectClass.year,
-          ':semester': l.subjectClass.semester,
-          ':name': l.subjectClass.name,
-          ':utcDateTime': l.utcDateTime.toIso8601String(),
-        });
+        selected = select.selectWith(
+          pkg_sqlite3.StatementParameters.named({
+            ':subjectCode': l.subjectClass.subject.code,
+            ':year': l.subjectClass.year,
+            ':semester': l.subjectClass.semester,
+            ':name': l.subjectClass.name,
+            ':utcDateTime': l.utcDateTime.toIso8601String(),
+          }),
+        );
       }
       on ArgumentError catch (e) {
         select.dispose();
@@ -1213,13 +1245,15 @@ class SQLite3DomainRepository implements IDomainRepository {
     for (final l in lesson) {
       pkg_sqlite3.ResultSet selected;
       try {
-        selected = select.selectMap({
-          ':subjectCode': l.subjectClass.subject.code,
-          ':year': l.subjectClass.year,
-          ':semester': l.subjectClass.semester,
-          ':name': l.subjectClass.name,
-          ':utcDateTime': l.utcDateTime.toIso8601String(),
-        });
+        selected = select.selectWith(
+          pkg_sqlite3.StatementParameters.named({
+            ':subjectCode': l.subjectClass.subject.code,
+            ':year': l.subjectClass.year,
+            ':semester': l.subjectClass.semester,
+            ':name': l.subjectClass.name,
+            ':utcDateTime': l.utcDateTime.toIso8601String(),
+          }),
+        );
       }
       on ArgumentError catch (e) {
         select.dispose();
@@ -1279,13 +1313,15 @@ class SQLite3DomainRepository implements IDomainRepository {
     for (final l in lesson) {
       pkg_sqlite3.ResultSet selected;
       try {
-        selected = select.selectMap({
-          ':subjectCode': l.subjectClass.subject.code,
-          ':year': l.subjectClass.year,
-          ':semester': l.subjectClass.semester,
-          ':name': l.subjectClass.name,
-          ':utcDateTime': l.utcDateTime.toIso8601String(),
-        });
+        selected = select.selectWith(
+          pkg_sqlite3.StatementParameters.named({
+            ':subjectCode': l.subjectClass.subject.code,
+            ':year': l.subjectClass.year,
+            ':semester': l.subjectClass.semester,
+            ':name': l.subjectClass.name,
+            ':utcDateTime': l.utcDateTime.toIso8601String(),
+          }),
+        );
       } on ArgumentError catch (e) {
         select.dispose();
         projectLogger.severe(e);
@@ -1327,9 +1363,11 @@ class SQLite3DomainRepository implements IDomainRepository {
     for (final s in student) {
       pkg_sqlite3.ResultSet selected;
       try {
-        selected = select.selectMap({
-          ':registration': s.registration,
-        });
+        selected = select.selectWith(
+          pkg_sqlite3.StatementParameters.named({
+            ':registration': s.registration,
+          }),
+        );
       } on ArgumentError catch (e) {
         select.dispose();
         projectLogger.severe(e);
@@ -1382,9 +1420,11 @@ class SQLite3DomainRepository implements IDomainRepository {
     for (final t in teacher) {
       pkg_sqlite3.ResultSet selected;
       try {
-        selected = select.selectMap({
-          ':registration': t.registration,
-        });
+        selected = select.selectWith(
+          pkg_sqlite3.StatementParameters.named({
+            ':registration': t.registration,
+          }),
+        );
       } on ArgumentError catch (e) {
         select.dispose();
         projectLogger.severe(e);
@@ -1437,9 +1477,11 @@ class SQLite3DomainRepository implements IDomainRepository {
     for (final s in student) {
       pkg_sqlite3.ResultSet selected;
       try {
-        selected = select.selectMap({
-          ':registration': s.registration,
-        });
+        selected = select.selectWith(
+          pkg_sqlite3.StatementParameters.named({
+            ':registration': s.registration,
+          }),
+        );
       } on ArgumentError catch (e) {
         select.dispose();
         projectLogger.severe(e);
@@ -1488,9 +1530,11 @@ class SQLite3DomainRepository implements IDomainRepository {
     for (final t in teacher) {
       pkg_sqlite3.ResultSet selected;
       try {
-        selected = select.selectMap({
-          ':registration': t.registration,
-        });
+        selected = select.selectWith(
+          pkg_sqlite3.StatementParameters.named({
+            ':registration': t.registration,
+          }),
+        );
       } on ArgumentError catch (e) {
         select.dispose();
         projectLogger.severe(e);
@@ -1538,9 +1582,11 @@ class SQLite3DomainRepository implements IDomainRepository {
     for (final i in individualRegistration) {
       pkg_sqlite3.ResultSet selected;
       try {
-        selected = select.selectMap({
-          ':individualRegistration': i,
-        });
+        selected = select.selectWith(
+          pkg_sqlite3.StatementParameters.named({
+            ':individualRegistration': i,
+          }),
+        );
       } on ArgumentError catch (e) {
         select.dispose();
         projectLogger.severe(e);
@@ -1590,12 +1636,14 @@ class SQLite3DomainRepository implements IDomainRepository {
     for (final c in subjectClass) {
       pkg_sqlite3.ResultSet selected;
       try {
-        selected = select.selectMap({
-          ':subjectCode': c.subject.code,
-          ':year': c.year,
-          ':semester': c.semester,
-          ':name': c.name,
-        });
+        selected = select.selectWith(
+          pkg_sqlite3.StatementParameters.named({
+            ':subjectCode': c.subject.code,
+            ':year': c.year,
+            ':semester': c.semester,
+            ':name': c.name,
+          }),
+        );
       }
       on ArgumentError catch (e) {
         select.dispose();
@@ -1672,9 +1720,11 @@ class SQLite3DomainRepository implements IDomainRepository {
     for (final r in registration) {
       pkg_sqlite3.ResultSet selected;
       try {
-        selected = select.selectMap({
-          ':registration': r,
-        });
+        selected = select.selectWith(
+          pkg_sqlite3.StatementParameters.named({
+            ':registration': r,
+          }),
+        );
       } on ArgumentError catch (e) {
         select.dispose();
         projectLogger.severe(e);
@@ -1727,12 +1777,14 @@ class SQLite3DomainRepository implements IDomainRepository {
     for (final c in subjectClass) {
       pkg_sqlite3.ResultSet selected;
       try {
-        selected = select.selectMap({
-          ':subjectCode': c.subject.code,
-          ':year': c.year,
-          ':semester': c.semester,
-          ':name': c.name,
-        });
+        selected = select.selectWith(
+          pkg_sqlite3.StatementParameters.named({
+            ':subjectCode': c.subject.code,
+            ':year': c.year,
+            ':semester': c.semester,
+            ':name': c.name,
+          }),
+        );
       }
       on ArgumentError catch (e) {
         select.dispose();
@@ -1783,12 +1835,14 @@ class SQLite3DomainRepository implements IDomainRepository {
 
     pkg_sqlite3.ResultSet selected;
     try {
-      selected = select.selectMap({
-        ':subjectCode': subjectCode,
-        ':year': year,
-        ':semester': semester,
-        ':name': name,
-      });
+      selected = select.selectWith(
+        pkg_sqlite3.StatementParameters.named({
+          ':subjectCode': subjectCode,
+          ':year': year,
+          ':semester': semester,
+          ':name': name,
+        }),
+      );
     }
     on ArgumentError catch (e) {
       select.dispose();
@@ -1846,12 +1900,14 @@ class SQLite3DomainRepository implements IDomainRepository {
     for (final sc in subjectClass) {
       pkg_sqlite3.ResultSet selected;
       try {
-        selected = select.selectMap({
-          ':subjectCode': sc.subject.code,
-          ':year': sc.year,
-          ':semester': sc.semester,
-          ':name': sc.name,
-        });
+        selected = select.selectWith(
+          pkg_sqlite3.StatementParameters.named({
+            ':subjectCode': sc.subject.code,
+            ':year': sc.year,
+            ':semester': sc.semester,
+            ':name': sc.name,
+          }),
+        );
       }
       on ArgumentError catch (e) {
         select.dispose();
@@ -1964,9 +2020,11 @@ class SQLite3DomainRepository implements IDomainRepository {
     for (final s in subject) {
       pkg_sqlite3.ResultSet selected;
       try {
-        selected = select.selectMap({
-          ':subjectCode': s.code,
-        });
+        selected = select.selectWith(
+          pkg_sqlite3.StatementParameters.named({
+            ':subjectCode': s.code,
+          }),
+        );
       }
       on ArgumentError catch (e) {
         select.dispose();
@@ -2023,9 +2081,11 @@ class SQLite3DomainRepository implements IDomainRepository {
     for (final c in code) {
       pkg_sqlite3.ResultSet selected;
       try {
-        selected = select.selectMap({
-          ':code': c,
-        });
+        selected = select.selectWith(
+          pkg_sqlite3.StatementParameters.named({
+            ':code': c,
+          }),
+        );
       }
       on ArgumentError catch (e) {
         select.dispose();
@@ -2071,9 +2131,11 @@ class SQLite3DomainRepository implements IDomainRepository {
     for (final r in registration) {
       pkg_sqlite3.ResultSet selected;
       try {
-        selected = select.selectMap({
-          ':registration': r,
-        });
+        selected = select.selectWith(
+          pkg_sqlite3.StatementParameters.named({
+            ':registration': r,
+          }),
+        );
       }
       on ArgumentError catch (e) {
         select.dispose();
@@ -2128,14 +2190,16 @@ class SQLite3DomainRepository implements IDomainRepository {
     for (final r in recognition) {
       final String pictureMd5 = _pictureMd5(r.inputFace);
       try {
-        delete.executeMap({
-          ':subjectCode': lesson.subjectClass.subject.code,
-          ':year': lesson.subjectClass.year,
-          ':semester': lesson.subjectClass.semester,
-          ':name': lesson.subjectClass.name,
-          ':utcDateTime': lesson.utcDateTime.toIso8601String(),
-          ':pictureMd5': pictureMd5,
-        });
+        delete.executeWith(
+          pkg_sqlite3.StatementParameters.named({
+            ':subjectCode': lesson.subjectClass.subject.code,
+            ':year': lesson.subjectClass.year,
+            ':semester': lesson.subjectClass.semester,
+            ':name': lesson.subjectClass.name,
+            ':utcDateTime': lesson.utcDateTime.toIso8601String(),
+            ':pictureMd5': pictureMd5,
+          }),
+        );
       }
       on ArgumentError catch (e) {
         delete.dispose();
@@ -2165,14 +2229,16 @@ class SQLite3DomainRepository implements IDomainRepository {
 
       final String pictureMd5 = _pictureMd5(r.inputFace);
       try {
-        delete.executeMap({
-          ':subjectCode': lesson.subjectClass.subject.code,
-          ':year': lesson.subjectClass.year,
-          ':semester': lesson.subjectClass.semester,
-          ':name': lesson.subjectClass.name,
-          ':utcDateTime': lesson.utcDateTime.toIso8601String(),
-          ':pictureMd5': pictureMd5,
-        });
+        delete.executeWith(
+          pkg_sqlite3.StatementParameters.named({
+            ':subjectCode': lesson.subjectClass.subject.code,
+            ':year': lesson.subjectClass.year,
+            ':semester': lesson.subjectClass.semester,
+            ':name': lesson.subjectClass.name,
+            ':utcDateTime': lesson.utcDateTime.toIso8601String(),
+            ':pictureMd5': pictureMd5,
+          }),
+        );
       }
       on ArgumentError catch (e) {
         delete.dispose();
@@ -2209,14 +2275,16 @@ class SQLite3DomainRepository implements IDomainRepository {
 
       final pictureMd5 = _pictureMd5(oldRecord.inputFace);
       try {
-        deleteOld.executeMap({
-          ':subjectCode': lesson.subjectClass.subject.code,
-          ':year': lesson.subjectClass.year,
-          ':semester': lesson.subjectClass.semester,
-          ':name': lesson.subjectClass.name,
-          ':utcDateTime': lesson.utcDateTime.toIso8601String(),
-          ':pictureMd5': pictureMd5,
-        });
+        deleteOld.executeWith(
+          pkg_sqlite3.StatementParameters.named({
+            ':subjectCode': lesson.subjectClass.subject.code,
+            ':year': lesson.subjectClass.year,
+            ':semester': lesson.subjectClass.semester,
+            ':name': lesson.subjectClass.name,
+            ':utcDateTime': lesson.utcDateTime.toIso8601String(),
+            ':pictureMd5': pictureMd5,
+          }),
+        );
       }
       on ArgumentError catch (e) {
         errorOrExceptionDelete = e;
@@ -2236,14 +2304,16 @@ class SQLite3DomainRepository implements IDomainRepository {
 
       final pictureMd5 = _pictureMd5(oldRecord.inputFace);
       try {
-        deleteOld.executeMap({
-          ':subjectCode': lesson.subjectClass.subject.code,
-          ':year': lesson.subjectClass.year,
-          ':semester': lesson.subjectClass.semester,
-          ':name': lesson.subjectClass.name,
-          ':utcDateTime': lesson.utcDateTime.toIso8601String(),
-          ':pictureMd5': pictureMd5,
-        });
+        deleteOld.executeWith(
+          pkg_sqlite3.StatementParameters.named({
+            ':subjectCode': lesson.subjectClass.subject.code,
+            ':year': lesson.subjectClass.year,
+            ':semester': lesson.subjectClass.semester,
+            ':name': lesson.subjectClass.name,
+            ':utcDateTime': lesson.utcDateTime.toIso8601String(),
+            ':pictureMd5': pictureMd5,
+          }),
+        );
       }
       on ArgumentError catch (e) {
         errorOrExceptionDelete = e;
@@ -2266,17 +2336,20 @@ class SQLite3DomainRepository implements IDomainRepository {
       final pictureMd5 = _pictureMd5(newRecord.inputFace);
       final embedding = listDoubleToBytes(newRecord.inputFaceEmbedding);
       try{
-        insertNew.executeMap({
-          ':subjectCode': lesson.subjectClass.subject.code,
-          ':year': lesson.subjectClass.year,
-          ':semester': lesson.subjectClass.semester,
-          ':name': lesson.subjectClass.name,
-          ':utcDateTime': lesson.utcDateTime.toIso8601String(),
-          ':picture': newRecord.inputFace,
-          ':pictureMd5': pictureMd5,
-          ':embedding': embedding,
-          ':nearestStudentRegistration': newRecord.nearestStudent?.registration,
-        });
+        insertNew.executeWith(
+          pkg_sqlite3.StatementParameters.named({
+            ':subjectCode': lesson.subjectClass.subject.code,
+            ':year': lesson.subjectClass.year,
+            ':semester': lesson.subjectClass.semester,
+            ':name': lesson.subjectClass.name,
+            ':utcDateTime': lesson.utcDateTime.toIso8601String(),
+            ':picture': newRecord.inputFace,
+            ':pictureMd5': pictureMd5,
+            ':embedding': embedding,
+            ':nearestStudentRegistration':
+                newRecord.nearestStudent?.registration,
+          }),
+        );
       }
       on ArgumentError catch (e) {
         errorOrExceptionInsert = e;
@@ -2296,17 +2369,20 @@ class SQLite3DomainRepository implements IDomainRepository {
       final pictureMd5 = _pictureMd5(newRecord.inputFace);
       final embedding = listDoubleToBytes(newRecord.inputFaceEmbedding);
       try{
-        insertNew.executeMap({
-          ':subjectCode': lesson.subjectClass.subject.code,
-          ':year': lesson.subjectClass.year,
-          ':semester': lesson.subjectClass.semester,
-          ':name': lesson.subjectClass.name,
-          ':utcDateTime': lesson.utcDateTime.toIso8601String(),
-          ':picture': newRecord.inputFace,
-          ':pictureMd5': pictureMd5,
-          ':embedding': embedding,
-          ':nearestStudentRegistration': newRecord.nearestStudent?.registration,
-        });
+        insertNew.executeWith(
+          pkg_sqlite3.StatementParameters.named({
+            ':subjectCode': lesson.subjectClass.subject.code,
+            ':year': lesson.subjectClass.year,
+            ':semester': lesson.subjectClass.semester,
+            ':name': lesson.subjectClass.name,
+            ':utcDateTime': lesson.utcDateTime.toIso8601String(),
+            ':picture': newRecord.inputFace,
+            ':pictureMd5': pictureMd5,
+            ':embedding': embedding,
+            ':nearestStudentRegistration':
+                newRecord.nearestStudent?.registration,
+          }),
+        );
       }
       on ArgumentError catch (e) {
         errorOrExceptionInsert = e;

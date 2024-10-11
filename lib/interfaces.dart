@@ -4,11 +4,11 @@ import 'dart:ui';
 import 'package:facial_recognition/models/domain.dart';
 import 'package:facial_recognition/models/use_case.dart';
 
-abstract class IRecognitionPipeline<CI, CD, I, J, L, V> {
-  Future<List<I>> detectFace(
-    final CI image,
-    final CD cameraDescription,
-  );
+abstract class IRecognitionPipeline<I, J, L, V> {
+  Future<List<I>> detectFace({
+    required I image,
+    int imageRollDegree = 0,
+  });
 
   Future<List<Duple<J, FaceEmbedding>>> extractEmbedding(
     final List<I> faces,
@@ -23,7 +23,7 @@ abstract class IRecognitionPipeline<CI, CD, I, J, L, V> {
 
 abstract class IFaceDetector {
   Future<List<Rect>> detect({
-    required final Uint8List image,
+    required final Uint8List bgraBuffer,
     required final width,
     required final height,
     final int imageRollDegree = 0,
@@ -36,10 +36,11 @@ abstract class IImageHandler<CI, CD, I, J> {
   List<I> cropFromImage(final I image, final List<Rect> rect);
   I resizeImage(final I image, final int width, final int height);
   I flipHorizontal(final I image);
+  I rotateImage(I image, num angle);
   J toJpg(final I image);
   I? fromJpg(final J jpgBytes);
   List<List<List<int>>> toRgbMatrix(final I image);
-  Uint8List toRgbaBuffer(I image);
+  Uint8List toBgraBuffer(I image);
 }
 
 abstract class IFaceEmbedder {
@@ -70,8 +71,10 @@ enum FaceRecognitionStatus {
 }
 
 abstract class ICameraAttendance<CI, CD> {
-  // void onNewCameraImage(final CI image, final int cameraSensorOrientation);
-  void onNewCameraImage(final CI image, final CD cameraDescription);
+  void onNewCameraImage(
+    final CI cameraImage,
+    final CD cameraDescription,
+  );
 }
 
 typedef DistanceFunction<TElement> = double Function(TElement a, TElement b);

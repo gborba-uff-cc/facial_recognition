@@ -31,7 +31,6 @@ import 'package:facial_recognition/use_case/select_lesson.dart';
 import 'package:facial_recognition/utils/distance.dart';
 import 'package:facial_recognition/utils/file_loaders.dart';
 import 'package:facial_recognition/utils/project_logger.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
@@ -93,13 +92,11 @@ class MainApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final IFaceDetector<pkg_camera.CameraImage> faceDetector = GoogleFaceDetector();
+    final IFaceDetector faceDetector = GoogleFaceDetector();
     final IImageHandler<pkg_camera.CameraImage, pkg_camera.CameraDescription, pkg_image.Image, Uint8List> imageHandler = ImageHandler();
     final IFaceEmbedder faceEmbedder = FacenetFaceEmbedder();
     final IFaceRecognizer<Student, List<double>> faceRecognizer = DistanceClassifier(distanceFunction: euclideanDistance);
     final IRecognitionPipeline<
-        pkg_camera.CameraImage,
-        pkg_camera.CameraDescription,
         pkg_image.Image,
         Uint8List,
         Student,

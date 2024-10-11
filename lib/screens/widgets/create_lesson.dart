@@ -84,7 +84,7 @@ class CreateLesson extends StatelessWidget {
           lastDate: lDate,
         ).then((value) {
           projectLogger.fine('selected date: $value');
-          if (value != null) {
+          if (value != null && context.mounted) {
             _date.text = MaterialLocalizations.of(context).formatCompactDate(value);
           }
         });
@@ -98,7 +98,7 @@ class CreateLesson extends StatelessWidget {
           context: context,
           initialTime: TimeOfDay.fromDateTime(now),
         ).then((value) {
-          if (value != null) {
+          if (value != null && context.mounted) {
             _time.text = MaterialLocalizations.of(context).formatTimeOfDay(value, alwaysUse24HourFormat: true);
           }
         });

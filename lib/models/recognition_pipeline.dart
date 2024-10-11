@@ -8,12 +8,14 @@ import 'package:camera/camera.dart' as pkg_camera;
 import 'package:image/image.dart' as pkg_image;
 
 
-class RecognitionPipeline implements IRecognitionPipeline<pkg_camera.CameraImage, pkg_camera.CameraDescription, pkg_image.Image, Uint8List, Student, FaceEmbedding> {
+class RecognitionPipeline implements IRecognitionPipeline<pkg_image.Image, JpegPictureBytes, Student, FaceEmbedding> {
   const RecognitionPipeline({
-    required IFaceDetector<pkg_camera.CameraImage> faceDetector,
-    required IImageHandler<pkg_camera.CameraImage, pkg_camera.CameraDescription,
-            pkg_image.Image, Uint8List>
-        imageHandler,
+    required IFaceDetector faceDetector,
+    required IImageHandler<
+        pkg_camera.CameraImage,
+        pkg_camera.CameraDescription,
+        pkg_image.Image, Uint8List>
+      imageHandler,
     required IFaceEmbedder faceEmbedder,
     required IFaceRecognizer<Student, FaceEmbedding> faceRecognizer,
   })  : _faceDetector = faceDetector,
@@ -21,29 +23,37 @@ class RecognitionPipeline implements IRecognitionPipeline<pkg_camera.CameraImage
         _faceEmbedder = faceEmbedder,
         _faceRecognizer = faceRecognizer;
 
-  final IFaceDetector<pkg_camera.CameraImage> _faceDetector;
+  final IFaceDetector _faceDetector;
   final IImageHandler<pkg_camera.CameraImage, pkg_camera.CameraDescription,
       pkg_image.Image, Uint8List> _imageHandler;
   final IFaceEmbedder _faceEmbedder;
   final IFaceRecognizer<Student, FaceEmbedding> _faceRecognizer;
 
   @override
-  Future<List<pkg_image.Image>> detectFace(
-    final pkg_camera.CameraImage image,
-    final pkg_camera.CameraDescription cameraDescription,
-  ) async {
+  Future<List<pkg_image.Image>> detectFace({
+    required pkg_image.Image image,
+    int imageRollDegree = 0,
+  }) async {
     // detect faces
-    final faceRects = await _faceDetector.detect(image, cameraDescription.sensorOrientation);
-    projectLogger.fine('detected faces: ${faceRects.length}');
+    final bgraBuffer = _imageHandler.toBgraBuffer(image);
+    final faceRects = await _faceDetector.detect(
+      bgraBuffer: bgraBuffer,
+      width: image.width,
+      height: image.height,
+      imageRollDegree: imageRollDegree,
+      // 1 byte * (1 blue + 1 gree + 3 red + 1 alpha)
+      bytesRowStride: image.width*4,
+    );
+    projectLogger.info('detected faces: ${faceRects.length}');
 
     // detach faces into manipulable images
-    final manipulableImage = _imageHandler.fromCameraImage(image, cameraDescription);
-    final faces = _imageHandler.cropFromImage(manipulableImage, faceRects);
+    // final manipulableImage = _imageHandler.fromCameraImage(bgraBuffer, cameraDescription);
+    final faces = _imageHandler.cropFromImage(image, faceRects);
     return faces;
   }
 
   @override
-  Future<List<Duple<Uint8List, FaceEmbedding>>> extractEmbedding(
+  Future<List<Duple<JpegPictureBytes, FaceEmbedding>>> extractEmbedding(
     final List<pkg_image.Image> faces,
   ) async {
     // create jpegs images and rgbMatrixes of detected face images

@@ -9,17 +9,17 @@ import 'package:facial_recognition/models/domain.dart';
 class CreateModels {
   CreateModels(
     IDomainRepository domainRepository,
-    IImageHandler<pkg_camera.CameraImage, pkg_camera.CameraDescription, pkg_image.Image, Uint8List> imageHandler,
-    IRecognitionPipeline<pkg_camera.CameraImage, pkg_camera.CameraDescription, pkg_image.Image, Uint8List,
-      Student, FaceEmbedding> recognitionPipeline,
+    IImageHandler<pkg_camera.CameraImage, pkg_camera.CameraDescription,
+            pkg_image.Image, Uint8List>
+        imageHandler,
+    IRecognitionPipeline<pkg_image.Image, Uint8List, Student, FaceEmbedding>
+        recognitionPipeline,
   )   : _domainRepository = domainRepository,
         _recognitionPipeline = recognitionPipeline,
         _imageHandler = imageHandler;
 
   final IDomainRepository _domainRepository;
   final IRecognitionPipeline<
-      pkg_camera.CameraImage,
-      pkg_camera.CameraDescription,
       pkg_image.Image,
       Uint8List,
       Student,
@@ -165,7 +165,9 @@ class CreateModels {
     final pkg_camera.CameraImage image,
     final pkg_camera.CameraDescription cameraDescription,
   ) {
-    return _recognitionPipeline.detectFace(image, cameraDescription);
+    final i1 = _imageHandler.fromCameraImage(image, cameraDescription);
+    final i2 = _imageHandler.rotateImage(i1, cameraDescription.sensorOrientation);
+    return _recognitionPipeline.detectFace(image: i2);
   }
 
   Future<List<Duple<Uint8List, FaceEmbedding>>> extractEmbedding(
