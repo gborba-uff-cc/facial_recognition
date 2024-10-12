@@ -45,10 +45,21 @@ void main() async {
   const relativeDatabasePath = 'database.sqlite3';
 
   // hide async code with a splash screen
-  runApp(const Placeholder());
+  runApp(
+    MaterialApp(
+      home: Scaffold(
+        body: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Center(
+            child: CircularProgressIndicator(),
+          ),
+        ),
+      ),
+    ),
+  );
 
   // start async code as soon as possible
-  final futures = await Future.wait(
+  final futures = Future.wait(
     [
       pkg_camera.availableCameras(),
       pkg_path_provider.getApplicationDocumentsDirectory(),
@@ -59,11 +70,40 @@ void main() async {
     ],
     eagerError: true,
   );
+  List<Object> completed = [];
+  dynamic errorOrEception;
+  try {
+    completed = await futures;
+  }
+  on pkg_camera.CameraException catch (e) {
+    errorOrEception = e;
+  }
+  on pkg_path_provider.MissingPlatformDirectoryException catch (e) {
+    errorOrEception = e;
+  }
+  on FlutterError catch (e) {
+    errorOrEception = e;
+  }
+  if (errorOrEception != null) {
+    projectLogger.severe(errorOrEception);
+    runApp(MaterialApp(
+      home: Scaffold(
+        body: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Center(
+            child: Text('Failed to load some crucial components.'),
+          ),
+        ),
+      ),
+    ));
+    return;
+  }
+
   // sync code goes under here
   final List<pkg_camera.CameraDescription> availableCams =
-      futures[0] as List<pkg_camera.CameraDescription>;
-  final Directory appDocuments = futures[1] as Directory;
-  final SqlStatementsLoader sqlStatementsLoader = futures[2] as SqlStatementsLoader;
+      completed[0] as List<pkg_camera.CameraDescription>;
+  final Directory appDocuments = completed[1] as Directory;
+  final SqlStatementsLoader sqlStatementsLoader = completed[2] as SqlStatementsLoader;
   final String databasePath = pkg_path.canonicalize(
     pkg_path.join(appDocuments.path, relativeDatabasePath),
   );
