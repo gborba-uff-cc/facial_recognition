@@ -50,7 +50,7 @@ android {
         //      19, // for the google ML kit
         //      26, // for the tflite flutter (?)
         // )
-        minSdkVersion 21
+        minSdkVersion 26
         // minSdkVersion flutter.minSdkVersion
         targetSdkVersion flutter.targetSdkVersion
         versionCode flutterVersionCode.toInteger()
