@@ -48,6 +48,7 @@ android {
         // max(
         //      21, // for the camera package
         //      19, // for the google ML kit
+        //      26, // for the tflite flutter (?)
         // )
         minSdkVersion 21
         // minSdkVersion flutter.minSdkVersion
