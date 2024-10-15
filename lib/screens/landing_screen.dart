@@ -1,5 +1,8 @@
 import 'package:facial_recognition/interfaces.dart';
 import 'package:facial_recognition/models/domain.dart';
+import 'package:facial_recognition/screens/common/default_app_button.dart';
+import 'package:facial_recognition/screens/common/default_menu_scaffold.dart';
+import 'package:facial_recognition/screens/common/default_menu_title.dart';
 import 'package:facial_recognition/screens/common/select_information_return.dart';
 import 'package:facial_recognition/screens/common/card_single_action.dart';
 import 'package:facial_recognition/utils/project_logger.dart';
@@ -31,8 +34,35 @@ class _LandingScreenState extends State<LandingScreen> {
   @override
   Widget build(BuildContext context) {
     const String attendanceDestinationTitle = 'Acompanhamento';
+    final List<({void Function() action, String text})> attendanceDestinations = [
+
+    ];
     final Widget attendanceDestination = Builder(
       builder: (context) {
+/*
+        return Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(0.0, 8.0, 0.0, 24.0),
+              child: DefaultMenuTitle(title: attendanceDestinationTitle),
+            ),
+            Flexible(
+              fit: FlexFit.tight,
+              child: ListView.separated(
+                itemBuilder: (context, index) => DefaultAppButton(
+                  onTap: attendanceDestinations[index].action,
+                  child: Padding(
+                    padding: EdgeInsets.only(left: 24.0),
+                    child: Text(attendanceDestinations[index].text),
+                  ),
+                ),
+                separatorBuilder: (context, index) => SizedBox(height: 16.0),
+                itemCount: attendanceDestinations.length,
+              ),
+            ),
+          ],
+        );
+*/
         return ListView(
           children: [
             Text(
@@ -172,8 +202,40 @@ class _LandingScreenState extends State<LandingScreen> {
     );
 
     const String createDestinationTitle = 'Adicionar informações';
+    final List<({void Function() action, String text})> createDestinations = [
+      (action: () => GoRouter.of(context).go('/models_from_xlsx') , text: 'Ler do arquivo',),
+      (action: () => GoRouter.of(context).go('/create_subject'), text: 'Disciplina',),
+      (action: () => GoRouter.of(context).go('/create_subject_class'), text: 'Turma'),
+      (action: () => GoRouter.of(context).go('/create_lesson'), text: 'Aula'),
+      (action: () => GoRouter.of(context).go('/create_student'), text: 'Aluno(a)'),
+      (action: () => GoRouter.of(context).go('/create_teacher'), text: 'Professor(a)'),
+      (action: () => GoRouter.of(context).go('/create_enrollment'), text: 'Inscrição'),
+    ];
     final Widget createDestination = Builder(
       builder: (context) {
+        return Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(0.0, 8.0, 0.0, 24.0),
+              child: DefaultMenuTitle(title: createDestinationTitle),
+            ),
+            Flexible(
+              fit: FlexFit.tight,
+              child: ListView.separated(
+                itemBuilder: (context, index) => DefaultAppButton(
+                  onTap: createDestinations[index].action,
+                  child: Padding(
+                    padding: EdgeInsets.only(left: 24.0),
+                    child: Text(createDestinations[index].text),
+                  ),
+                ),
+                separatorBuilder: (context, index) => SizedBox(height: 16.0),
+                itemCount: createDestinations.length,
+              ),
+            ),
+          ],
+        );
+/*
         return ListView(
           children: [
             Text(
@@ -241,6 +303,7 @@ class _LandingScreenState extends State<LandingScreen> {
             _menuSpacer,
           ],
         );
+ */
       },
     );
 
@@ -258,27 +321,8 @@ class _LandingScreenState extends State<LandingScreen> {
         label: createDestinationTitle,
       )
     ];
-    return Scaffold(
-      body: SafeArea(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(
-              minWidth: 300,
-              maxWidth: 600,
-            ),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 24.0,
-              ),
-              child: Column(
-                children: [
-                  Flexible(fit: FlexFit.tight, child: views[_currentViewIndex]),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
+    return DefaultAppScaffold(
+      body: views[_currentViewIndex],
       bottomNavigationBar: NavigationBar(
         destinations: viewTriggers,
         selectedIndex: _currentViewIndex,
