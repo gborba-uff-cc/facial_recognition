@@ -1,8 +1,8 @@
 import 'dart:typed_data';
 
 import 'package:facial_recognition/models/domain.dart';
-import 'package:facial_recognition/screens/widgets/create_teacher.dart';
-import 'package:facial_recognition/screens/widgets/submit_form_button.dart';
+import 'package:facial_recognition/screens/common/create_teacher.dart';
+import 'package:facial_recognition/screens/common/submit_form_button.dart';
 import 'package:facial_recognition/use_case/create_models.dart';
 import 'package:flutter/material.dart';
 

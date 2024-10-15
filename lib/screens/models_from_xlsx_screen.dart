@@ -1,9 +1,9 @@
 import 'dart:io';
 
-import 'package:facial_recognition/screens/widgets/card_single_action.dart';
-import 'package:facial_recognition/screens/widgets/default_app_button.dart';
-import 'package:facial_recognition/screens/widgets/selector.dart';
-import 'package:facial_recognition/screens/widgets/submit_form_button.dart';
+import 'package:facial_recognition/screens/common/card_single_action.dart';
+import 'package:facial_recognition/screens/common/default_app_button.dart';
+import 'package:facial_recognition/screens/common/selector.dart';
+import 'package:facial_recognition/screens/common/submit_form_button.dart';
 import 'package:facial_recognition/utils/project_logger.dart';
 import 'package:file_picker/file_picker.dart' as pkg_picker;
 import 'package:excel/excel.dart' as pkg_excel;

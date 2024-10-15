@@ -1,4 +1,4 @@
-import 'package:facial_recognition/screens/widgets/form_fields.dart';
+import 'package:facial_recognition/screens/common/form_fields.dart';
 import 'package:flutter/material.dart';
 
 class CreateEnrollment extends StatelessWidget {

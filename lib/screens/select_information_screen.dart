@@ -1,6 +1,6 @@
 import 'package:facial_recognition/models/domain.dart';
-import 'package:facial_recognition/screens/select_information_return.dart';
-import 'package:facial_recognition/screens/widgets/selector.dart';
+import 'package:facial_recognition/screens/common/select_information_return.dart';
+import 'package:facial_recognition/screens/common/selector.dart';
 import 'package:facial_recognition/use_case/select_lesson.dart';
 import 'package:facial_recognition/utils/project_logger.dart';
 import 'package:flutter/material.dart';

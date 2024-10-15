@@ -22,7 +22,7 @@ import 'package:facial_recognition/screens/grid_student_selector_screen.dart';
 import 'package:facial_recognition/screens/landing_screen.dart';
 import 'package:facial_recognition/screens/mark_attendance_screen.dart';
 import 'package:facial_recognition/screens/models_from_xlsx_screen.dart';
-import 'package:facial_recognition/screens/one_shot_camera.dart';
+import 'package:facial_recognition/screens/common/one_shot_camera.dart';
 import 'package:facial_recognition/screens/select_information_screen.dart';
 import 'package:facial_recognition/use_case/attendance_summary.dart';
 import 'package:facial_recognition/use_case/camera_identification.dart';

@@ -1,8 +1,8 @@
 import 'dart:typed_data';
 
 import 'package:facial_recognition/interfaces.dart';
-import 'package:facial_recognition/screens/one_shot_camera_return.dart';
-import 'package:facial_recognition/screens/widgets/camera_wrapper.dart';
+import 'package:facial_recognition/screens/common/one_shot_camera_return.dart';
+import 'package:facial_recognition/screens/common/camera_wrapper.dart';
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart' as pkg_camera;
 import 'package:image/image.dart' as pkg_image;

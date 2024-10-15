@@ -2,7 +2,7 @@ import 'dart:typed_data';
 
 import 'package:facial_recognition/models/domain.dart';
 import 'package:facial_recognition/models/use_case.dart';
-import 'package:facial_recognition/screens/one_shot_camera_return.dart';
+import 'package:facial_recognition/screens/common/one_shot_camera_return.dart';
 import 'package:facial_recognition/utils/project_logger.dart';
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart' as pkg_camera;
