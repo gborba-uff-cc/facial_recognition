@@ -8,7 +8,7 @@ class Selector<T> extends StatelessWidget {
     required T? selectedOption,
     String? hint,
     String? disabledHint,
-    required Function(T? item) toWidget,
+    required Widget Function(T? item) toWidget,
     String? Function(T? item)? validator,
     void Function(T? item)? onChanged,
     void Function(T? item)? onSaved,
@@ -33,7 +33,7 @@ class Selector<T> extends StatelessWidget {
     required T? selectedOption,
     String? hint,
     String? disabledHint,
-    required Function(T? item) toWidget,
+    required Widget Function(T? item) toWidget,
     String? Function(T?)? validator,
     void Function(T?)? onChanged,
     void Function(T?)? onSaved,
@@ -54,7 +54,7 @@ class Selector<T> extends StatelessWidget {
   final T? _selectedOption;
   final String? _hint;
   final String? _disabledHint;
-  final Function(T? item) _toWidget;
+  final Widget Function(T? item) _toWidget;
   final String? Function(T? item)? _validator;
   final void Function(T? item)? _onChanged;
   final void Function(T? item)? _onSaved;
@@ -73,15 +73,15 @@ class Selector<T> extends StatelessWidget {
     }
     return DropdownButtonFormField(
       key: _key,
-      hint: _hint == null ? null : Text(_hint!),
-      disabledHint: _disabledHint == null ? null : Text(_disabledHint!),
+      hint: _hint == null ? null : Text(_hint),
+      disabledHint: _disabledHint == null ? null : Text(_disabledHint),
       value: _selectedOption,
       items: items,
       validator: _validator,
       onChanged: _onChanged,
       onSaved: _onSaved,
       decoration: InputDecoration(
-        label: _label == null ? null : Text(_label!),
+        label: _label == null ? null : Text(_label),
         helperText: '',
         helperMaxLines: 1,
       ),
