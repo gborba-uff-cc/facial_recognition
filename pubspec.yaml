@@ -27,6 +27,7 @@ dependencies:
   sqlite3_flutter_libs: ^0.5.24
   path_provider: ^2.1.1
   file_picker: ^8.1.2
+  excel: ^4.0.6
 
 dev_dependencies:
   flutter_test:

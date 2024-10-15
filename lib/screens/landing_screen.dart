@@ -184,6 +184,14 @@ class _LandingScreenState extends State<LandingScreen> {
             ),
             _menuSpacer,
             MenuItem(
+              onTap: () => GoRouter.of(context).go('/models_from_xlsx'),
+              child: Padding(
+                padding: EdgeInsets.only(left: 24.0),
+                child: Text('Ler do arquivo'),
+              ),
+            ),
+            _menuSpacer,
+            MenuItem(
               onTap: () => GoRouter.of(context).go('/create_subject'),
               child: const Padding(
                 padding: EdgeInsets.only(left: 24.0),

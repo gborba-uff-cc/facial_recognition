@@ -21,6 +21,7 @@ import 'package:facial_recognition/screens/fast_view.dart';
 import 'package:facial_recognition/screens/grid_student_selector_screen.dart';
 import 'package:facial_recognition/screens/landing_screen.dart';
 import 'package:facial_recognition/screens/mark_attendance_screen.dart';
+import 'package:facial_recognition/screens/models_from_xlsx_screen.dart';
 import 'package:facial_recognition/screens/one_shot_camera.dart';
 import 'package:facial_recognition/screens/select_information_screen.dart';
 import 'package:facial_recognition/use_case/attendance_summary.dart';
@@ -91,7 +92,7 @@ void main() async {
         body: Padding(
           padding: const EdgeInsets.all(8.0),
           child: Center(
-            child: Text('Failed to load some crucial components.'),
+            child: Text('Falha ao carregar alguns componentes cruciais.'),
           ),
         ),
       ),
@@ -224,6 +225,12 @@ class MainApp extends StatelessWidget {
                 ),
               ),
 */
+              GoRoute(
+                path: 'models_from_xlsx',
+                builder: (context, state) => ModelsFromXlsxScreen(
+                  useCase: createModels,
+                ),
+              ),
               GoRoute(
                 path: 'create_subject',
                 builder: (context, state) => CreateSubjectScreen(
