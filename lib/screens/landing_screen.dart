@@ -50,7 +50,7 @@ class _LandingScreenState extends State<LandingScreen> {
                 setState(() {
                   if (aux == null) {
                     projectLogger
-                        .severe("a value weren't returned from /select_lesson");
+                        .severe("a value weren't returned from /select_information");
                   }
                   subject = aux?.subject;
                   subjectClass = aux?.subjectClass;

@@ -21,7 +21,6 @@ abstract class JsonLoader {
     if (value is T) {
       return value;
     }
-
     else {
       throw TypeError();
     }
