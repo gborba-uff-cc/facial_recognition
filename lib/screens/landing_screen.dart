@@ -1,6 +1,7 @@
 import 'package:facial_recognition/interfaces.dart';
 import 'package:facial_recognition/models/domain.dart';
 import 'package:facial_recognition/screens/select_information_return.dart';
+import 'package:facial_recognition/screens/widgets/card_single_action.dart';
 import 'package:facial_recognition/utils/project_logger.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -41,8 +42,9 @@ class _LandingScreenState extends State<LandingScreen> {
               overflow: TextOverflow.fade,
             ),
             _menuSpacer,
-            InkWell(
-              onTap: () async {
+            SingleActionCard(
+              actionName: 'Selecionar',
+              action: () async {
                 final aux = await GoRouter.of(context)
                     .push<SelectInformationReturn>('/select_information');
                 setState(() {
@@ -55,13 +57,70 @@ class _LandingScreenState extends State<LandingScreen> {
                   lesson = aux?.lesson;
                 });
               },
-              child: SelectedInfos(
-                subject: (subject == null) ? '' : subject!.name,
-                subjectClass: (subjectClass == null) ? '' : subjectClass!.name,
-                lesson: (lesson == null)
-                    ? ''
-                    : lesson!.utcDateTime.toLocal().toString(),
-              ),
+              children: [
+                Text(
+                  'Aula selecionada',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                const SizedBox(height: 8.0),
+                Row(
+                  children: [
+                    Text(
+                      'Disciplina:',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.only(left: 4.0),
+                        child: Text(
+                          subject?.name ?? '',
+                          style: Theme.of(context).textTheme.labelMedium,
+                          overflow: TextOverflow.fade,
+                          softWrap: false,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                Row(
+                  children: [
+                    Text(
+                      'Turma:',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.only(left: 4.0),
+                        child: Text(
+                          subjectClass?.name ?? '',
+                          style: Theme.of(context).textTheme.labelMedium,
+                          overflow: TextOverflow.fade,
+                          softWrap: false,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                Row(
+                  children: [
+                    Text(
+                      'Aula:',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.only(left: 4.0),
+                        child: Text(
+                          lesson?.utcDateTime.toLocal().toIso8601String() ?? '',
+                          style: Theme.of(context).textTheme.labelMedium,
+                          overflow: TextOverflow.fade,
+                          softWrap: false,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
             _menuSpacer,
             MenuItem(
@@ -241,119 +300,6 @@ class _LandingScreenState extends State<LandingScreen> {
           ],
         ),
       );
-}
-
-class SelectedInfos extends StatelessWidget {
-  const SelectedInfos({
-    super.key,
-    required this.subject,
-    required this.subjectClass,
-    required this.lesson,
-  });
-
-  final String subject;
-  final String subjectClass;
-  final String lesson;
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.all(0.0),
-      elevation: 2.0,
-      child: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-            child: Column(
-              children: [
-                Text(
-                  'Aula selecionada',
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
-                const SizedBox(height: 8.0),
-                Row(
-                  children: [
-                    Text(
-                      'Disciplina:',
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.only(left: 4.0),
-                        child: Text(
-                          subject,
-                          style: Theme.of(context).textTheme.labelMedium,
-                          overflow: TextOverflow.fade,
-                          softWrap: false,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                Row(
-                  children: [
-                    Text(
-                      'Turma:',
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.only(left: 4.0),
-                        child: Text(
-                          subjectClass,
-                          style: Theme.of(context).textTheme.labelMedium,
-                          overflow: TextOverflow.fade,
-                          softWrap: false,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                Row(
-                  children: [
-                    Text(
-                      'Aula:',
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.only(left: 4.0),
-                        child: Text(
-                          lesson,
-                          style: Theme.of(context).textTheme.labelMedium,
-                          overflow: TextOverflow.fade,
-                          softWrap: false,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          Container(
-            padding: _menuBtnPadding,
-            decoration: BoxDecoration(
-              color: Theme.of(context).primaryColor,
-              shape: BoxShape.rectangle,
-              borderRadius: const BorderRadius.only(
-                bottomLeft: _menuBorderRadii,
-                bottomRight: _menuBorderRadii,
-              ),
-            ),
-            child: Center(
-              child: Text(
-                'Selecionar aula e turma',
-                style: Theme.of(context).textTheme.copyWith().apply(
-                  fontSizeFactor: 1.2,
-                  bodyColor: Theme.of(context).colorScheme.onSecondary).labelLarge,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 class MenuItem extends StatelessWidget {
