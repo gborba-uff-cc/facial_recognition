@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:facial_recognition/screens/common/default_app_button.dart';
+import 'package:facial_recognition/screens/common/app_default_button.dart';
 import 'package:file_picker/file_picker.dart' as pkg_picker;
 
 class ExcelPicker extends StatelessWidget {
@@ -9,7 +9,7 @@ class ExcelPicker extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        DefaultAppButton(
+        AppDefaultButton(
           child: Text('Pick a file'),
           // TODO -
           onTap: () => pkg_picker.FilePicker.platform.pickFiles(),

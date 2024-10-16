@@ -1,17 +1,14 @@
 import 'package:facial_recognition/interfaces.dart';
 import 'package:facial_recognition/models/domain.dart';
-import 'package:facial_recognition/screens/common/default_app_button.dart';
-import 'package:facial_recognition/screens/common/default_menu_scaffold.dart';
-import 'package:facial_recognition/screens/common/default_menu_title.dart';
+import 'package:facial_recognition/screens/common/app_default_button.dart';
+import 'package:facial_recognition/screens/common/app_default_menu_list.dart';
+import 'package:facial_recognition/screens/common/app_default_menu_scaffold.dart';
+import 'package:facial_recognition/screens/common/app_default_menu_title.dart';
 import 'package:facial_recognition/screens/common/select_information_return.dart';
 import 'package:facial_recognition/screens/common/card_single_action.dart';
 import 'package:facial_recognition/utils/project_logger.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-
-const _menuBtnPadding = EdgeInsets.all(16.0);
-const _menuSpacer = SizedBox(height: 16.0);
-const _menuBorderRadii = Radius.circular(8.0);
 
 class LandingScreen extends StatefulWidget {
   const LandingScreen({
@@ -33,277 +30,144 @@ class _LandingScreenState extends State<LandingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Acompanhamento ----------------------------------------------------------
     const String attendanceDestinationTitle = 'Acompanhamento';
-    final List<({void Function() action, String text})> attendanceDestinations = [
-
+    final List<({void Function() action, String text})> attendanceTriggers = [
+      (
+        action: () => (lesson == null)
+            ? _showAlert(
+                context,
+                Text('Selecione uma aula antes de continuar',
+                    style: Theme.of(context).textTheme.bodyLarge),
+              )
+            : GoRouter.of(context).go('/camera_view', extra: lesson),
+        text: 'Apontamento por câmera',
+      ),
+      (
+        action: () => (lesson == null)
+            ? _showAlert(
+                context,
+                Text('Selecione uma aula antes de continuar',
+                    style: Theme.of(context).textTheme.bodyLarge),
+              )
+            : GoRouter.of(context).go('/mark_attendance', extra: lesson),
+        text: 'Revisão do apontamento',
+      ),
+      (
+        action: () => (subjectClass == null)
+            ? _showAlert(
+                context,
+                Text('Selecione uma turma antes de continuar',
+                    style: Theme.of(context).textTheme.bodyLarge),
+              )
+            : GoRouter.of(context)
+                .go('/attendance_summary', extra: subjectClass),
+        text: 'Resumo das presenças',
+      ),
+    ];
+    final attendanceMenuItems = [
+      _AttendaceMonitorInfos(
+        subject: subject?.name ?? '',
+        subjectClass: subjectClass?.name ?? '',
+        lesson: lesson?.utcDateTime.toLocal().toIso8601String() ?? '',
+        action: () async {
+          final aux = await GoRouter.of(context)
+              .push<SelectInformationReturn>('/select_information');
+          setState(() {
+            if (aux == null) {
+              projectLogger
+                  .severe("a value weren't returned from /select_information");
+            }
+            subject = aux?.subject;
+            subjectClass = aux?.subjectClass;
+            lesson = aux?.lesson;
+          });
+        },
+      ),
+      ...attendanceTriggers.map(
+        (destinationTrigger) => AppDefaultButton(
+          onTap: destinationTrigger.action,
+          child: Padding(
+            padding: EdgeInsets.only(left: 24.0),
+            child: Text(destinationTrigger.text),
+          ),
+        ),
+      ),
     ];
     final Widget attendanceDestination = Builder(
       builder: (context) {
-/*
         return Column(
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(0.0, 8.0, 0.0, 24.0),
-              child: DefaultMenuTitle(title: attendanceDestinationTitle),
+              child: AppDefaultMenuTitle(title: attendanceDestinationTitle),
             ),
             Flexible(
               fit: FlexFit.tight,
-              child: ListView.separated(
-                itemBuilder: (context, index) => DefaultAppButton(
-                  onTap: attendanceDestinations[index].action,
-                  child: Padding(
-                    padding: EdgeInsets.only(left: 24.0),
-                    child: Text(attendanceDestinations[index].text),
-                  ),
-                ),
-                separatorBuilder: (context, index) => SizedBox(height: 16.0),
-                itemCount: attendanceDestinations.length,
-              ),
+              child: AppDefaultMenuList(children: attendanceMenuItems),
             ),
-          ],
-        );
-*/
-        return ListView(
-          children: [
-            Text(
-              attendanceDestinationTitle,
-              maxLines: 1,
-              style: Theme.of(context).textTheme.headlineLarge,
-              overflow: TextOverflow.fade,
-            ),
-            _menuSpacer,
-            SingleActionCard(
-              actionName: 'Selecionar',
-              action: () async {
-                final aux = await GoRouter.of(context)
-                    .push<SelectInformationReturn>('/select_information');
-                setState(() {
-                  if (aux == null) {
-                    projectLogger
-                        .severe("a value weren't returned from /select_information");
-                  }
-                  subject = aux?.subject;
-                  subjectClass = aux?.subjectClass;
-                  lesson = aux?.lesson;
-                });
-              },
-              children: [
-                Text(
-                  'Aula selecionada',
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
-                const SizedBox(height: 8.0),
-                Row(
-                  children: [
-                    Text(
-                      'Disciplina:',
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.only(left: 4.0),
-                        child: Text(
-                          subject?.name ?? '',
-                          style: Theme.of(context).textTheme.labelMedium,
-                          overflow: TextOverflow.fade,
-                          softWrap: false,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                Row(
-                  children: [
-                    Text(
-                      'Turma:',
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.only(left: 4.0),
-                        child: Text(
-                          subjectClass?.name ?? '',
-                          style: Theme.of(context).textTheme.labelMedium,
-                          overflow: TextOverflow.fade,
-                          softWrap: false,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                Row(
-                  children: [
-                    Text(
-                      'Aula:',
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.only(left: 4.0),
-                        child: Text(
-                          lesson?.utcDateTime.toLocal().toIso8601String() ?? '',
-                          style: Theme.of(context).textTheme.labelMedium,
-                          overflow: TextOverflow.fade,
-                          softWrap: false,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-            _menuSpacer,
-            MenuItem(
-              onTap: () => (lesson == null)
-                  ? _showAlert(
-                      context,
-                      Text('Selecione uma aula antes de continuar',
-                          style: Theme.of(context).textTheme.bodyLarge),
-                    )
-                  : GoRouter.of(context).go('/camera_view', extra: lesson),
-              child: const Padding(
-                padding: EdgeInsets.only(left: 24.0),
-                child: Text('Apontamento por câmera'),
-              ),
-            ),
-            _menuSpacer,
-            MenuItem(
-              onTap: () => (lesson == null)
-                  ? _showAlert(
-                      context,
-                      Text('Selecione uma aula antes de continuar',
-                          style: Theme.of(context).textTheme.bodyLarge),
-                    )
-                  : GoRouter.of(context).go('/mark_attendance', extra: lesson),
-              child: const Padding(
-                padding: EdgeInsets.only(left: 24.0),
-                child: Text('Revisão do apontamento'),
-              ),
-            ),
-            _menuSpacer,
-            MenuItem(
-              onTap: () => (subjectClass == null)
-                  ? _showAlert(
-                      context,
-                      Text('Selecione uma turma antes de continuar',
-                          style: Theme.of(context).textTheme.bodyLarge),
-                    )
-                  : GoRouter.of(context)
-                      .go('/attendance_summary', extra: subjectClass),
-              child: const Padding(
-                padding: EdgeInsets.only(left: 24.0),
-                child: Text('Resumo das presenças'),
-              ),
-            ),
-            _menuSpacer,
           ],
         );
       },
     );
 
+    // Adicionar informacoes ---------------------------------------------------
     const String createDestinationTitle = 'Adicionar informações';
-    final List<({void Function() action, String text})> createDestinations = [
-      (action: () => GoRouter.of(context).go('/models_from_xlsx') , text: 'Ler do arquivo',),
-      (action: () => GoRouter.of(context).go('/create_subject'), text: 'Disciplina',),
-      (action: () => GoRouter.of(context).go('/create_subject_class'), text: 'Turma'),
-      (action: () => GoRouter.of(context).go('/create_lesson'), text: 'Aula'),
-      (action: () => GoRouter.of(context).go('/create_student'), text: 'Aluno(a)'),
-      (action: () => GoRouter.of(context).go('/create_teacher'), text: 'Professor(a)'),
-      (action: () => GoRouter.of(context).go('/create_enrollment'), text: 'Inscrição'),
+    final List<({void Function() action, String text})> createTriggers = [
+      (
+        action: () => GoRouter.of(context).go('/models_from_xlsx'),
+        text: 'Ler do arquivo',
+      ),
+      (
+        action: () => GoRouter.of(context).go('/create_subject'),
+        text: 'Disciplina',
+      ),
+      (
+        action: () => GoRouter.of(context).go('/create_subject_class'),
+        text: 'Turma'
+      ),
+      (
+        action: () => GoRouter.of(context).go('/create_lesson'),
+        text: 'Aula'
+      ),
+      (
+        action: () => GoRouter.of(context).go('/create_student'),
+        text: 'Aluno(a)'
+      ),
+      (
+        action: () => GoRouter.of(context).go('/create_teacher'),
+        text: 'Professor(a)'
+      ),
+      (
+        action: () => GoRouter.of(context).go('/create_enrollment'),
+        text: 'Inscrição'
+      ),
     ];
+    final List<Widget> createMenuItems = createTriggers
+        .map(
+          (destinationTrigger) => AppDefaultButton(
+            onTap: destinationTrigger.action,
+            child: Padding(
+              padding: EdgeInsets.only(left: 24.0),
+              child: Text(destinationTrigger.text),
+            ),
+          ),
+        )
+        .toList();
     final Widget createDestination = Builder(
       builder: (context) {
         return Column(
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(0.0, 8.0, 0.0, 24.0),
-              child: DefaultMenuTitle(title: createDestinationTitle),
+              child: AppDefaultMenuTitle(title: createDestinationTitle),
             ),
             Flexible(
               fit: FlexFit.tight,
-              child: ListView.separated(
-                itemBuilder: (context, index) => DefaultAppButton(
-                  onTap: createDestinations[index].action,
-                  child: Padding(
-                    padding: EdgeInsets.only(left: 24.0),
-                    child: Text(createDestinations[index].text),
-                  ),
-                ),
-                separatorBuilder: (context, index) => SizedBox(height: 16.0),
-                itemCount: createDestinations.length,
-              ),
+              child: AppDefaultMenuList(children: createMenuItems),
             ),
           ],
         );
-/*
-        return ListView(
-          children: [
-            Text(
-              createDestinationTitle,
-              maxLines: 1,
-              style: Theme.of(context).textTheme.headlineLarge,
-              overflow: TextOverflow.fade,
-            ),
-            _menuSpacer,
-            MenuItem(
-              onTap: () => GoRouter.of(context).go('/models_from_xlsx'),
-              child: Padding(
-                padding: EdgeInsets.only(left: 24.0),
-                child: Text('Ler do arquivo'),
-              ),
-            ),
-            _menuSpacer,
-            MenuItem(
-              onTap: () => GoRouter.of(context).go('/create_subject'),
-              child: const Padding(
-                padding: EdgeInsets.only(left: 24.0),
-                child: Text('Disciplina'),
-              ),
-            ),
-            _menuSpacer,
-            MenuItem(
-              onTap: () => GoRouter.of(context).go('/create_subject_class'),
-              child: const Padding(
-                padding: EdgeInsets.only(left: 24.0),
-                child: Text('Turma'),
-              ),
-            ),
-            _menuSpacer,
-            MenuItem(
-              onTap: () => GoRouter.of(context).go('/create_lesson'),
-              child: const Padding(
-                padding: EdgeInsets.only(left: 24.0),
-                child: Text('Aula'),
-              ),
-            ),
-            _menuSpacer,
-            MenuItem(
-              onTap: () => GoRouter.of(context).go('/create_student'),
-              child: const Padding(
-                padding: EdgeInsets.only(left: 24.0),
-                child: Text('Aluno(a)'),
-              ),
-            ),
-            _menuSpacer,
-            MenuItem(
-              onTap: () => GoRouter.of(context).go('/create_teacher'),
-              child: const Padding(
-                padding: EdgeInsets.only(left: 24.0),
-                child: Text('Professor(a)'),
-              ),
-            ),
-            _menuSpacer,
-            MenuItem(
-              onTap: () => GoRouter.of(context).go('/create_enrollment'),
-              child: const Padding(
-                padding: EdgeInsets.only(left: 24.0),
-                child: Text('Inscrição'),
-              ),
-            ),
-            _menuSpacer,
-          ],
-        );
- */
       },
     );
 
@@ -321,7 +185,7 @@ class _LandingScreenState extends State<LandingScreen> {
         label: createDestinationTitle,
       )
     ];
-    return DefaultAppScaffold(
+    return AppDefaultMenuScaffold(
       body: views[_currentViewIndex],
       bottomNavigationBar: NavigationBar(
         destinations: viewTriggers,
@@ -354,39 +218,92 @@ class _LandingScreenState extends State<LandingScreen> {
       );
 }
 
-class MenuItem extends StatelessWidget {
-  const MenuItem({
+class _AttendaceMonitorInfos extends StatelessWidget {
+  const _AttendaceMonitorInfos({
     super.key,
-    this.onTap,
-    required this.child,
-  });
+    required String subject,
+    required String subjectClass,
+    required String lesson,
+    void Function()? action,
+  })  : _subject = subject,
+        _subjectClass = subjectClass,
+        _lesson = lesson,
+        _action = action;
 
-  final void Function()? onTap;
-  final Widget child;
+  final String _subject;
+  final String _subjectClass;
+  final String _lesson;
+  final void Function()? _action;
 
   @override
   Widget build(BuildContext context) {
-    assert(debugCheckHasMaterial(context));
-    return Theme(
-      data: Theme.of(context).copyWith(
-        textTheme:
-            Theme.of(context).textTheme.copyWith().apply(fontSizeFactor: 1.2),
-      ),
-      child: FilledButton(
-        onPressed: onTap,
-        style: FilledButton.styleFrom(
-          shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.all(_menuBorderRadii),
-          ),
+    return SingleActionCard(
+      action: _action,
+      actionName: 'Selecionar',
+      children: [
+        Text(
+          'Aula selecionada',
+          style: Theme.of(context).textTheme.titleLarge,
         ),
-        child: Padding(
-          padding: _menuBtnPadding,
-          child: Align(
-            alignment: Alignment.centerLeft,
-            child: child,
-          ),
+        const SizedBox(height: 8.0),
+        Row(
+          children: [
+            Text(
+              'Disciplina:',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.only(left: 4.0),
+                child: Text(
+                  _subject,
+                  style: Theme.of(context).textTheme.labelMedium,
+                  overflow: TextOverflow.fade,
+                  softWrap: false,
+                ),
+              ),
+            ),
+          ],
         ),
-      ),
+        Row(
+          children: [
+            Text(
+              'Turma:',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.only(left: 4.0),
+                child: Text(
+                  _subjectClass,
+                  style: Theme.of(context).textTheme.labelMedium,
+                  overflow: TextOverflow.fade,
+                  softWrap: false,
+                ),
+              ),
+            ),
+          ],
+        ),
+        Row(
+          children: [
+            Text(
+              'Aula:',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.only(left: 4.0),
+                child: Text(
+                  _lesson,
+                  style: Theme.of(context).textTheme.labelMedium,
+                  overflow: TextOverflow.fade,
+                  softWrap: false,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 }

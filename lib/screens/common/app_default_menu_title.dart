@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-class DefaultMenuTitle extends StatelessWidget {
-  const DefaultMenuTitle({
+class AppDefaultMenuTitle extends StatelessWidget {
+  const AppDefaultMenuTitle({
     super.key,
     required String title,
   }) : _title = title;

@@ -31,7 +31,7 @@ class SingleActionCard extends StatelessWidget {
       margin: EdgeInsets.zero,
       elevation: 3.0,
       child: InkWell(
-        onTap: name != null ? action : null,
+        onTap: action,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-class DefaultAppScaffold extends StatelessWidget {
-  const DefaultAppScaffold({
+class AppDefaultMenuScaffold extends StatelessWidget {
+  const AppDefaultMenuScaffold({
     super.key,
     Widget? body,
     PreferredSizeWidget? appBar,

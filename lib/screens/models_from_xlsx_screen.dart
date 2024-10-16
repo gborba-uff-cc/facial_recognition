@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:facial_recognition/screens/common/card_single_action.dart';
-import 'package:facial_recognition/screens/common/default_app_button.dart';
+import 'package:facial_recognition/screens/common/app_default_button.dart';
 import 'package:facial_recognition/screens/common/selector.dart';
 import 'package:facial_recognition/screens/common/submit_form_button.dart';
 import 'package:facial_recognition/utils/project_logger.dart';
@@ -52,7 +52,7 @@ class _ModelsFromXlsxScreenState extends State<ModelsFromXlsxScreen> {
         padding: const EdgeInsets.all(8.0),
         child: ListView(
           children: [
-            DefaultAppButton(
+            AppDefaultButton(
               onTap: _handleXlsxFilePicking,
               child: Text('Selecionar arquivo'),
             ),
@@ -128,7 +128,7 @@ class _ModelsFromXlsxScreenState extends State<ModelsFromXlsxScreen> {
                 }
               },
             ),
-            DefaultAppButton(
+            AppDefaultButton(
               onTap: _spreadsheet == null
                   ? null
                   : () {

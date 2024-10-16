@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
-class DefaultAppButton extends StatelessWidget {
+class AppDefaultButton extends StatelessWidget {
   static const _menuBtnPadding  = EdgeInsets.all(16.0);
   static const _menuBorderRadii = Radius.circular(8.0);
 
-  const DefaultAppButton({
+  const AppDefaultButton({
     super.key,
     this.onTap,
     required this.child,
