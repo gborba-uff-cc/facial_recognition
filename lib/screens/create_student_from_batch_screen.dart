@@ -163,7 +163,9 @@ class _CreateStudentFromBatchScreenState extends State<CreateStudentFromBatchScr
           Padding(
             padding: EdgeInsets.only(top: 8.0, bottom: 24.0,),
             child: AppDefaultButton(
-              onTap: _spreadsheet == null || _selectedSheetName == null
+              onTap: _spreadsheet == null ||
+                      _selectedSheetName == null ||
+                      (_shouldEnroll && _selectedSubjectClass == null)
                   ? null
                   : () {
                     final s = _spreadsheet;
