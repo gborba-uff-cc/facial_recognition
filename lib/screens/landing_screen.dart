@@ -1,9 +1,6 @@
 import 'package:facial_recognition/interfaces.dart';
 import 'package:facial_recognition/models/domain.dart';
-import 'package:facial_recognition/screens/common/app_default_button.dart';
-import 'package:facial_recognition/screens/common/app_default_menu_list.dart';
-import 'package:facial_recognition/screens/common/app_default_menu_scaffold.dart';
-import 'package:facial_recognition/screens/common/app_default_menu_title.dart';
+import 'package:facial_recognition/screens/common/app_defaults.dart';
 import 'package:facial_recognition/screens/common/select_information_return.dart';
 import 'package:facial_recognition/screens/common/card_single_action.dart';
 import 'package:facial_recognition/utils/project_logger.dart';
@@ -89,35 +86,23 @@ class _LandingScreenState extends State<LandingScreen> {
           onTap: destinationTrigger.action,
           child: Padding(
             padding: EdgeInsets.only(left: 24.0),
-            child: Text(destinationTrigger.text),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text(destinationTrigger.text),
+            ),
           ),
         ),
       ),
     ];
     final Widget attendanceDestination = Builder(
       builder: (context) {
-        return Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(0.0, 8.0, 0.0, 24.0),
-              child: AppDefaultMenuTitle(title: attendanceDestinationTitle),
-            ),
-            Flexible(
-              fit: FlexFit.tight,
-              child: AppDefaultMenuList(children: attendanceMenuItems),
-            ),
-          ],
-        );
+        return AppDefaultMenuList(children: attendanceMenuItems);
       },
     );
 
     // Adicionar informacoes ---------------------------------------------------
     const String createDestinationTitle = 'Adicionar informações';
     final List<({void Function() action, String text})> createTriggers = [
-      (
-        action: () => GoRouter.of(context).go('/models_from_xlsx'),
-        text: 'Ler do arquivo',
-      ),
       (
         action: () => GoRouter.of(context).go('/create_subject'),
         text: 'Disciplina',
@@ -149,31 +134,23 @@ class _LandingScreenState extends State<LandingScreen> {
             onTap: destinationTrigger.action,
             child: Padding(
               padding: EdgeInsets.only(left: 24.0),
-              child: Text(destinationTrigger.text),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(destinationTrigger.text),
+              ),
             ),
           ),
         )
         .toList();
     final Widget createDestination = Builder(
       builder: (context) {
-        return Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(0.0, 8.0, 0.0, 24.0),
-              child: AppDefaultMenuTitle(title: createDestinationTitle),
-            ),
-            Flexible(
-              fit: FlexFit.tight,
-              child: AppDefaultMenuList(children: createMenuItems),
-            ),
-          ],
-        );
+        return AppDefaultMenuList(children: createMenuItems);
       },
     );
 
-    final views = <Widget>[
-      attendanceDestination,
-      createDestination,
+    final List<({String appBarTitle, Widget widget})> views = [
+      (appBarTitle: attendanceDestinationTitle, widget: attendanceDestination),
+      (appBarTitle: createDestinationTitle, widget: createDestination),
     ];
     final viewTriggers = <NavigationDestination>[
       const NavigationDestination(
@@ -186,7 +163,8 @@ class _LandingScreenState extends State<LandingScreen> {
       )
     ];
     return AppDefaultMenuScaffold(
-      body: views[_currentViewIndex],
+      appBar: AppDefaultAppBar(title: views[_currentViewIndex].appBarTitle),
+      body: views[_currentViewIndex].widget,
       bottomNavigationBar: NavigationBar(
         destinations: viewTriggers,
         selectedIndex: _currentViewIndex,

@@ -13,6 +13,8 @@ import 'package:facial_recognition/screens/attendance_summary_screen.dart';
 import 'package:facial_recognition/screens/camera_identification_screen.dart';
 import 'package:facial_recognition/screens/create_enrollment_screen.dart';
 import 'package:facial_recognition/screens/create_lesson_screen.dart';
+import 'package:facial_recognition/screens/create_student_from_batch_screen.dart';
+import 'package:facial_recognition/screens/create_student_menu_screen.dart';
 import 'package:facial_recognition/screens/create_student_screen.dart';
 import 'package:facial_recognition/screens/create_subject_class_screen.dart';
 import 'package:facial_recognition/screens/create_subject_screen.dart';
@@ -21,10 +23,10 @@ import 'package:facial_recognition/screens/fast_view.dart';
 import 'package:facial_recognition/screens/grid_student_selector_screen.dart';
 import 'package:facial_recognition/screens/landing_screen.dart';
 import 'package:facial_recognition/screens/mark_attendance_screen.dart';
-import 'package:facial_recognition/screens/models_from_xlsx_screen.dart';
 import 'package:facial_recognition/screens/common/one_shot_camera.dart';
 import 'package:facial_recognition/screens/select_information_screen.dart';
 import 'package:facial_recognition/use_case/attendance_summary.dart';
+import 'package:facial_recognition/use_case/batch_read.dart';
 import 'package:facial_recognition/use_case/camera_identification.dart';
 import 'package:facial_recognition/use_case/create_models.dart';
 import 'package:facial_recognition/use_case/mark_attendance.dart';
@@ -155,7 +157,7 @@ class MainApp extends StatelessWidget {
     return MaterialApp.router(
       theme: ThemeData(useMaterial3: true),
       routerConfig: GoRouter(
-        initialLocation: '/',
+        initialLocation: '/create_student_batch_read',
         routes: [
           GoRoute(
             path: '/',
@@ -217,20 +219,6 @@ class MainApp extends StatelessWidget {
                   ),
                 ),
               ),
-/*
-              GoRoute(
-                path: 'create_models',
-                builder: (context, state) => CreateModelsScreen(
-                  useCase: CreateModels(domainRepository),
-                ),
-              ),
-*/
-              GoRoute(
-                path: 'models_from_xlsx',
-                builder: (context, state) => ModelsFromXlsxScreen(
-                  useCase: createModels,
-                ),
-              ),
               GoRoute(
                 path: 'create_subject',
                 builder: (context, state) => CreateSubjectScreen(
@@ -251,8 +239,19 @@ class MainApp extends StatelessWidget {
               ),
               GoRoute(
                 path: 'create_student',
+                builder: (context, state) => CreateStudentMenuScreen(),
+              ),
+              GoRoute(
+                path: 'create_student_manually',
                 builder: (context, state) => CreateStudentScreen(
                   useCase: createModels,
+                ),
+              ),
+              GoRoute(
+                path: 'create_student_batch_read',
+                builder: (context, state) => CreateStudentFromBatchScreen(
+                  batchReadUseCase: BatchRead(),
+                  createModelsUseCase: createModels,
                 ),
               ),
               GoRoute(

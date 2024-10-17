@@ -189,6 +189,7 @@ class CreateModels {
     return pkg_image.encodeJpg(image);
   }
 
+  /// throws an [ArgumentError]
   void createStudent({
     required String individualRegistration,
     required String registration,
@@ -221,6 +222,80 @@ class CreateModels {
     );
     _domainRepository.addIndividual([i]);
     _domainRepository.addStudent([student]);
+  }
+
+  /// returns all the students that already exist
+  List<({
+    String individualRegistration,
+    String name,
+    String registration,
+    String? surname
+  })> createStudents(
+    Iterable<({
+      String individualRegistration,
+      String registration,
+      String name,
+      String? surname
+    })> entries
+  ) {
+    if (entries.isEmpty) {
+      return const [];
+    }
+    final List<Individual> individuals = [];
+    final List<Student> stdudents = [];
+/*
+    final List<
+        ({
+          String registration,
+          String individualRegistration,
+          String name,
+          String? surname
+        })> existing = [];
+    final List<
+        ({
+          String registration,
+          String individualRegistration,
+          String name,
+          String? surname
+        })> notExisting = [];
+    final existingStudent = _domainRepository.getStudentFromRegistration(
+      entries
+          .map(
+            (e) => e.registration,
+          )
+          .toList(),
+    );
+    final existingIndividual = _domainRepository.getIndividualFromRegistration(
+      entries
+          .map(
+            (e) => e.registration,
+          )
+          .toList(),
+    );
+    for (final entry in entries) {
+      if (existingStudent.containsKey(entry.registration) ||
+          existingIndividual.containsKey(entry.individualRegistration)) {
+        existing.add(entry);
+      } else {
+        notExisting.add(entry);
+      }
+    }
+    for (var entry in notExisting) {
+      final i = Individual(individualRegistration: entry.individualRegistration, name: entry.name, surname: entry.surname,);
+      final s = Student(registration: entry.registration, individual: i);
+      individuals.add(i);
+      stdudents.add(s);
+    }
+*/
+    for (var entry in entries) {
+      final i = Individual(individualRegistration: entry.individualRegistration, name: entry.name, surname: entry.surname,);
+      final s = Student(registration: entry.registration, individual: i);
+      individuals.add(i);
+      stdudents.add(s);
+    }
+    _domainRepository.addIndividual(individuals);
+    _domainRepository.addStudent(stdudents);
+    return const [];
   }
 
   void createStudentFacePicture({
@@ -294,5 +369,41 @@ class CreateModels {
           subjectClass: subjectClass,);
       _domainRepository.addEnrollment([enrollment]);
     }
+  }
+
+  List<String> createEnrollments({
+    required Iterable<String> registrationOfStudent,
+    required String year,
+    required String semester,
+    required String codeOfSubject,
+    required String name,
+  }) {
+    if (registrationOfStudent.isEmpty) {
+      return const [];
+    }
+    final subjectClass = _domainRepository.getSubjectClass(
+      year: int.parse(year),
+      semester: int.parse(semester),
+      subjectCode: codeOfSubject,
+      name: name,
+    );
+    if (subjectClass == null) {
+      return registrationOfStudent.toList(growable: false);
+    }
+    final students = _domainRepository.getStudentFromRegistration(
+      registrationOfStudent,
+    );
+    final List<Enrollment> enrollments = [];
+    for (final value in students.values) {
+      if (value == null) {
+        continue;
+      }
+      enrollments.add(Enrollment(
+        student: value,
+        subjectClass: subjectClass,
+      ));
+    }
+    _domainRepository.addEnrollment(enrollments);
+    return const [];
   }
 }
