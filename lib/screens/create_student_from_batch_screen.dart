@@ -1,6 +1,8 @@
 import 'package:facial_recognition/models/domain.dart';
 import 'package:facial_recognition/screens/common/app_defaults.dart';
+import 'package:facial_recognition/screens/common/card_single_action.dart';
 import 'package:facial_recognition/screens/common/excel_picker_button.dart';
+import 'package:facial_recognition/screens/common/select_information_return.dart';
 import 'package:facial_recognition/screens/common/selector.dart';
 import 'package:facial_recognition/use_case/batch_read.dart';
 import 'package:facial_recognition/utils/project_logger.dart';
@@ -8,6 +10,7 @@ import 'package:excel/excel.dart' as pkg_excel;
 import 'package:cross_file/cross_file.dart' as pkg_xfile;
 import 'package:facial_recognition/use_case/create_models.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 class CreateStudentFromBatchScreen extends StatefulWidget {
   const CreateStudentFromBatchScreen({
@@ -127,27 +130,23 @@ class _CreateStudentFromBatchScreenState extends State<CreateStudentFromBatchScr
               ),
             ],
           ),
-          Selector<Subject>(
-            options: [],
-            selectedOption: _selectedSubject,
-            toWidget: (item) {
-              if (item == null) {
-                return Text('selecione a disciplina');
-              }
-              else {
-                // TODO
-                return Placeholder();
-              }
-            },
-            onChanged: _shouldEnroll
-                ? (item) {
-                    if (mounted) {
-                      setState(() {
-                        _selectedSubject = item;
-                      });
-                    }
-                  }
-                : null,
+          _SubjectClassInfo(
+            subject: _selectedSubject?.name ?? '',
+            subjectClass: _selectedSubjectClass?.name ?? '',
+            action: !_shouldEnroll
+                ? null
+                : () async {
+                    final aux = await GoRouter.of(context)
+                        .push<SelectInformationReturn>('/select_information?hideLesson=true');
+                    setState(() {
+                      if (aux == null) {
+                        projectLogger.severe(
+                            "a value weren't returned from /select_information");
+                      }
+                      _selectedSubject = aux?.subject;
+                      _selectedSubjectClass = aux?.subjectClass;
+                    });
+                  },
           ),
         ],
       ),
@@ -228,5 +227,71 @@ class _CreateStudentFromBatchScreenState extends State<CreateStudentFromBatchScr
         name: subjectClass.name,
       );
     }
+  }
+}
+
+class _SubjectClassInfo extends StatelessWidget {
+  const _SubjectClassInfo({
+    super.key,
+    required this.subject,
+    required this.subjectClass,
+    this.action,
+  });
+
+  final String subject;
+  final String subjectClass;
+  final void Function()? action;
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleActionCard(
+      action: action,
+      actionName: 'Selecionar',
+      children: [
+        Text(
+          'Turma selecionada',
+          style: Theme.of(context).textTheme.titleLarge,
+        ),
+        const SizedBox(height: 8.0),
+        Row(
+          children: [
+            Text(
+              'Disciplina:',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.only(left: 4.0),
+                child: Text(
+                  subject,
+                  style: Theme.of(context).textTheme.labelMedium,
+                  overflow: TextOverflow.fade,
+                  softWrap: false,
+                ),
+              ),
+            ),
+          ],
+        ),
+        Row(
+          children: [
+            Text(
+              'Turma:',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.only(left: 4.0),
+                child: Text(
+                  subjectClass,
+                  style: Theme.of(context).textTheme.labelMedium,
+                  overflow: TextOverflow.fade,
+                  softWrap: false,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
   }
 }

@@ -178,9 +178,14 @@ class MainApp extends StatelessWidget {
               GoRoute(
                 path: 'select_information',
                 builder: (context, state) => SelectInformationScreen(
-                    useCase: SelectLesson(
-                  domainRepository,
-                )),
+                  useCase: SelectLesson(
+                    domainRepository,
+                  ),
+                  hideLesson:
+                      state.uri.queryParameters['hideLesson'] == '${true}',
+                  hideSubjectClasses:
+                      state.uri.queryParameters['hideSubjectClass'] == '${true}',
+                ),
               ),
               GoRoute(
                 path: 'camera_view',
