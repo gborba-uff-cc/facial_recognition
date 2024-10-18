@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 class SingleActionCard extends StatelessWidget {
   const SingleActionCard({
     super.key,
-    required this.children,
+    required this.child,
     String? actionName,
     void Function()? action,
   })  : _actionName = actionName,
@@ -11,7 +11,7 @@ class SingleActionCard extends StatelessWidget {
 
   static const _menuBtnPadding = EdgeInsets.all(16.0);
   static const _menuBorderRadii = Radius.circular(8.0);
-  final List<Widget> children;
+  final Widget child;
   final String? _actionName;
   final void Function()? _action;
 
@@ -38,10 +38,7 @@ class SingleActionCard extends StatelessWidget {
             Padding(
               padding:
                   const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: children,
-              ),
+              child: child,
             ),
             if (name != null)
               Container(

@@ -218,70 +218,73 @@ class _AttendaceMonitorInfos extends StatelessWidget {
     return SingleActionCard(
       action: _action,
       actionName: 'Selecionar',
-      children: [
-        Text(
-          'Aula selecionada',
-          style: Theme.of(context).textTheme.titleLarge,
-        ),
-        const SizedBox(height: 8.0),
-        Row(
-          children: [
-            Text(
-              'Disciplina:',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.only(left: 4.0),
-                child: Text(
-                  _subject,
-                  style: Theme.of(context).textTheme.labelMedium,
-                  overflow: TextOverflow.fade,
-                  softWrap: false,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            'Aula selecionada',
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
+          const SizedBox(height: 8.0),
+          Row(
+            children: [
+              Text(
+                'Disciplina:',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.only(left: 4.0),
+                  child: Text(
+                    _subject,
+                    style: Theme.of(context).textTheme.labelMedium,
+                    overflow: TextOverflow.fade,
+                    softWrap: false,
+                  ),
                 ),
               ),
-            ),
-          ],
-        ),
-        Row(
-          children: [
-            Text(
-              'Turma:',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.only(left: 4.0),
-                child: Text(
-                  _subjectClass,
-                  style: Theme.of(context).textTheme.labelMedium,
-                  overflow: TextOverflow.fade,
-                  softWrap: false,
+            ],
+          ),
+          Row(
+            children: [
+              Text(
+                'Turma:',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.only(left: 4.0),
+                  child: Text(
+                    _subjectClass,
+                    style: Theme.of(context).textTheme.labelMedium,
+                    overflow: TextOverflow.fade,
+                    softWrap: false,
+                  ),
                 ),
               ),
-            ),
-          ],
-        ),
-        Row(
-          children: [
-            Text(
-              'Aula:',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.only(left: 4.0),
-                child: Text(
-                  _lesson,
-                  style: Theme.of(context).textTheme.labelMedium,
-                  overflow: TextOverflow.fade,
-                  softWrap: false,
+            ],
+          ),
+          Row(
+            children: [
+              Text(
+                'Aula:',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.only(left: 4.0),
+                  child: Text(
+                    _lesson,
+                    style: Theme.of(context).textTheme.labelMedium,
+                    overflow: TextOverflow.fade,
+                    softWrap: false,
+                  ),
                 ),
               ),
-            ),
-          ],
-        ),
-      ],
+            ],
+          ),
+        ],
+      ),
     );
   }
 }
