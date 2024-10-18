@@ -4,6 +4,7 @@ import 'package:facial_recognition/screens/common/select_information_return.dart
 import 'package:facial_recognition/screens/common/selector.dart';
 import 'package:facial_recognition/use_case/select_lesson.dart';
 import 'package:facial_recognition/utils/project_logger.dart';
+import 'package:facial_recognition/utils/ui.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -126,9 +127,8 @@ class _SelectInformationScreenState extends State<SelectInformationScreen> {
               if (item == null) {
                 return const Text('selecione uma aula');
               } else {
-                final localDateTime = item.utcDateTime;
-                final showDateTime = MaterialLocalizations.of(context)
-                    .formatCompactDate(localDateTime);
+                final localDateTime = item.utcDateTime.toLocal();
+                  final showDateTime = dateTimeToString(localDateTime);
                 return Text(showDateTime);
               }
             },

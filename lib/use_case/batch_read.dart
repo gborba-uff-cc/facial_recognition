@@ -20,6 +20,24 @@ class BatchRead {
     };
   }
 
+  DateTime? _getLocalDateTimeValue(final pkg_excel.Data? cell) {
+    if (cell == null) {
+      return null;
+    }
+    final pkg_excel.CellValue? aValue = cell.value;
+    return switch (aValue) {
+      null => null,
+      pkg_excel.TextCellValue() => DateTime.tryParse(aValue.value.text ?? ''),
+      pkg_excel.FormulaCellValue() => null,
+      pkg_excel.IntCellValue() => null,
+      pkg_excel.BoolCellValue() => null,
+      pkg_excel.DoubleCellValue() => null,
+      pkg_excel.DateCellValue() => null,
+      pkg_excel.TimeCellValue() => null,
+      pkg_excel.DateTimeCellValue() => aValue.asDateTimeLocal()
+    };
+  }
+
   List<({String registration, String individualRegistration, String name, String? surname})> readStudents({
     required final pkg_excel.Sheet sheet,
     final int skipRowsCount = 0,
@@ -51,6 +69,26 @@ class BatchRead {
           surname: null
         ),
       );
+    }
+    return result;
+  }
+
+  List<DateTime> readLessons({
+    required final pkg_excel.Sheet sheet,
+    final int skipRowsCount = 0,
+  }) {
+    if (sheet.maxColumns<2) {
+      return const [];
+    }
+    final List<DateTime> result = [];
+    for (int rowIndex=skipRowsCount; rowIndex<sheet.maxRows; rowIndex++) {
+      final row = sheet.row(rowIndex);
+      final localDateTime = _getLocalDateTimeValue(row[0]);
+      final utcDateTime = localDateTime?.toUtc();
+      if (utcDateTime == null) {
+        continue;
+      }
+      result.add(utcDateTime);
     }
     return result;
   }

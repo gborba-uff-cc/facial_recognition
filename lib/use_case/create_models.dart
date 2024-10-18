@@ -60,6 +60,43 @@ class CreateModels {
     _domainRepository.addLesson([lesson]);
   }
 
+  void createLessons({
+    required String codeOfSubject,
+    required String yearOfSubjectClass,
+    required String semesterOfSubjectClass,
+    required String nameOfSubjectClass,
+    required String registrationOfTeacher,
+    required Iterable<String> utcDateTime,
+  }) {
+    final s =
+        _domainRepository.getSubjectFromCode([codeOfSubject])[codeOfSubject];
+    final t = _domainRepository.getTeacherFromRegistration(
+        [registrationOfTeacher])[registrationOfTeacher];
+    if (s == null) {
+      throw ArgumentError('not found', 'codeOfSubject');
+    }
+    if (t == null) {
+      throw ArgumentError('not found', 'registrationOfTeacher');
+    }
+    final sC = SubjectClass(
+      subject: s,
+      year: int.parse(yearOfSubjectClass),
+      semester: int.parse(semesterOfSubjectClass),
+      name: nameOfSubjectClass,
+      teacher: t,
+    );
+    final List<Lesson> lessons = [];
+    for (final value in utcDateTime) {
+      final aux = Lesson(
+        subjectClass: sC,
+        utcDateTime: DateTime.parse(value),
+        teacher: t,
+      );
+      lessons.add(aux);
+    }
+    _domainRepository.addLesson(lessons);
+  }
+
   void createSubjectClass({
     required String codeOfSubject,
     required String registrationOfTeacher,

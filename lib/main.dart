@@ -12,6 +12,8 @@ import 'package:facial_recognition/models/recognition_pipeline.dart';
 import 'package:facial_recognition/screens/attendance_summary_screen.dart';
 import 'package:facial_recognition/screens/camera_identification_screen.dart';
 import 'package:facial_recognition/screens/create_enrollment_screen.dart';
+import 'package:facial_recognition/screens/create_lesson_from_batch_screen.dart';
+import 'package:facial_recognition/screens/create_lesson_menu_screen.dart';
 import 'package:facial_recognition/screens/create_lesson_screen.dart';
 import 'package:facial_recognition/screens/create_student_from_batch_screen.dart';
 import 'package:facial_recognition/screens/create_student_menu_screen.dart';
@@ -157,7 +159,7 @@ class MainApp extends StatelessWidget {
     return MaterialApp.router(
       theme: ThemeData(useMaterial3: true),
       routerConfig: GoRouter(
-        initialLocation: '/create_student_batch_read',
+        initialLocation: '/',
         routes: [
           GoRoute(
             path: '/',
@@ -238,8 +240,19 @@ class MainApp extends StatelessWidget {
               ),
               GoRoute(
                 path: 'create_lesson',
+                builder: (context, state) => CreateLessonMenuScreen(),
+              ),
+              GoRoute(
+                path: 'create_lesson_manually',
                 builder: (context, state) => CreateLessonScreen(
                   useCase: createModels,
+                ),
+              ),
+              GoRoute(
+                path: 'create_lesson_batch_read',
+                builder: (context, state) => CreateLessonFromBatchScreen(
+                  batchReadUseCase: BatchRead(),
+                  createModelsUseCase: createModels,
                 ),
               ),
               GoRoute(
