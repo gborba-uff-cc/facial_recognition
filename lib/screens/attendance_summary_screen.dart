@@ -1,5 +1,6 @@
 import 'package:facial_recognition/models/domain.dart';
 import 'package:facial_recognition/screens/common/app_defaults.dart';
+import 'package:facial_recognition/screens/common/card_single_action.dart';
 import 'package:facial_recognition/use_case/attendance_summary.dart';
 import 'package:facial_recognition/utils/ui.dart';
 import 'package:flutter/material.dart';
@@ -11,6 +12,7 @@ class AttendanceSummaryScreen extends StatelessWidget {
   });
 
   final AttendanceSummary useCase;
+  static const double attendanceMinimumRatio = 0.7;
 
   @override
   Widget build(BuildContext context) {
@@ -120,64 +122,18 @@ class AttendanceSummaryScreen extends StatelessWidget {
                     itemBuilder: (context, index) {
                       final element = classAttendance.elementAt(index);
                       final picture = pictureOfFaces[element.key];
-                      final leadingWidget = picture == null
-                          ? const Icon(Icons.person)
-                          : Image.memory(
-                              picture.faceJpeg,
-                              fit: BoxFit.cover,
-                            );
-                      final textTheme = Theme.of(context).textTheme;
-                      const cardHeight = 100.0;
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 8.0),
-                        child: ConstrainedBox(
-                          constraints: BoxConstraints.loose(
-                            const Size.fromHeight(cardHeight),
-                          ),
-                          child: CustomTile(
-                            leading: AspectRatio(
-                              aspectRatio: 1,
-                              child: leadingWidget,
-                            ),
-                            title: Padding(
-                              padding:
-                                  const EdgeInsets.fromLTRB(8.0, 4.0, 8.0, 0.0),
-                              child: Align(
-                                alignment: Alignment.centerLeft,
-                                child: Text(
-                                  element.key.individual.displayFullName,
-                                  style: textTheme.titleMedium,
-                                ),
-                              ),
-                            ),
-                            subtitle: Padding(
-                              padding:
-                                  const EdgeInsets.fromLTRB(8.0, 0.0, 8.0, 4.0),
-                              child: Align(
-                                alignment: Alignment.centerLeft,
-                                child: Text(
-                                  element.key.registration,
-                                ),
-                              ),
-                            ),
-                            trailing: SizedBox(
-                              width: 60.0,
-                              height: cardHeight,
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Text(
-                                    element.value.length.toString(),
-                                    style: textTheme.headlineSmall,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.clip,
-                                    textAlign: TextAlign.center,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
+                      final presenceCount = element.value.length;
+                      return NewTile(
+                        faceJpeg: picture?.faceJpeg,
+                        studentName: element.key.individual.displayFullName,
+                        studentRegistration: element.key.registration,
+                        absentOnLastLesson: lastLesson == null
+                            ? false
+                            : !element.value.map((e) => e.lesson,).contains(lastLesson),
+                        absentCount: nPastLessons - presenceCount,
+                        presenceCount: presenceCount,
+                        attendanceRatio: presenceCount/nPastLessons,
+                        attendanceMinimumRatio: attendanceMinimumRatio,
                       );
                     },
                   ),
@@ -217,6 +173,117 @@ class CustomTile extends StatelessWidget {
           ),
           if (trailing != null) trailing!,
         ],
+      ),
+    );
+  }
+}
+
+class NewTile extends StatelessWidget {
+  const NewTile({
+    super.key,
+    required this.faceJpeg,
+    required this.studentName,
+    required this.studentRegistration,
+    required this.absentOnLastLesson,
+    required this.absentCount,
+    required this.presenceCount,
+    required this.attendanceRatio,
+    required this.attendanceMinimumRatio,
+  });
+
+  final JpegPictureBytes? faceJpeg;
+  final String studentName;
+  final String studentRegistration;
+  final bool absentOnLastLesson;
+  final int absentCount;
+  final int presenceCount;
+  final double attendanceRatio;
+  final double attendanceMinimumRatio;
+
+  @override
+  Widget build(BuildContext context) {
+    final jpeg = faceJpeg;
+    final absentCount = this.absentCount;
+    final titleMediumTheme = Theme.of(context).textTheme.titleMedium;
+    final titleLargeTheme = Theme.of(context).textTheme.titleLarge;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16.0),
+      child: SingleActionCard(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              studentName,
+              style: titleLargeTheme,
+            ),
+            Text(
+              'Matrícula: $studentRegistration',
+              style: titleMediumTheme,
+            ),
+            Divider(),
+            Row(
+              children: [
+                Flexible(
+                  fit: FlexFit.tight,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                          color: DividerTheme.of(context).color ??
+                              Theme.of(context).dividerColor),
+                    ),
+                    position: DecorationPosition.foreground,
+                    child: AspectRatio(
+                      aspectRatio: 2/2,
+                      child: jpeg == null
+                          ? const Icon(Icons.person)
+                          : Image.memory(
+                              jpeg,
+                              fit: BoxFit.cover,
+                            ),
+                    ),
+                  ),
+                ),
+                Flexible(
+                  fit: FlexFit.tight,
+                  child: Padding(
+                    padding: const EdgeInsets.only(left: 16.0),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Ausência: $absentCount',
+                          style: titleMediumTheme,
+                        ),
+                        Text(
+                          'Presença: $presenceCount',
+                          style: titleMediumTheme,
+                        ),
+                        Text(
+                          'Frequência: ${(attendanceRatio*100).toInt()}%',
+                          style: titleMediumTheme,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            Divider(),
+            Align(
+              alignment: Alignment.center,
+              child: Text(
+                attendanceRatio < attendanceMinimumRatio
+                    ? 'Frequência insuficiente'
+                    : absentOnLastLesson
+                        ? 'Ausente'
+                        : 'Presente',
+                style: titleLargeTheme,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
