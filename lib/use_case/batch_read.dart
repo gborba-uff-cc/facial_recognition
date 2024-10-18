@@ -24,7 +24,7 @@ class BatchRead {
     required final pkg_excel.Sheet sheet,
     final int skipRowsCount = 0,
   }) {
-    if (sheet.maxColumns<4) {
+    if (sheet.maxColumns<2) {
       return const [];
     }
     final List<
