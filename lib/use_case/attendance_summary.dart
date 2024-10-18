@@ -103,6 +103,8 @@ class AttendanceSummary {
   int get nAbsentsLastLesson => _absentsLastLesson.length;
   Map<Student, List<Attendance>> get classAttendance => _attendances;
   Map<Student, FacePicture?> get studentsFaceImage => _studentsFaceImage;
+  List<Lesson> get pastLessons => _pastLessons;
+  int get nInsufficiencyAttendanceRatio => 0;
 
   static int _sortLessonsByDateTime(Lesson a, Lesson b) {
     return a.utcDateTime.compareTo(b.utcDateTime);

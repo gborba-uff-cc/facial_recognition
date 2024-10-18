@@ -19,9 +19,11 @@ class AttendanceSummaryScreen extends StatelessWidget {
     final classAttendance = useCase.classAttendance.entries;
     final nRegisteredLessons = useCase.nRegisteredLessons;
     final nPastLessons = useCase.nPastLessons;
+    final pastLessons = useCase.pastLessons;
     final lastLesson = useCase.lastLesson;
     final nAbsentsLastLesson = useCase.nAbsentsLastLesson;
     final pictureOfFaces = useCase.studentsFaceImage;
+    final nInsufficiency = useCase.nInsufficiencyAttendanceRatio;
     return AppDefaultMenuScaffold(
       appBar: AppDefaultAppBar(title: 'Presenças'),
       body: Column(
@@ -33,6 +35,23 @@ class AttendanceSummaryScreen extends StatelessWidget {
               'Resumo',
               style: Theme.of(context).textTheme.titleLarge,
             ),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Insuficiências',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              Padding(
+                padding: const EdgeInsets.only(left: 16.0),
+                child: Text(
+                  '$nInsufficiency aluno${nInsufficiency == 1 ? '' : 's'}(a${nInsufficiency == 1 ? '' : 's'}) com frequência insuficiente',
+                  style: Theme.of(context).textTheme.titleSmall,
+                ),
+              ),
+            ],
           ),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -64,7 +83,7 @@ class AttendanceSummaryScreen extends StatelessWidget {
                 child: Text(
                   lastLesson == null
                       ? 'Nenhuma aula ministrada'
-                      :  'Aula em ${dateTimeToString(lastLesson.utcDateTime.toLocal())}',
+                      : 'Aula em ${dateTimeToString(lastLesson.utcDateTime.toLocal())}',
                   style: Theme.of(context).textTheme.titleSmall,
                 ),
               ),
@@ -123,17 +142,48 @@ class AttendanceSummaryScreen extends StatelessWidget {
                       final element = classAttendance.elementAt(index);
                       final picture = pictureOfFaces[element.key];
                       final presenceCount = element.value.length;
-                      return NewTile(
+                      return _SummaryTile(
+                        key: ObjectKey(element.key),
                         faceJpeg: picture?.faceJpeg,
                         studentName: element.key.individual.displayFullName,
                         studentRegistration: element.key.registration,
                         absentOnLastLesson: lastLesson == null
                             ? false
-                            : !element.value.map((e) => e.lesson,).contains(lastLesson),
+                            : !element.value
+                                .map(
+                                  (e) => e.lesson,
+                                )
+                                .contains(lastLesson),
                         absentCount: nPastLessons - presenceCount,
                         presenceCount: presenceCount,
-                        attendanceRatio: presenceCount/nPastLessons,
+                        attendanceRatio: presenceCount / nPastLessons,
                         attendanceMinimumRatio: attendanceMinimumRatio,
+                        onTap: () => showDialog(
+                            context: context,
+                            builder: (context) {
+                              final lessonsAttended = element.value
+                                  .map(
+                                    (e) => e.lesson,
+                                  )
+                                  .toList();
+                              final lessonsNotAttended = (List.of(pastLessons)
+                                    ..removeWhere(
+                                      (element) =>
+                                          lessonsAttended.contains(element),
+                                    ))
+                                  .toList();
+                              return _SummaryDetailedDialog(
+                                faceJpeg: picture?.faceJpeg,
+                                studentName:
+                                    element.key.individual.displayFullName,
+                                studentRegistration: element.key.registration,
+                                absentCount: nPastLessons - presenceCount,
+                                presenceCount: presenceCount,
+                                attendanceRatio: presenceCount / nPastLessons,
+                                lessonsAttended: lessonsAttended,
+                                lessonsNotAttended: lessonsNotAttended,
+                              );
+                            }),
                       );
                     },
                   ),
@@ -144,42 +194,8 @@ class AttendanceSummaryScreen extends StatelessWidget {
   }
 }
 
-class CustomTile extends StatelessWidget {
-  const CustomTile({super.key, this.leading, this.title, this.subtitle, this.trailing});
-
-  final Widget? leading;
-  final Widget? title;
-  final Widget? subtitle;
-  final Widget? trailing;
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      margin: EdgeInsets.zero,
-      shape: const BeveledRectangleBorder(),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          if (leading != null) leading!,
-          Flexible(
-            fit: FlexFit.tight,
-            child: Column(
-              // mainAxisSize: MainAxisSize.min,
-              children: [
-                if (title != null) title!,
-                if (subtitle != null) subtitle!,
-              ],
-            ),
-          ),
-          if (trailing != null) trailing!,
-        ],
-      ),
-    );
-  }
-}
-
-class NewTile extends StatelessWidget {
-  const NewTile({
+class _SummaryTile extends StatelessWidget {
+  const _SummaryTile({
     super.key,
     required this.faceJpeg,
     required this.studentName,
@@ -189,6 +205,7 @@ class NewTile extends StatelessWidget {
     required this.presenceCount,
     required this.attendanceRatio,
     required this.attendanceMinimumRatio,
+    this.onTap,
   });
 
   final JpegPictureBytes? faceJpeg;
@@ -199,6 +216,7 @@ class NewTile extends StatelessWidget {
   final int presenceCount;
   final double attendanceRatio;
   final double attendanceMinimumRatio;
+  final void Function()? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -209,6 +227,7 @@ class NewTile extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16.0),
       child: SingleActionCard(
+        action: onTap,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -234,7 +253,7 @@ class NewTile extends StatelessWidget {
                     ),
                     position: DecorationPosition.foreground,
                     child: AspectRatio(
-                      aspectRatio: 2/2,
+                      aspectRatio: 2 / 2,
                       child: jpeg == null
                           ? const Icon(Icons.person)
                           : Image.memory(
@@ -261,7 +280,7 @@ class NewTile extends StatelessWidget {
                           style: titleMediumTheme,
                         ),
                         Text(
-                          'Frequência: ${(attendanceRatio*100).toInt()}%',
+                          'Frequência: ${(attendanceRatio * 100).toInt()}%',
                           style: titleMediumTheme,
                         ),
                       ],
@@ -282,6 +301,105 @@ class NewTile extends StatelessWidget {
                 style: titleLargeTheme,
               ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SummaryDetailedDialog extends StatelessWidget {
+  const _SummaryDetailedDialog({
+    super.key,
+    required this.faceJpeg,
+    required this.studentName,
+    required this.studentRegistration,
+    required this.absentCount,
+    required this.presenceCount,
+    required this.attendanceRatio,
+    required this.lessonsAttended,
+    required this.lessonsNotAttended,
+  });
+
+  final JpegPictureBytes? faceJpeg;
+  final String studentName;
+  final String studentRegistration;
+  final int absentCount;
+  final int presenceCount;
+  final double attendanceRatio;
+  final List<Lesson> lessonsAttended;
+  final List<Lesson> lessonsNotAttended;
+
+  @override
+  Widget build(BuildContext context) {
+    final jpeg = faceJpeg;
+    final absentCount = this.absentCount;
+    final titleMediumTheme = Theme.of(context).textTheme.titleMedium;
+    final titleLargeTheme = Theme.of(context).textTheme.titleLarge;
+
+    return Dialog(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 16.0),
+        child: ListView(
+          children: [
+            Text(
+              studentName,
+              style: titleLargeTheme,
+            ),
+            Text(
+              'Matrícula: $studentRegistration',
+              style: titleMediumTheme,
+            ),
+            DecoratedBox(
+              decoration: BoxDecoration(
+                border: Border.all(
+                    color: DividerTheme.of(context).color ??
+                        Theme.of(context).dividerColor),
+              ),
+              position: DecorationPosition.foreground,
+              child: AspectRatio(
+                aspectRatio: 2 / 2,
+                child: jpeg == null
+                    ? const Icon(Icons.person)
+                    : Image.memory(
+                        jpeg,
+                        fit: BoxFit.cover,
+                      ),
+              ),
+            ),
+            ListTile(title: Center(child: Text('Frequência: ${(attendanceRatio * 100).toInt()}%')),),
+            ExpansionTile(
+              initiallyExpanded: false,
+              title: Text('Ausência: $absentCount'),
+              children: lessonsNotAttended
+                  .map(
+                    (e) => Padding(
+                      padding: const EdgeInsets.only(bottom: 8.0),
+                      child: Text(
+                        dateTimeToString(
+                          e.utcDateTime.toLocal(),
+                        ),
+                      ),
+                    ),
+                  )
+                  .toList(),
+            ),
+            ExpansionTile(
+              initiallyExpanded: false,
+              title: Text('Presença: $presenceCount'),
+              children: lessonsAttended
+                  .map(
+                    (e) => Padding(
+                      padding: const EdgeInsets.only(bottom: 8.0),
+                      child: Text(
+                        dateTimeToString(
+                          e.utcDateTime.toLocal(),
+                        ),
+                      ),
+                    ),
+                  )
+                  .toList(),
+            )
           ],
         ),
       ),
