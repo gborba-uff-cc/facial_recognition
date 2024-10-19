@@ -221,8 +221,9 @@ class MainApp extends StatelessWidget {
                 path: 'attendance_summary',
                 builder: (context, state) => AttendanceSummaryScreen(
                   useCase: AttendanceSummary(
-                    domainRepository,
-                    state.extra as SubjectClass,
+                    domainRepository: domainRepository,
+                    subjectClass: state.extra as SubjectClass,
+                    minimumAttendanceRatio: 0.75,
                   ),
                 ),
               ),

@@ -2,10 +2,11 @@ import 'package:facial_recognition/interfaces.dart';
 import 'package:facial_recognition/models/domain.dart';
 
 class AttendanceSummary {
-  factory AttendanceSummary(
-    IDomainRepository domainRepository,
-    SubjectClass subjectClass,
-  ) {
+  factory AttendanceSummary({
+    required IDomainRepository domainRepository,
+    required SubjectClass subjectClass,
+    required double minimumAttendanceRatio,
+  }) {
     final theAttendances = domainRepository
         .getSubjectClassAttendance([subjectClass])[subjectClass]!;
     final attendances = Map<Student, List<Attendance>>.unmodifiable(
@@ -63,6 +64,7 @@ class AttendanceSummary {
       lastLesson: lastLesson,
       absentsLastLesson: absentsLastLesson,
       studentsFaceImage: studentsFaceImage,
+      minimumAttendanceRatio: minimumAttendanceRatio,
     );
   }
 
@@ -76,8 +78,8 @@ class AttendanceSummary {
     required Lesson? lastLesson,
     required List<Student> absentsLastLesson,
     required Map<Student, FacePicture?> studentsFaceImage,
-  })  :
-        _domainRepository = domainRepository,
+    required double minimumAttendanceRatio,
+  })  : _domainRepository = domainRepository,
         _subjectClass = subjectClass,
         _attendances = attendances,
         _lessons = lessons,
@@ -85,7 +87,8 @@ class AttendanceSummary {
         _pastLessons = pastLessons,
         _lastLesson = lastLesson,
         _absentsLastLesson = absentsLastLesson,
-        _studentsFaceImage = studentsFaceImage;
+        _studentsFaceImage = studentsFaceImage,
+        _minimumAttendaceRatio = minimumAttendanceRatio;
 
   final IDomainRepository _domainRepository;
   final SubjectClass _subjectClass;
@@ -96,6 +99,7 @@ class AttendanceSummary {
   final Lesson? _lastLesson;
   final List<Student> _absentsLastLesson;
   final Map<Student, FacePicture?> _studentsFaceImage;
+  final double _minimumAttendaceRatio;
 
   int get nRegisteredLessons => _lessons.length;
   int get nPastLessons => _pastLessons.length;
@@ -104,7 +108,14 @@ class AttendanceSummary {
   Map<Student, List<Attendance>> get classAttendance => _attendances;
   Map<Student, FacePicture?> get studentsFaceImage => _studentsFaceImage;
   List<Lesson> get pastLessons => _pastLessons;
-  int get nInsufficiencyAttendanceRatio => 0;
+  double get minimumAttendaceRatio => _minimumAttendaceRatio;
+  int get nInsufficiencyAttendanceRatio {
+    return classAttendance.entries
+        .where(
+          (element) => element.value.length / nPastLessons < _minimumAttendaceRatio,
+        )
+        .length;
+  }
 
   static int _sortLessonsByDateTime(Lesson a, Lesson b) {
     return a.utcDateTime.compareTo(b.utcDateTime);

@@ -12,7 +12,6 @@ class AttendanceSummaryScreen extends StatelessWidget {
   });
 
   final AttendanceSummary useCase;
-  static const double attendanceMinimumRatio = 0.7;
 
   @override
   Widget build(BuildContext context) {
@@ -24,171 +23,191 @@ class AttendanceSummaryScreen extends StatelessWidget {
     final nAbsentsLastLesson = useCase.nAbsentsLastLesson;
     final pictureOfFaces = useCase.studentsFaceImage;
     final nInsufficiency = useCase.nInsufficiencyAttendanceRatio;
+
+    const itemsSpace = 8.0;
+
+    final List<Widget> prebuilt = [
+      Padding(
+        padding: const EdgeInsets.only(bottom: itemsSpace),
+        child: Text(
+          'Resumo',
+          style: Theme.of(context).textTheme.titleLarge,
+        ),
+      ),
+      Padding(
+        padding: const EdgeInsets.only(bottom: itemsSpace),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Insuficiências',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            Padding(
+              padding: const EdgeInsets.only(left: 16.0),
+              child: Text(
+                '$nInsufficiency aluno${nInsufficiency == 1 ? '' : 's'}(a${nInsufficiency == 1 ? '' : 's'}) com frequência insuficiente',
+                style: Theme.of(context).textTheme.titleSmall,
+              ),
+            ),
+          ],
+        ),
+      ),
+      Padding(
+        padding: const EdgeInsets.only(bottom: itemsSpace),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Ausências',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            Padding(
+              padding: const EdgeInsets.only(left: 16.0),
+              child: Text(
+                '$nAbsentsLastLesson aluno${nAbsentsLastLesson == 1 ? '' : 's'}(a${nAbsentsLastLesson == 1 ? '' : 's'}) não ${nAbsentsLastLesson == 1 ? 'compareceu' : 'compareceram'} na última aula',
+                style: Theme.of(context).textTheme.titleSmall,
+              ),
+            ),
+          ],
+        ),
+      ),
+      Padding(
+        padding: const EdgeInsets.only(bottom: itemsSpace),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Última aula',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            Padding(
+              padding: const EdgeInsets.only(left: 16.0),
+              child: Text(
+                lastLesson == null
+                    ? 'Nenhuma aula ministrada'
+                    : 'Aula em ${dateTimeToString(lastLesson.utcDateTime.toLocal())}',
+                style: Theme.of(context).textTheme.titleSmall,
+              ),
+            ),
+          ],
+        ),
+      ),
+      Padding(
+        padding: const EdgeInsets.only(bottom: itemsSpace),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Aulas até agora',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            Padding(
+              padding: const EdgeInsets.only(left: 16.0),
+              child: Text(
+                '$nPastLessons aula${nPastLessons == 1 ? '' : 's'} ${nPastLessons == 1 ? 'foi' : 'foram'} ministrada${nPastLessons == 1 ? '' : 's'}',
+                style: Theme.of(context).textTheme.titleSmall,
+              ),
+            ),
+          ],
+        ),
+      ),
+      Padding(
+        padding: const EdgeInsets.only(bottom: itemsSpace),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Aulas cadastradas',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            Padding(
+              padding: const EdgeInsets.only(left: 16.0),
+              child: Text(
+                '$nRegisteredLessons aula${nRegisteredLessons == 1 ? '' : 's'} ${nRegisteredLessons == 1 ? 'foi' : 'foram'} cadastrada${nRegisteredLessons == 1 ? '' : 's'}',
+                style: Theme.of(context).textTheme.titleSmall,
+              ),
+            ),
+          ],
+        ),
+      ),
+      Padding(
+        padding: const EdgeInsets.only(top: itemsSpace, bottom: itemsSpace),
+        child: Align(
+          alignment: Alignment.centerLeft,
+          child: Text(
+            'Acompanhamento',
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
+        ),
+      ),
+    ];
+
     return AppDefaultMenuScaffold(
       appBar: AppDefaultAppBar(title: 'Presenças'),
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(bottom: 8.0),
-            child: Text(
-              'Resumo',
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'Insuficiências',
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              Padding(
-                padding: const EdgeInsets.only(left: 16.0),
-                child: Text(
-                  '$nInsufficiency aluno${nInsufficiency == 1 ? '' : 's'}(a${nInsufficiency == 1 ? '' : 's'}) com frequência insuficiente',
-                  style: Theme.of(context).textTheme.titleSmall,
+      body: ListView.builder(
+        itemCount: prebuilt.length + classAttendance.length,
+        itemBuilder: (context, index) {
+          if (index < prebuilt.length) {
+            return prebuilt[index];
+          }
+          else {
+            final indexGenerated = index - prebuilt.length;
+            final element = classAttendance.elementAt(indexGenerated);
+            final picture = pictureOfFaces[element.key];
+            final presenceCount = element.value.length;
+            return Padding(
+              padding: const EdgeInsets.only(bottom: itemsSpace),
+              child: _SummaryTile(
+                key: ObjectKey(element.key),
+                faceJpeg: picture?.faceJpeg,
+                studentName: element.key.individual.displayFullName,
+                studentRegistration: element.key.registration,
+                absentOnLastLesson: lastLesson == null
+                    ? false
+                    : !element.value
+                        .map(
+                          (e) => e.lesson,
+                        )
+                        .contains(lastLesson),
+                absentCount: nPastLessons - presenceCount,
+                presenceCount: presenceCount,
+                attendanceRatio: presenceCount / nPastLessons,
+                attendanceMinimumRatio: useCase.minimumAttendaceRatio,
+                onTap: () => showDialog(
+                  context: context,
+                  builder: (context) {
+                    final lessonsAttended = element.value
+                        .map(
+                          (e) => e.lesson,
+                        )
+                        .toList();
+                    final lessonsNotAttended = (List.of(pastLessons)
+                          ..removeWhere(
+                            (element) => lessonsAttended.contains(element),
+                          ))
+                        .toList();
+                    return _SummaryDetailedDialog(
+                      faceJpeg: picture?.faceJpeg,
+                      studentName: element.key.individual.displayFullName,
+                      studentRegistration: element.key.registration,
+                      absentCount: nPastLessons - presenceCount,
+                      presenceCount: presenceCount,
+                      attendanceRatio: presenceCount / nPastLessons,
+                      lessonsAttended: lessonsAttended,
+                      lessonsNotAttended: lessonsNotAttended,
+                    );
+                  },
                 ),
               ),
-            ],
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'Ausências',
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              Padding(
-                padding: const EdgeInsets.only(left: 16.0),
-                child: Text(
-                  '$nAbsentsLastLesson aluno${nAbsentsLastLesson == 1 ? '' : 's'}(a${nAbsentsLastLesson == 1 ? '' : 's'}) não ${nAbsentsLastLesson == 1 ? 'compareceu' : 'compareceram'} na última aula',
-                  style: Theme.of(context).textTheme.titleSmall,
-                ),
-              ),
-            ],
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'Última aula',
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              Padding(
-                padding: const EdgeInsets.only(left: 16.0),
-                child: Text(
-                  lastLesson == null
-                      ? 'Nenhuma aula ministrada'
-                      : 'Aula em ${dateTimeToString(lastLesson.utcDateTime.toLocal())}',
-                  style: Theme.of(context).textTheme.titleSmall,
-                ),
-              ),
-            ],
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'Aulas até agora',
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              Padding(
-                padding: const EdgeInsets.only(left: 16.0),
-                child: Text(
-                  '$nPastLessons aula${nPastLessons == 1 ? '' : 's'} ${nPastLessons == 1 ? 'foi' : 'foram'} ministrada${nPastLessons == 1 ? '' : 's'}',
-                  style: Theme.of(context).textTheme.titleSmall,
-                ),
-              ),
-            ],
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'Aulas cadastradas',
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              Padding(
-                padding: const EdgeInsets.only(left: 16.0),
-                child: Text(
-                  '$nRegisteredLessons aula${nRegisteredLessons == 1 ? '' : 's'} ${nRegisteredLessons == 1 ? 'foi' : 'foram'} cadastrada${nRegisteredLessons == 1 ? '' : 's'}',
-                  style: Theme.of(context).textTheme.titleSmall,
-                ),
-              ),
-            ],
-          ),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: Text(
-              'Acompanhamento',
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-          ),
-          Flexible(
-            fit: FlexFit.tight,
-            child: classAttendance.isEmpty
-                ? const Center(
-                    child: Text('Não há alunos na turma'),
-                  )
-                : ListView.builder(
-                    itemCount: classAttendance.length,
-                    itemBuilder: (context, index) {
-                      final element = classAttendance.elementAt(index);
-                      final picture = pictureOfFaces[element.key];
-                      final presenceCount = element.value.length;
-                      return _SummaryTile(
-                        key: ObjectKey(element.key),
-                        faceJpeg: picture?.faceJpeg,
-                        studentName: element.key.individual.displayFullName,
-                        studentRegistration: element.key.registration,
-                        absentOnLastLesson: lastLesson == null
-                            ? false
-                            : !element.value
-                                .map(
-                                  (e) => e.lesson,
-                                )
-                                .contains(lastLesson),
-                        absentCount: nPastLessons - presenceCount,
-                        presenceCount: presenceCount,
-                        attendanceRatio: presenceCount / nPastLessons,
-                        attendanceMinimumRatio: attendanceMinimumRatio,
-                        onTap: () => showDialog(
-                            context: context,
-                            builder: (context) {
-                              final lessonsAttended = element.value
-                                  .map(
-                                    (e) => e.lesson,
-                                  )
-                                  .toList();
-                              final lessonsNotAttended = (List.of(pastLessons)
-                                    ..removeWhere(
-                                      (element) =>
-                                          lessonsAttended.contains(element),
-                                    ))
-                                  .toList();
-                              return _SummaryDetailedDialog(
-                                faceJpeg: picture?.faceJpeg,
-                                studentName:
-                                    element.key.individual.displayFullName,
-                                studentRegistration: element.key.registration,
-                                absentCount: nPastLessons - presenceCount,
-                                presenceCount: presenceCount,
-                                attendanceRatio: presenceCount / nPastLessons,
-                                lessonsAttended: lessonsAttended,
-                                lessonsNotAttended: lessonsNotAttended,
-                              );
-                            }),
-                      );
-                    },
-                  ),
-          ),
-        ],
+            );
+          }
+        },
       ),
     );
   }
@@ -224,85 +243,128 @@ class _SummaryTile extends StatelessWidget {
     final absentCount = this.absentCount;
     final titleMediumTheme = Theme.of(context).textTheme.titleMedium;
     final titleLargeTheme = Theme.of(context).textTheme.titleLarge;
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16.0),
-      child: SingleActionCard(
-        action: onTap,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
+    final headlineSmallTheme = Theme.of(context).textTheme.headlineSmall;
+/*
+  null  --> 'Frequência insuficiente';
+  false --> 'Ausente'
+  true  --> 'Presente'
+ */
+    final bool? attendanceStatus = attendanceRatio < attendanceMinimumRatio
+        ? null
+        : absentOnLastLesson
+            ? false
+            : true;
+    final Icon attenadanceStatusIcon = switch (attendanceStatus) {
+      null => Icon(Icons.cancel, color: Colors.red),
+      false => Icon(Icons.circle_outlined),
+      true => Icon(Icons.check_circle, color: Colors.green),
+    };
+    final String attendanceStatusName = switch (attendanceStatus) {
+      null => 'Frequência insuficiente',
+      false => 'Ausente',
+      true => 'Presente',
+    };
+    final imageView = DecoratedBox(
+      decoration: BoxDecoration(
+        border: Border.all(
+            color: DividerTheme.of(context).color ??
+                Theme.of(context).dividerColor),
+      ),
+      position: DecorationPosition.foreground,
+      child: AspectRatio(
+        aspectRatio: 2 / 2,
+        child: jpeg == null
+            ? const Icon(Icons.person)
+            : Image.memory(
+                jpeg,
+                fit: BoxFit.cover,
+              ),
+      ),
+    );
+    final nameAndRegistrationView = Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          studentName,
+          style: titleLargeTheme,
+        ),
+        Text(
+          'Matrícula: $studentRegistration',
+          style: titleMediumTheme,
+        ),
+      ],
+    );
+    final attendanceView = Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Ausências: $absentCount',
+          style: titleMediumTheme,
+        ),
+        Text(
+          'Presenças: $presenceCount',
+          style: titleMediumTheme,
+        ),
+        Text(
+          'Frequência: ${(attendanceRatio * 100).toInt()}%',
+          style: titleMediumTheme,
+        ),
+      ],
+    );
+    final statusView = Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(
-              studentName,
-              style: titleLargeTheme,
+            Padding(
+              padding: const EdgeInsets.only(right: 4.0),
+              child: attenadanceStatusIcon,
             ),
             Text(
-              'Matrícula: $studentRegistration',
-              style: titleMediumTheme,
+              attendanceStatusName,
+              style: headlineSmallTheme,
             ),
-            Divider(),
-            Row(
+          ],
+        ),
+        Text(
+          attendanceStatus == null ? '' : 'na última aula',
+          style: titleMediumTheme,
+        ),
+      ],
+    );
+    return SingleActionCard(
+      actionName: 'Detalhar',
+      action: onTap,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          nameAndRegistrationView,
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
+            child: Row(
               children: [
+                Flexible(fit: FlexFit.tight, flex: 1, child: imageView),
                 Flexible(
                   fit: FlexFit.tight,
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      border: Border.all(
-                          color: DividerTheme.of(context).color ??
-                              Theme.of(context).dividerColor),
-                    ),
-                    position: DecorationPosition.foreground,
-                    child: AspectRatio(
-                      aspectRatio: 2 / 2,
-                      child: jpeg == null
-                          ? const Icon(Icons.person)
-                          : Image.memory(
-                              jpeg,
-                              fit: BoxFit.cover,
-                            ),
-                    ),
-                  ),
-                ),
-                Flexible(
-                  fit: FlexFit.tight,
+                  flex: 1,
                   child: Padding(
-                    padding: const EdgeInsets.only(left: 16.0),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Ausência: $absentCount',
-                          style: titleMediumTheme,
-                        ),
-                        Text(
-                          'Presença: $presenceCount',
-                          style: titleMediumTheme,
-                        ),
-                        Text(
-                          'Frequência: ${(attendanceRatio * 100).toInt()}%',
-                          style: titleMediumTheme,
-                        ),
-                      ],
-                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    child: attendanceView,
                   ),
                 ),
               ],
             ),
-            Divider(),
-            Align(
-              alignment: Alignment.center,
-              child: Text(
-                attendanceRatio < attendanceMinimumRatio
-                    ? 'Frequência insuficiente'
-                    : absentOnLastLesson
-                        ? 'Ausente'
-                        : 'Presente',
-                style: titleLargeTheme,
-              ),
-            ),
-          ],
-        ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8.0) +
+                EdgeInsets.only(bottom: 8.0),
+            child: statusView,
+          ),
+        ],
       ),
     );
   }
