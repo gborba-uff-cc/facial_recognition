@@ -28,7 +28,7 @@ import 'package:facial_recognition/screens/mark_attendance_screen.dart';
 import 'package:facial_recognition/screens/common/one_shot_camera.dart';
 import 'package:facial_recognition/screens/select_information_screen.dart';
 import 'package:facial_recognition/use_case/attendance_summary.dart';
-import 'package:facial_recognition/use_case/batch_read.dart';
+import 'package:facial_recognition/use_case/spreadsheet_read.dart';
 import 'package:facial_recognition/use_case/camera_identification.dart';
 import 'package:facial_recognition/use_case/create_models.dart';
 import 'package:facial_recognition/use_case/mark_attendance.dart';
@@ -156,6 +156,7 @@ class MainApp extends StatelessWidget {
       imageHandler,
       recognitionPipeline
     );
+    final spreadsheetRead = SpreadsheetRead();
     return MaterialApp.router(
       theme: ThemeData(useMaterial3: true),
       routerConfig: GoRouter(
@@ -252,7 +253,7 @@ class MainApp extends StatelessWidget {
               GoRoute(
                 path: 'create_lesson_batch_read',
                 builder: (context, state) => CreateLessonFromBatchScreen(
-                  batchReadUseCase: BatchRead(),
+                  batchReadUseCase: spreadsheetRead,
                   createModelsUseCase: createModels,
                 ),
               ),
@@ -269,7 +270,7 @@ class MainApp extends StatelessWidget {
               GoRoute(
                 path: 'create_student_batch_read',
                 builder: (context, state) => CreateStudentFromBatchScreen(
-                  batchReadUseCase: BatchRead(),
+                  batchReadUseCase: spreadsheetRead,
                   createModelsUseCase: createModels,
                 ),
               ),

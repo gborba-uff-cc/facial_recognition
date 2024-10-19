@@ -4,7 +4,7 @@ import 'package:facial_recognition/screens/common/card_single_action.dart';
 import 'package:facial_recognition/screens/common/excel_picker_button.dart';
 import 'package:facial_recognition/screens/common/select_information_return.dart';
 import 'package:facial_recognition/screens/common/selector.dart';
-import 'package:facial_recognition/use_case/batch_read.dart';
+import 'package:facial_recognition/use_case/spreadsheet_read.dart';
 import 'package:facial_recognition/utils/project_logger.dart';
 import 'package:excel/excel.dart' as pkg_excel;
 import 'package:cross_file/cross_file.dart' as pkg_xfile;
@@ -19,7 +19,7 @@ class CreateStudentFromBatchScreen extends StatefulWidget {
     required this.createModelsUseCase,
   });
 
-  final BatchRead batchReadUseCase;
+  final SpreadsheetRead batchReadUseCase;
   final CreateModels createModelsUseCase;
 
   @override

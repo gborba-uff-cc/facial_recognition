@@ -1,7 +1,7 @@
 import 'package:excel/excel.dart' as pkg_excel;
 
-class BatchRead {
-  BatchRead();
+class SpreadsheetRead {
+  SpreadsheetRead();
   String? _getCellValue(final pkg_excel.Data? cell) {
     if (cell == null) {
       return null;
@@ -36,6 +36,12 @@ class BatchRead {
       pkg_excel.TimeCellValue() => null,
       pkg_excel.DateTimeCellValue() => aValue.asDateTimeLocal()
     };
+  }
+
+  DateTime? _getCellValueAsUtcDateTime(final pkg_excel.Data? cell) {
+    final localDateTime = _getLocalDateTimeValue(cell);
+    final utcDateTime = localDateTime?.toUtc();
+    return utcDateTime;
   }
 
   List<({String registration, String individualRegistration, String name, String? surname})> readStudents({
