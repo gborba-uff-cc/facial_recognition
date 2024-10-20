@@ -98,4 +98,53 @@ class SpreadsheetRead {
     }
     return result;
   }
+
+  List<({String registration, DateTime utcDateTime})> readAttendances({
+    required final pkg_excel.Sheet sheet,
+    final int skipRowsCount = 0,
+  }) {
+    // minimum of 2 rows on sheet and minimum of 2 columns
+    if (skipRowsCount+2 > sheet.maxRows || sheet.maxColumns<2) {
+      return const [];
+    }
+    const Set<String> presentValues = {'p, true, verdadeiro'};
+    final List<({String registration, DateTime utcDateTime})> result = [];
+    final Map<int, DateTime> utcDateTimeOnSheet = {};
+    final headerRow = sheet.row(skipRowsCount);
+    final headerSize = 1;
+    // read lessons
+    for (var columnIndex=1; columnIndex<sheet.maxColumns; columnIndex++) {
+      final utcDateTime = _getCellValueAsUtcDateTime(headerRow[columnIndex]);
+      if (utcDateTime == null) {
+        continue;
+      }
+      utcDateTimeOnSheet[columnIndex] = utcDateTime;
+    }
+
+    // read student registration and presence status
+    for (int rowIndex=skipRowsCount+headerSize; rowIndex<sheet.maxRows; rowIndex++) {
+      final row = sheet.row(rowIndex);
+      final registrationOnSheet = _getCellValue(row[0]);
+      if (registrationOnSheet == null) {
+        continue;
+      }
+      for (var c in utcDateTimeOnSheet.keys) {
+        final value = _getCellValue(row[c]);
+        if (value == null) {
+          continue;
+        }
+        // if status is present
+        if (presentValues.contains(value.toLowerCase())) {
+          final ({String registration, DateTime utcDateTime}) attendance = (
+            registration: registrationOnSheet,
+            utcDateTime: utcDateTimeOnSheet[c]!,
+          );
+          // add presence to return list
+          result.add(attendance);
+        }
+      }
+    }
+
+    return result;
+  }
 }

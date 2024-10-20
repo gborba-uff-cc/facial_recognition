@@ -11,7 +11,10 @@ import 'package:facial_recognition/models/image_handler.dart';
 import 'package:facial_recognition/models/recognition_pipeline.dart';
 import 'package:facial_recognition/screens/attendance_summary_screen.dart';
 import 'package:facial_recognition/screens/camera_identification_screen.dart';
+import 'package:facial_recognition/screens/create_attendance_from_spreadsheet_screen.dart';
 import 'package:facial_recognition/screens/create_enrollment_screen.dart';
+import 'package:facial_recognition/screens/create_information_manually_screen.dart';
+import 'package:facial_recognition/screens/create_information_spreadsheet_screen.dart';
 import 'package:facial_recognition/screens/create_lesson_from_batch_screen.dart';
 import 'package:facial_recognition/screens/create_lesson_menu_screen.dart';
 import 'package:facial_recognition/screens/create_lesson_screen.dart';
@@ -229,6 +232,21 @@ class MainApp extends StatelessWidget {
                 ),
               ),
               GoRoute(
+                path: 'create_information_manually',
+                builder: (context, state) => CreateInformationManuallyScreen(),
+              ),
+              GoRoute(
+                path: 'create_information_from_spreadsheet',
+                builder: (context, state) => CreateInformationFromSpreadsheetScreen(),
+              ),
+              GoRoute(
+                path: 'create_attendance_from_spreadsheet',
+                builder: (context, state) => CreateAttendanceFromSpreadsheetScreen(
+                  createModelsUseCase: createModels,
+                  spreadsheetReadUseCase: spreadsheetRead,
+                ),
+              ),
+              GoRoute(
                 path: 'create_subject',
                 builder: (context, state) => CreateSubjectScreen(
                   useCase: createModels,
@@ -251,7 +269,7 @@ class MainApp extends StatelessWidget {
                 ),
               ),
               GoRoute(
-                path: 'create_lesson_batch_read',
+                path: 'create_lesson_from_spreadsheet',
                 builder: (context, state) => CreateLessonFromBatchScreen(
                   batchReadUseCase: spreadsheetRead,
                   createModelsUseCase: createModels,
@@ -268,7 +286,7 @@ class MainApp extends StatelessWidget {
                 ),
               ),
               GoRoute(
-                path: 'create_student_batch_read',
+                path: 'create_student_from_spreadsheet',
                 builder: (context, state) => CreateStudentFromBatchScreen(
                   batchReadUseCase: spreadsheetRead,
                   createModelsUseCase: createModels,

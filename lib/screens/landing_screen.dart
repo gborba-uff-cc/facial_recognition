@@ -37,7 +37,10 @@ class _LandingScreenState extends State<LandingScreen> {
                 Text('Selecione uma aula antes de continuar',
                     style: Theme.of(context).textTheme.bodyLarge),
               )
-            : GoRouter.of(context).go('/camera_view', extra: lesson),
+            : GoRouter.of(context).push(
+                '/camera_view',
+                extra: lesson,
+              ),
         text: 'Apontamento por câmera',
       ),
       (
@@ -47,8 +50,11 @@ class _LandingScreenState extends State<LandingScreen> {
                 Text('Selecione uma aula antes de continuar',
                     style: Theme.of(context).textTheme.bodyLarge),
               )
-            : GoRouter.of(context).go('/mark_attendance', extra: lesson),
-        text: 'Revisão do apontamento',
+            : GoRouter.of(context).push(
+                '/mark_attendance',
+                extra: lesson,
+              ),
+        text: 'Confirmar presenças',
       ),
       (
         action: () => (subjectClass == null)
@@ -57,8 +63,10 @@ class _LandingScreenState extends State<LandingScreen> {
                 Text('Selecione uma turma antes de continuar',
                     style: Theme.of(context).textTheme.bodyLarge),
               )
-            : GoRouter.of(context)
-                .go('/attendance_summary', extra: subjectClass),
+            : GoRouter.of(context).push(
+                '/attendance_summary',
+                extra: subjectClass,
+              ),
         text: 'Resumo das presenças',
       ),
     ];
@@ -104,28 +112,12 @@ class _LandingScreenState extends State<LandingScreen> {
     const String createDestinationTitle = 'Adicionar informações';
     final List<({void Function() action, String text})> createTriggers = [
       (
-        action: () => GoRouter.of(context).go('/create_subject'),
-        text: 'Disciplina',
+        action: () => GoRouter.of(context).push('/create_information_manually'),
+        text: 'Entrada manual',
       ),
       (
-        action: () => GoRouter.of(context).go('/create_subject_class'),
-        text: 'Turma'
-      ),
-      (
-        action: () => GoRouter.of(context).go('/create_lesson'),
-        text: 'Aula'
-      ),
-      (
-        action: () => GoRouter.of(context).go('/create_student'),
-        text: 'Aluno(a)'
-      ),
-      (
-        action: () => GoRouter.of(context).go('/create_teacher'),
-        text: 'Professor(a)'
-      ),
-      (
-        action: () => GoRouter.of(context).go('/create_enrollment'),
-        text: 'Inscrição'
+        action: () => GoRouter.of(context).push('/create_information_from_spreadsheet'),
+        text: 'Ler de planilha',
       ),
     ];
     final List<Widget> createMenuItems = createTriggers

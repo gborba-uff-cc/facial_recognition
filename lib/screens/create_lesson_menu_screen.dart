@@ -13,7 +13,7 @@ class CreateLessonMenuScreen extends StatelessWidget {
         text: 'Entrada manual',
       ),
       (
-        action: () => GoRouter.of(context).push('/create_lesson_batch_read'),
+        action: () => GoRouter.of(context).push('/create_lesson_from_spreadsheet'),
         text: 'Ler de planilha',
       ),
     ];

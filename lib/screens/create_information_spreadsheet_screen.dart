@@ -2,22 +2,27 @@ import 'package:facial_recognition/screens/common/app_defaults.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-class CreateStudentMenuScreen extends StatelessWidget {
-  const CreateStudentMenuScreen({super.key});
+class CreateInformationFromSpreadsheetScreen extends StatelessWidget {
+  const CreateInformationFromSpreadsheetScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final List<({Function() action, String text})> triggers = [
+    const String createDestinationTitle = 'Ler de planilha';
+    final List<({void Function() action, String text})> createTriggers = [
       (
-        action: () => GoRouter.of(context).push('/create_student_manually'),
-        text: 'Entrada manual',
+        action: () => GoRouter.of(context).push('/create_lesson_from_spreadsheet'),
+        text: 'Aula'
       ),
       (
         action: () => GoRouter.of(context).push('/create_student_from_spreadsheet'),
-        text: 'Ler de planilha',
+        text: 'Aluno(a)'
+      ),
+      (
+        action: () => GoRouter.of(context).push('/create_attendance_from_spreadsheet'),
+        text: 'Presença'
       ),
     ];
-    final List<Widget> menuItems = triggers
+    final List<Widget> createMenuItems = createTriggers
         .map(
           (destinationTrigger) => AppDefaultButton(
             onTap: destinationTrigger.action,
@@ -31,9 +36,12 @@ class CreateStudentMenuScreen extends StatelessWidget {
           ),
         )
         .toList();
+
     return AppDefaultMenuScaffold(
-      appBar: AppBar(title: Text('Adicionar discente'),),
-      body: AppDefaultMenuList(children: menuItems),
+      appBar: AppDefaultAppBar(title: createDestinationTitle),
+      body: AppDefaultMenuList(
+        children: createMenuItems,
+      ),
     );
   }
 }
