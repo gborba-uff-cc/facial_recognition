@@ -23,6 +23,7 @@ class AttendanceSummaryScreen extends StatelessWidget {
     final nAbsentsLastLesson = useCase.nAbsentsLastLesson;
     final pictureOfFaces = useCase.studentsFaceImage;
     final nInsufficiency = useCase.nInsufficiencyAttendanceRatio;
+    final minimumAttendaceRatio = useCase.minimumAttendaceRatio;
 
     const itemsSpace = 8.0;
 
@@ -47,7 +48,7 @@ class AttendanceSummaryScreen extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.only(left: 16.0),
               child: Text(
-                '$nInsufficiency aluno${nInsufficiency == 1 ? '' : 's'}(a${nInsufficiency == 1 ? '' : 's'}) com frequência insuficiente',
+                '$nInsufficiency aluno${nInsufficiency == 1 ? '' : 's'}(a${nInsufficiency == 1 ? '' : 's'}) com frequência menor que ${(minimumAttendaceRatio*100).toInt()}%',
                 style: Theme.of(context).textTheme.titleSmall,
               ),
             ),
@@ -352,7 +353,7 @@ class _SummaryTile extends StatelessWidget {
                   fit: FlexFit.tight,
                   flex: 1,
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    padding: const EdgeInsets.only(left: 8.0),
                     child: attendanceView,
                   ),
                 ),
