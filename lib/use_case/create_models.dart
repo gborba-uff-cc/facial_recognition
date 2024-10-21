@@ -261,7 +261,7 @@ class CreateModels {
     _domainRepository.addStudent([student]);
   }
 
-  /// returns all the students that already exist
+  /// returns all the students that already exist (should return anything)
   List<({
     String individualRegistration,
     String name,
@@ -442,5 +442,71 @@ class CreateModels {
     }
     _domainRepository.addEnrollment(enrollments);
     return const [];
+  }
+  void createAttendances({
+    required String codeOfSubject,
+    required String registrationOfTeacher,
+    required String yearfsubjectClass,
+    required String semesterOfSubjectClass,
+    required String nameOfSubjectClass,
+    required Iterable<({String registration, DateTime utcDateTime})> attendances,
+    bool createMissingLessons = false,
+  }) {
+    // retrieve subject class
+    final year = int.parse(yearfsubjectClass);
+    final semester = int.parse(semesterOfSubjectClass);
+    final theSubjectClass = _domainRepository.getSubjectClass(
+      year: year,
+      semester: semester,
+      subjectCode: codeOfSubject,
+      name: nameOfSubjectClass,
+    );
+    if (theSubjectClass == null) {
+      throw ArgumentError('not found', 'subject class');
+    }
+
+    // create lessons on subject class if on attendance
+    if (createMissingLessons) {
+      final List<Lesson> subjectClassLessons = _domainRepository
+          .getLessonFromSubjectClass([theSubjectClass])[theSubjectClass]!;
+      final registeredLessons = subjectClassLessons
+          .map((e) => e.utcDateTime.toIso8601String())
+          .toSet();
+      final List<String> notRegisteredLessons = attendances
+          .map((e) => e.utcDateTime.toIso8601String())
+          .toList()
+          .where((element) => !registeredLessons.contains(element))
+          .toList();
+      createLessons(
+        codeOfSubject: codeOfSubject,
+        yearOfSubjectClass: yearfsubjectClass,
+        semesterOfSubjectClass: semesterOfSubjectClass,
+        nameOfSubjectClass: nameOfSubjectClass,
+        registrationOfTeacher: registrationOfTeacher,
+        utcDateTime: notRegisteredLessons,
+      );
+    }
+
+    // create attendance
+    final Map<DateTime, Lesson> lessonsByUtcDateTime = _domainRepository
+        .getLessonFromSubjectClass([theSubjectClass])[theSubjectClass]!
+        .asMap()
+        .map((key, value) =>
+            MapEntry(value.utcDateTime, value));
+    final studentsByRegistration = _domainRepository
+        .getStudentFromSubjectClass([theSubjectClass])[theSubjectClass]!
+        .asMap()
+        .map((key, value) => MapEntry(value.registration, value));
+    final List<Attendance> newAttendances = [];
+    for (final entry in attendances) {
+      final s = studentsByRegistration[entry.registration];
+      final l = lessonsByUtcDateTime[entry.utcDateTime];
+      if (s != null && l != null) {
+        final a = Attendance(student: s, lesson: l);
+        newAttendances.add(a);
+      }
+    }
+    _domainRepository.addAttendance(newAttendances);
+    return;
   }
 }

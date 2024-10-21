@@ -1,6 +1,5 @@
 import 'package:facial_recognition/models/domain.dart';
 import 'package:facial_recognition/screens/common/app_defaults.dart';
-import 'package:facial_recognition/screens/common/card_single_action.dart';
 import 'package:facial_recognition/screens/common/excel_picker_button.dart';
 import 'package:facial_recognition/screens/common/select_information_return.dart';
 import 'package:facial_recognition/screens/common/selector.dart';
@@ -195,18 +194,16 @@ class _CreateAttendanceFromSpreadsheetScreenState extends State<CreateAttendance
   }
   void _processSheet({
     required pkg_excel.Sheet sheet,
-    SubjectClass? subjectClass,
+    required SubjectClass subjectClass,
   }) {
-    final students = widget.spreadsheetReadUseCase.readStudents(sheet: sheet);
-    widget.createModelsUseCase.createStudents(students);
-    if (subjectClass != null) {
-      widget.createModelsUseCase.createEnrollments(
-        registrationOfStudent: students.map((e) => e.registration,).toList(),
-        year: '${subjectClass.year}',
-        semester: '${subjectClass.semester}',
-        codeOfSubject: subjectClass.subject.code,
-        name: subjectClass.name,
-      );
-    }
+    final attendances = widget.spreadsheetReadUseCase.readAttendances(sheet: sheet);
+    widget.createModelsUseCase.createAttendances(
+      codeOfSubject: subjectClass.subject.code,
+      registrationOfTeacher: subjectClass.teacher.registration,
+      yearfsubjectClass: subjectClass.year.toString(),
+      semesterOfSubjectClass: subjectClass.semester.toString(),
+      nameOfSubjectClass: subjectClass.name,
+      attendances: attendances,
+    );
   }
 }

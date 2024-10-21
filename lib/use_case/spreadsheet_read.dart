@@ -1,4 +1,5 @@
 import 'package:excel/excel.dart' as pkg_excel;
+import 'package:facial_recognition/utils/project_logger.dart';
 
 class SpreadsheetRead {
   SpreadsheetRead();
@@ -107,7 +108,12 @@ class SpreadsheetRead {
     if (skipRowsCount+2 > sheet.maxRows || sheet.maxColumns<2) {
       return const [];
     }
-    const Set<String> presentValues = {'p, true, verdadeiro'};
+    const Set<String> presentValues = <String>{
+      'p',
+      'presente',
+      'true',
+      'verdadeiro'
+    };
     final List<({String registration, DateTime utcDateTime})> result = [];
     final Map<int, DateTime> utcDateTimeOnSheet = {};
     final headerRow = sheet.row(skipRowsCount);
@@ -134,7 +140,8 @@ class SpreadsheetRead {
           continue;
         }
         // if status is present
-        if (presentValues.contains(value.toLowerCase())) {
+        final isPresent = presentValues.contains(value.toLowerCase());
+        if (isPresent) {
           final ({String registration, DateTime utcDateTime}) attendance = (
             registration: registrationOnSheet,
             utcDateTime: utcDateTimeOnSheet[c]!,
