@@ -4,10 +4,10 @@ import 'dart:ui';
 import 'package:facial_recognition/models/domain.dart';
 import 'package:facial_recognition/models/use_case.dart';
 
-abstract class IRecognitionPipeline<I, J, L, V> {
+abstract class IRecognitionPipeline<CI, CC, I, J, L, V> {
   Future<List<I>> detectFace({
-    required I image,
-    int imageRollDegree = 0,
+    required final CI cameraImage,
+    required final CC cameraController,
   });
 
   Future<List<Duple<J, FaceEmbedding>>> extractEmbedding(
@@ -21,13 +21,10 @@ abstract class IRecognitionPipeline<I, J, L, V> {
   );
 }
 
-abstract class IFaceDetector {
+abstract class IFaceDetector<CI, CC> {
   Future<List<Rect>> detect({
-    required final Uint8List bgraBuffer,
-    required final width,
-    required final height,
-    final int imageRollDegree = 0,
-    required final int bytesRowStride,
+    required final CI cameraImage,
+    required final CC cameraController,
   });
 }
 

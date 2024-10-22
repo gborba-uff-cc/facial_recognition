@@ -12,7 +12,7 @@ class CreateModels {
     IImageHandler<pkg_camera.CameraImage, pkg_camera.CameraDescription,
             pkg_image.Image, Uint8List>
         imageHandler,
-    IRecognitionPipeline<pkg_image.Image, Uint8List, Student, FaceEmbedding>
+    IRecognitionPipeline<pkg_camera.CameraImage, pkg_camera.CameraController, pkg_image.Image, Uint8List, Student, FaceEmbedding>
         recognitionPipeline,
   )   : _domainRepository = domainRepository,
         _recognitionPipeline = recognitionPipeline,
@@ -20,6 +20,8 @@ class CreateModels {
 
   final IDomainRepository _domainRepository;
   final IRecognitionPipeline<
+      pkg_camera.CameraImage,
+      pkg_camera.CameraController,
       pkg_image.Image,
       Uint8List,
       Student,
@@ -200,11 +202,9 @@ class CreateModels {
 
   Future<List<pkg_image.Image>> detectFaces(
     final pkg_camera.CameraImage image,
-    final pkg_camera.CameraDescription cameraDescription,
+    final pkg_camera.CameraController cameraController,
   ) {
-    final i1 = _imageHandler.fromCameraImage(image, cameraDescription);
-    final i2 = _imageHandler.rotateImage(i1, cameraDescription.sensorOrientation);
-    return _recognitionPipeline.detectFace(image: i2);
+    return _recognitionPipeline.detectFace(cameraImage: image, cameraController: cameraController);
   }
 
   Future<List<Duple<Uint8List, FaceEmbedding>>> extractEmbedding(

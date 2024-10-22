@@ -5,7 +5,6 @@ import "package:image/image.dart" as pkg_image;
 import "package:facial_recognition/models/domain.dart";
 import "package:facial_recognition/models/use_case.dart";
 import "package:facial_recognition/screens/common/form_fields.dart";
-import "package:facial_recognition/utils/project_logger.dart";
 import "package:flutter/material.dart";
 
 class CreateStudent extends StatefulWidget {
@@ -14,15 +13,15 @@ class CreateStudent extends StatefulWidget {
     // [cameraSensorOrientation] degrees the camera image need to be rotated to be upright
     Future<List<pkg_image.Image>> Function(
       pkg_camera.CameraImage cameraImage,
-      pkg_camera.CameraDescription cameraDescription,
-    )?
-        faceDetector,
+      pkg_camera.CameraController cameraController,
+    )? faceDetector,
     Future<List<Duple<Uint8List, List<double>>>> Function(
       pkg_image.Image face,
-    )?
-        faceEmbedder,
+    )? faceEmbedder,
+    void Function(pkg_camera.CameraImage?, pkg_camera.CameraController?,
+            FaceEmbedding?)?
+        facePictureOnSaved,
     Future<Uint8List> Function(pkg_image.Image)? jpgConverter,
-    void Function(pkg_camera.CameraImage?, pkg_camera.CameraDescription?, FaceEmbedding?)? facePictureOnSaved,
     required TextEditingController individualRegistrationController,
     void Function(String?)? individualRegistrationOnSaved,
     required TextEditingController registrationController,
@@ -45,8 +44,8 @@ class CreateStudent extends StatefulWidget {
         _surnameOnSaved = surnameControllerOnSaved;
 
   final Future<List<pkg_image.Image>> Function(
-    pkg_camera.CameraImage cameiraImage,
-    pkg_camera.CameraDescription cameraDescription,
+    pkg_camera.CameraImage cameraImage,
+    pkg_camera.CameraController cameraController,
   )? _faceDetector;
   final Future<List<Duple<Uint8List, List<double>>>> Function(
     pkg_image.Image face,
@@ -54,7 +53,8 @@ class CreateStudent extends StatefulWidget {
   final Future<Uint8List> Function(
     pkg_image.Image face,
   )? _jpgConverter;
-  final void Function(pkg_camera.CameraImage?, pkg_camera.CameraDescription?, FaceEmbedding?)? _facePictureOnSaved;
+  final void Function(pkg_camera.CameraImage?, pkg_camera.CameraController?,
+      FaceEmbedding?)? _facePictureOnSaved;
   final TextEditingController _individualRegistrationController;
   final void Function(String?)? _individualRegistrationOnSaved;
   final TextEditingController _registrationController;
@@ -71,7 +71,6 @@ class CreateStudent extends StatefulWidget {
 class _CreateStudentState extends State<CreateStudent> {
   @override
   Widget build(BuildContext context) {
-    projectLogger.fine('_CreateStudentstate.build');
     final inputPicture = FacePictureField(
       isOptional: true,
       faceDetector: widget._faceDetector,

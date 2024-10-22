@@ -1,11 +1,11 @@
-class OneShotCameraReturn<CI, CD,  J> {
+class OneShotCameraReturn<CI, CC, J> {
   OneShotCameraReturn({
     required this.cameraImage,
-    required this.cameraDescription,
+    required this.cameraController,
     required this.jpg,
   });
 
   final CI cameraImage;
-  final CD cameraDescription;
+  final CC cameraController;
   final J jpg;
 }

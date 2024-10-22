@@ -13,15 +13,15 @@ class CreateTeacher extends StatefulWidget {
     // [cameraSensorOrientation] degrees the camera image need to be rotated to be upright
     Future<List<pkg_image.Image>> Function(
       pkg_camera.CameraImage cameraImage,
-      pkg_camera.CameraDescription cameraDescription,
-    )?
-        faceDetector,
+      pkg_camera.CameraController cameraController,
+    )? faceDetector,
     Future<List<Duple<Uint8List, List<double>>>> Function(
       pkg_image.Image face,
-    )?
-        faceEmbedder,
+    )? faceEmbedder,
+    void Function(pkg_camera.CameraImage?, pkg_camera.CameraController?,
+            FaceEmbedding?)?
+        facePictureOnSaved,
     Future<Uint8List> Function(pkg_image.Image)? jpgConverter,
-    void Function(pkg_camera.CameraImage?, pkg_camera.CameraDescription?, FaceEmbedding?)? facePictureOnSaved,
     required TextEditingController individualRegistrationController,
     void Function(String?)? individualRegistrationOnSaved,
     required TextEditingController registrationController,
@@ -45,7 +45,7 @@ class CreateTeacher extends StatefulWidget {
 
   final Future<List<pkg_image.Image>> Function(
     pkg_camera.CameraImage cameraImage,
-    pkg_camera.CameraDescription cameraDescription,
+    pkg_camera.CameraController cameraController,
   )? _faceDetector;
   final Future<List<Duple<Uint8List, List<double>>>> Function(
     pkg_image.Image face,
@@ -53,7 +53,8 @@ class CreateTeacher extends StatefulWidget {
   final Future<Uint8List> Function(
     pkg_image.Image face,
   )? _jpgConverter;
-  final void Function(pkg_camera.CameraImage?, pkg_camera.CameraDescription?, FaceEmbedding?)? _facePictureOnSaved;
+  final void Function(pkg_camera.CameraImage?, pkg_camera.CameraController?,
+      FaceEmbedding?)? _facePictureOnSaved;
   final TextEditingController _individualRegistrationController;
   final void Function(String?)? _individualRegistrationOnSaved;
   final TextEditingController _registrationController;

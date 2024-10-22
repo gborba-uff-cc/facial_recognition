@@ -1,11 +1,12 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:camera/camera.dart' as pkg_camera;
 import 'package:facial_recognition/utils/project_logger.dart';
 import 'package:flutter/material.dart';
 
 typedef CameraWrapperCallBack = void Function(
-  pkg_camera.CameraDescription description,
+  pkg_camera.CameraController cameraController,
   pkg_camera.CameraImage cameraImage,
 );
 
@@ -180,7 +181,11 @@ class _CameraWrapperState extends State<CameraWrapper> with WidgetsBindingObserv
       description,
       pkg_camera.ResolutionPreset.high,
       enableAudio: false,
-      // imageFormatGroup: ImageFormatGroup.yuv420
+      imageFormatGroup: Platform.isAndroid
+          ? pkg_camera.ImageFormatGroup.yuv420
+          : Platform.isIOS
+              ? pkg_camera.ImageFormatGroup.bgra8888
+              : pkg_camera.ImageFormatGroup.jpeg,
     );
 
     controller.addListener(
@@ -439,19 +444,18 @@ class _CameraWrapperState extends State<CameraWrapper> with WidgetsBindingObserv
   void _updateStreamSubscriptionHandler(
     CameraWrapperCallBack? dataHandler,
   ) {
-    final description =
-        widget.camerasAvailable[_selectedCameraIndex.current];
+    final controller = _cameraController;
     final streamSubscription = _cameraImageStreamSubscription;
     if (streamSubscription == null) {
       return;
     }
     streamSubscription.onData(
-      dataHandler != null
+      dataHandler != null && controller != null
           ? (cameraImage) {
               final isZero = _imageCounterFilter.current == 0;
               _imageCounterFilter.tick();
               if (isZero) {
-                dataHandler(description, cameraImage);
+                dataHandler(controller, cameraImage);
               }
             }
           : null,
@@ -461,18 +465,17 @@ class _CameraWrapperState extends State<CameraWrapper> with WidgetsBindingObserv
   void _updateCaptureSubscriptionHandler(
     CameraWrapperCallBack? dataHandler,
   ) {
-    final description =
-        widget.camerasAvailable[_selectedCameraIndex.current];
+    final controller = _cameraController;
     final streamSubscription = _cameraImageCaptureSubscription;
     if (streamSubscription == null) {
       return;
     }
     streamSubscription.onData(
-      dataHandler != null
+      dataHandler != null && controller != null
           ? (cameraImage) {
               if (_shouldCaptureImage.value) {
                 _shouldCaptureImage.value = false;
-                dataHandler(description, cameraImage);
+                dataHandler(controller, cameraImage);
               }
             }
           : null,

@@ -8,9 +8,10 @@ import 'package:facial_recognition/models/domain.dart';
 import 'package:facial_recognition/models/use_case.dart';
 import 'package:facial_recognition/utils/project_logger.dart';
 
-class CameraIdentification implements ICameraAttendance<pkg_camera.CameraImage, pkg_camera.CameraDescription> {
+class CameraIdentification implements ICameraAttendance<pkg_camera.CameraImage, pkg_camera.CameraController> {
   CameraIdentification(
-    IRecognitionPipeline<pkg_image.Image, Uint8List, Student, FaceEmbedding>
+    IRecognitionPipeline<pkg_camera.CameraImage, pkg_camera.CameraController,
+            pkg_image.Image, Uint8List, Student, FaceEmbedding>
         recognitionPipeline,
     IImageHandler<pkg_camera.CameraImage, pkg_camera.CameraDescription,
             pkg_image.Image, Uint8List>
@@ -25,8 +26,13 @@ class CameraIdentification implements ICameraAttendance<pkg_camera.CameraImage, 
   final IImageHandler<pkg_camera.CameraImage, pkg_camera.CameraDescription,
       pkg_image.Image, Uint8List> _imageHandler;
 
-  final IRecognitionPipeline<pkg_image.Image, Uint8List,
-      Student, FaceEmbedding> _recognitionPipeline;
+  final IRecognitionPipeline<
+      pkg_camera.CameraImage,
+      pkg_camera.CameraController,
+      pkg_image.Image,
+      Uint8List,
+      Student,
+      FaceEmbedding> _recognitionPipeline;
   final IDomainRepository _domainRepo;
   void Function(Iterable<Uint8List> jpegImages)? showFaceImages;
   final Lesson lesson;
@@ -34,14 +40,11 @@ class CameraIdentification implements ICameraAttendance<pkg_camera.CameraImage, 
   @override
   Future<void> onNewCameraImage(
     final pkg_camera.CameraImage cameraImage,
-    final pkg_camera.CameraDescription cameraDescription,
+    final pkg_camera.CameraController cameraController,
   ) async {
-    //
-    final image = _imageHandler.fromCameraImage(cameraImage, cameraDescription);
-    final upImage = _imageHandler.rotateImage(image, cameraDescription.sensorOrientation);
     final faces = await _recognitionPipeline.detectFace(
-      image: upImage,
-      // imageRollDegree: cameraDescription.sensorOrientation,
+      cameraImage: cameraImage,
+      cameraController: cameraController,
     );
     final jpegsAndEmbeddings =
         await _recognitionPipeline.extractEmbedding(faces);

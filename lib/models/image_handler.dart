@@ -16,17 +16,37 @@ class ImageHandler
     final pkg_camera.CameraImage image,
     final pkg_camera.CameraDescription description,
   ) {
-    final rgbBuffer = _yCbCr420ToRgbBuffer(
-      width: image.width,
-      height: image.height,
-      planes: image.planes,
-    );
-    final newImage = _toLogicalImage(
-      width: image.width,
-      height: image.height,
-      rgbBytes: rgbBuffer,
-    );
-    return newImage;
+    switch (image.format.group) {
+      case pkg_camera.ImageFormatGroup.yuv420:
+        final rgbBuffer = _yCbCr420ToRgbBuffer(
+          width: image.width,
+          height: image.height,
+          planes: image.planes,
+        );
+        final newImage = _toLogicalImage(
+          width: image.width,
+          height: image.height,
+          rgbBytes: rgbBuffer,
+        );
+        return newImage;
+      case pkg_camera.ImageFormatGroup.bgra8888:
+        return pkg_image.Image.fromBytes(
+          width: image.width,
+          height: image.height,
+          bytes: image.planes.single.bytes.buffer,
+          numChannels: 4,
+          order: pkg_image.ChannelOrder.bgra,
+        );
+      case pkg_camera.ImageFormatGroup.jpeg:
+        final newImage = pkg_image.decodeJpg(image.planes.single.bytes);
+        if (newImage == null) {
+          return pkg_image.Image(width: 64, height: 64);
+        }
+        return newImage;
+      default:
+        // defaults to a black image
+        return pkg_image.Image(width: 64, height: 64);
+    }
   }
 
   /// Convert YCbCr (called YUV) 4:2:0 3-plane to an RGB 1-plane.

@@ -24,20 +24,20 @@ class OneShotCamera extends StatelessWidget {
     return Scaffold(
       body: CameraWrapper(
         camerasAvailable: camerasAvailable,
-        imageCaptureHandler: (description, cameraImage) {
+        imageCaptureHandler: (controller, cameraImage) {
           final router = GoRouter.of(context);
           if (!router.canPop()) {
             return;
           } else {
             final image = imageHandler.fromCameraImage(
               cameraImage,
-              description,
+              controller.description,
             );
             final jpg = imageHandler.toJpg(image);
             router.pop(
               OneShotCameraReturn(
                 cameraImage: cameraImage,
-                cameraDescription: description,
+                cameraController: controller,
                 jpg: jpg,
               ),
             );

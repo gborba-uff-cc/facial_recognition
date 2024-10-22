@@ -8,7 +8,7 @@ import 'package:camera/camera.dart' as pkg_camera;
 import 'package:image/image.dart' as pkg_image;
 
 
-class RecognitionPipeline implements IRecognitionPipeline<pkg_image.Image, JpegPictureBytes, Student, FaceEmbedding> {
+class RecognitionPipeline implements IRecognitionPipeline<pkg_camera.CameraImage, pkg_camera.CameraController ,pkg_image.Image, JpegPictureBytes, Student, FaceEmbedding> {
   const RecognitionPipeline({
     required IFaceDetector faceDetector,
     required IImageHandler<
@@ -31,24 +31,22 @@ class RecognitionPipeline implements IRecognitionPipeline<pkg_image.Image, JpegP
 
   @override
   Future<List<pkg_image.Image>> detectFace({
-    required pkg_image.Image image,
-    int imageRollDegree = 0,
+    required final pkg_camera.CameraImage cameraImage,
+    required final pkg_camera.CameraController cameraController,
   }) async {
     // detect faces
-    final bgraBuffer = _imageHandler.toBgraBuffer(image);
     final faceRects = await _faceDetector.detect(
-      bgraBuffer: bgraBuffer,
-      width: image.width,
-      height: image.height,
-      imageRollDegree: imageRollDegree,
-      // 1 byte * (1 blue + 1 gree + 3 red + 1 alpha)
-      bytesRowStride: image.width*4,
+      cameraImage: cameraImage,
+      cameraController: cameraController,
     );
     projectLogger.info('detected faces: ${faceRects.length}');
 
     // detach faces into manipulable images
-    // final manipulableImage = _imageHandler.fromCameraImage(bgraBuffer, cameraDescription);
-    final faces = _imageHandler.cropFromImage(image, faceRects);
+    final manipulableImage = _imageHandler.fromCameraImage(
+      cameraImage,
+      cameraController.description,
+    );
+    final faces = _imageHandler.cropFromImage(manipulableImage, faceRects);
     return faces;
   }
 

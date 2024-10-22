@@ -145,6 +145,8 @@ class MainApp extends StatelessWidget {
     final IFaceEmbedder faceEmbedder = FacenetFaceEmbedder();
     final IFaceRecognizer<Student, List<double>> faceRecognizer = DistanceClassifier(distanceFunction: euclideanDistance);
     final IRecognitionPipeline<
+        pkg_camera.CameraImage,
+        pkg_camera.CameraController,
         pkg_image.Image,
         Uint8List,
         Student,

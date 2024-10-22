@@ -244,8 +244,12 @@ class FacePictureField extends StatefulWidget {
     super.key,
     bool isOptional = true,
     required this.onSaved,
-    Future<List<pkg_image.Image>> Function(pkg_camera.CameraImage cameiraImage, pkg_camera.CameraDescription cameraDescription)? faceDetector,
-    Future<List<Duple<Uint8List, List<double>>>> Function(pkg_image.Image face,)? faceEmbedder,
+    Future<List<pkg_image.Image>> Function(pkg_camera.CameraImage cameiraImage,
+            pkg_camera.CameraController cameraController)?
+        faceDetector,
+    Future<List<Duple<Uint8List, List<double>>>> Function(
+      pkg_image.Image face,
+    )? faceEmbedder,
     // Future<Uint8List> Function(pkg_image.Image)? jpgConverter,
   })  : _isOptional = isOptional,
         _faceDetector = faceDetector,
@@ -255,12 +259,12 @@ class FacePictureField extends StatefulWidget {
   final bool _isOptional;
   final void Function(
     pkg_camera.CameraImage?,
-    pkg_camera.CameraDescription?,
+    pkg_camera.CameraController?,
     FaceEmbedding?,
   )? onSaved;
   final Future<List<pkg_image.Image>> Function(
     pkg_camera.CameraImage cameiraImage,
-    pkg_camera.CameraDescription cameraDescription,
+    pkg_camera.CameraController cameraController,
   )? _faceDetector;
   final Future<List<Duple<Uint8List, List<double>>>> Function(
     pkg_image.Image face,
@@ -289,7 +293,7 @@ class _FacePictureFieldState extends State<FacePictureField> {
       initialValue: const _CandidateFacePicture(
         status: _FacePictureValidationStatus.isValid,
         image: null,
-        description: null,
+        controller: null,
         embedding: null,
         jpg: null,
       ),
@@ -300,7 +304,7 @@ class _FacePictureFieldState extends State<FacePictureField> {
       validator: (final value) {
         projectLogger.fine('FormField<_CandidateFacePicture>.validator');
         final cameraImage = value?.image;
-        final cameraDescription = value?.description;
+        final cameraDescription = value?.controller;
         final validatingPicture = _validatingPicture;
         final status = value?.status;
         final isValidating =
@@ -327,7 +331,7 @@ class _FacePictureFieldState extends State<FacePictureField> {
             final newValue = _CandidateFacePicture(
               status: _FacePictureValidationStatus.validating,
               image: value?.image,
-              description: value?.description,
+              controller: value?.controller,
               embedding: value?.embedding,
               jpg: value?.jpg,
             );
@@ -343,7 +347,7 @@ class _FacePictureFieldState extends State<FacePictureField> {
               newValue = _CandidateFacePicture(
                 status: _FacePictureValidationStatus.isValid,
                 image: value?.image,
-                description: value?.description,
+                controller: value?.controller,
                 embedding: value?.embedding,
                 jpg: value?.jpg,
               );
@@ -352,7 +356,7 @@ class _FacePictureFieldState extends State<FacePictureField> {
               newValue = _CandidateFacePicture(
                 status: _FacePictureValidationStatus.notValid,
                 image: value?.image,
-                description: value?.description,
+                controller: value?.controller,
                 embedding: value?.embedding,
                 jpg: value?.jpg,
               );
@@ -380,7 +384,7 @@ class _FacePictureFieldState extends State<FacePictureField> {
           : (value) {
               final cameraImage = value?.image;
               final candidatePicture = _validatingPicture?.image;
-              final candidateCameraDescription = _validatingPicture?.description;
+              final candidateCameraDescription = _validatingPicture?.controller;
               final candidateEmbedding = _validatingPicture?.embedding;
               if (_areDifferrentPictures(candidatePicture, cameraImage)) {
                 projectLogger.severe('tried to save a not validated picture');
@@ -430,7 +434,7 @@ class _FacePictureFieldState extends State<FacePictureField> {
                       .push<
                           OneShotCameraReturn<
                               pkg_camera.CameraImage,
-                              pkg_camera.CameraDescription,
+                              pkg_camera.CameraController,
                               Uint8List>>('/take_photo')
                       .then((value) {
                     field.didChange(
@@ -438,7 +442,7 @@ class _FacePictureFieldState extends State<FacePictureField> {
                           ? _CandidateFacePicture(
                               status: _FacePictureValidationStatus.notValid,
                               image: value.cameraImage,
-                              description: value.cameraDescription,
+                              controller: value.cameraController,
                               embedding: null,
                               jpg: value.jpg,
                             )
@@ -500,8 +504,8 @@ class _FacePictureFieldState extends State<FacePictureField> {
     if (detector != null &&
         currentValue != null &&
         currentValue.image != null &&
-        currentValue.description != null) {
-      detectedFaces = await detector(currentValue.image!, currentValue.description!);
+        currentValue.controller != null) {
+      detectedFaces = await detector(currentValue.image!, currentValue.controller!);
     } else {
       detectedFaces = [];
     }
@@ -531,7 +535,7 @@ class _FacePictureFieldState extends State<FacePictureField> {
     final newValue = _CandidateFacePicture(
       status: newStatus,
       image: currentValue?.image,
-      description: currentValue?.description,
+      controller: currentValue?.controller,
       embedding: newEmbedding,
       jpg: /*newJpg ??*/ currentValue?.jpg,
     );
@@ -554,14 +558,14 @@ class _CandidateFacePicture {
   const _CandidateFacePicture({
     required this.status,
     required this.image,
-    required this.description,
+    required this.controller,
     required this.embedding,
     required this.jpg,
   });
 
   final _FacePictureValidationStatus status;
   final pkg_camera.CameraImage? image;
-  final pkg_camera.CameraDescription? description;
+  final pkg_camera.CameraController? controller;
   final FaceEmbedding? embedding;
   final Uint8List? jpg;
 }

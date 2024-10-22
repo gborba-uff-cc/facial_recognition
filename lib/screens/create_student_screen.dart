@@ -70,13 +70,13 @@ class _CreateStudentScreenState extends State<CreateStudentScreen> {
                 faceDetector: widget.useCase.detectFaces,
                 faceEmbedder: widget.useCase.extractEmbedding,
                 jpgConverter: (image) async => widget.useCase.fromImageToJpg(image),
-                facePictureOnSaved: (final cameraImage, final cameraDescription, final faceEmbedding) {
+                facePictureOnSaved: (final cameraImage, final cameraController, final faceEmbedding) {
                   // REVIEW - cameraDescription should not be null?;
-                  final facePicture = cameraDescription == null || cameraImage == null
+                  final facePicture = cameraController == null || cameraImage == null
                       ? null
                       : widget.useCase.fromCameraImagetoJpg(
                           cameraImage,
-                          cameraDescription,
+                          cameraController.description,
                         );
                   _facePicture = facePicture;
                   _faceEmbedding = faceEmbedding;
