@@ -6,9 +6,12 @@ class AppDefaultAppBar extends StatelessWidget implements PreferredSizeWidget{
   const AppDefaultAppBar({
     super.key,
     required String title,
-  }): _title = title;
+    List<Widget>? actions,
+  }): _title = title,
+      _actions = actions;
 
   final String _title;
+  final List<Widget>? _actions;
 
   @override
   Widget build(BuildContext context) {
@@ -19,6 +22,7 @@ class AppDefaultAppBar extends StatelessWidget implements PreferredSizeWidget{
         style: Theme.of(context).textTheme.headlineLarge,
         overflow: TextOverflow.fade,
       ),
+      actions: _actions,
     );
   }
 

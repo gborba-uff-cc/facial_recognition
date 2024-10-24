@@ -1,9 +1,13 @@
+import 'dart:typed_data';
+
 import 'package:facial_recognition/models/domain.dart';
 import 'package:facial_recognition/screens/common/app_defaults.dart';
 import 'package:facial_recognition/screens/common/card_single_action.dart';
 import 'package:facial_recognition/use_case/attendance_summary.dart';
+import 'package:facial_recognition/utils/project_logger.dart';
 import 'package:facial_recognition/utils/ui.dart';
 import 'package:flutter/material.dart';
+import 'package:file_picker/file_picker.dart' as pkg_picker;
 
 class AttendanceSummaryScreen extends StatelessWidget {
   const AttendanceSummaryScreen({
@@ -150,7 +154,15 @@ class AttendanceSummaryScreen extends StatelessWidget {
     ];
 
     return AppDefaultMenuScaffold(
-      appBar: AppDefaultAppBar(title: 'Presenças'),
+      appBar: AppDefaultAppBar(
+        title: 'Presenças',
+        actions: [
+          IconButton(
+            onPressed: () async => await _askToExport(),
+            icon: Icon(Icons.share),
+          ),
+        ],
+      ),
       body: ListView.builder(
         itemCount: prebuilt.length + classAttendance.length,
         itemBuilder: (context, index) {
@@ -211,6 +223,20 @@ class AttendanceSummaryScreen extends StatelessWidget {
         },
       ),
     );
+  }
+
+  Future<void> _askToExport() async {
+    // return null if user cancel the exportation
+    final fileContent = useCase.attendanceAsSpreadsheet();
+    final outputPath = await pkg_picker.FilePicker.platform.saveFile(
+      fileName: 'presencas_geradas.xlsx',
+      bytes: Uint8List.fromList(fileContent),
+      type: pkg_picker.FileType.custom,
+      allowedExtensions: ['xlsx'],
+    );
+    if (outputPath == null) {
+      return;
+    }
   }
 }
 

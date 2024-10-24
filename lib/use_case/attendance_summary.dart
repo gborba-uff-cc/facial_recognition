@@ -1,5 +1,6 @@
 import 'package:facial_recognition/interfaces.dart';
 import 'package:facial_recognition/models/domain.dart';
+import 'package:excel/excel.dart' as pkg_excel;
 
 class AttendanceSummary {
   factory AttendanceSummary({
@@ -23,6 +24,14 @@ class AttendanceSummary {
           .getLessonFromSubjectClass([subjectClass])[subjectClass]!;
     final lessons = List<Lesson>.unmodifiable(
       theLessons.toList()..sort(_sortLessonsByDateTime),
+    );
+    final theStudents = domainRepository
+        .getStudentFromSubjectClass([subjectClass])[subjectClass]!;
+    final students = List<Student>.unmodifiable(
+      theStudents.toList()..sort(
+          (a, b) => a.individual.displayFullName
+              .compareTo(b.individual.displayFullName),
+      ),
     );
     final now = DateTime.now().toUtc();
     final pastLessons = List<Lesson>.unmodifiable(
@@ -59,6 +68,7 @@ class AttendanceSummary {
       subjectClass: subjectClass,
       attendances: attendances,
       lessons: lessons,
+      students: students,
       now: now,
       pastLessons: pastLessons,
       lastLesson: lastLesson,
@@ -73,6 +83,7 @@ class AttendanceSummary {
     required SubjectClass subjectClass,
     required Map<Student, List<Attendance>> attendances,
     required List<Lesson> lessons,
+    required List<Student> students,
     required DateTime now,
     required List<Lesson> pastLessons,
     required Lesson? lastLesson,
@@ -83,6 +94,7 @@ class AttendanceSummary {
         _subjectClass = subjectClass,
         _attendances = attendances,
         _lessons = lessons,
+        _students = students,
         _now = now,
         _pastLessons = pastLessons,
         _lastLesson = lastLesson,
@@ -94,6 +106,7 @@ class AttendanceSummary {
   final SubjectClass _subjectClass;
   final Map<Student, List<Attendance>> _attendances;
   final List<Lesson> _lessons;
+  final List<Student> _students;
   final DateTime _now;
   final List<Lesson> _pastLessons;
   final Lesson? _lastLesson;
@@ -136,4 +149,122 @@ class AttendanceSummary {
         .getSubjectClassAttendance([_subjectClass])[_subjectClass] ?? {};
   }
 
+  List<int> attendanceAsSpreadsheet() {
+    final students = _students;
+    final lessons = _lessons;
+    final attendances = _attendances;
+    if (students.isEmpty || lessons.isEmpty) {
+      return const [];
+    }
+    final spreadsheet = pkg_excel.Excel.createExcel();
+    final now = DateTime.now().toLocal();
+    final oldSheetName = spreadsheet.getDefaultSheet();
+    final newSheetName = '${now.day}${now.month}${now.year}${now.hour}${now.minute}';
+    if (oldSheetName != null) {
+      spreadsheet.rename(oldSheetName, newSheetName);
+    }
+    final sheet = spreadsheet[newSheetName];
+    spreadsheet.setDefaultSheet(newSheetName);
+    _populateAttendanceSheet(
+      sheet: sheet,
+      students: students,
+      lessons: lessons,
+      attendances: attendances,
+    );
+    return spreadsheet.save() ?? const [];
+  }
+
+  void _populateAttendanceSheet({
+    required final pkg_excel.Sheet sheet,
+    required final List<Student> students,
+    required final List<Lesson> lessons,
+    required final Map<Student, List<Attendance>> attendances,
+  }) {
+    pkg_excel.CellIndex cellIndex;
+    pkg_excel.CellValue cellValue;
+    final centerStyle = pkg_excel.CellStyle(
+      horizontalAlign: pkg_excel.HorizontalAlign.Center,
+    );
+    final boldStyle = pkg_excel.CellStyle(
+      bold: true,
+    );
+
+    // sheet content
+    Map<DateTime,int> dateTimeColumn = {};
+    int rowIndex;
+    int columnIndex;
+    // row A
+    rowIndex = 0;
+    columnIndex = 0;
+    cellIndex = pkg_excel.CellIndex.indexByColumnRow(
+      rowIndex: rowIndex,
+      columnIndex: columnIndex,
+    );
+    cellValue = pkg_excel.TextCellValue('Nome');
+    sheet.updateCell(cellIndex, cellValue, cellStyle: boldStyle);
+    columnIndex = 1;
+    cellIndex = pkg_excel.CellIndex.indexByColumnRow(
+      rowIndex: rowIndex,
+      columnIndex: columnIndex,
+    );
+    cellValue = pkg_excel.TextCellValue('Matrícula');
+    sheet.updateCell(cellIndex, cellValue, cellStyle: boldStyle);
+    columnIndex = 2;
+    for (final l in lessons) {
+      cellIndex = pkg_excel.CellIndex.indexByColumnRow(
+        rowIndex: 0,
+        columnIndex: columnIndex,
+      );
+      cellValue = pkg_excel.DateTimeCellValue.fromDateTime(l.utcDateTime.toLocal());
+      sheet.updateCell(cellIndex, cellValue, cellStyle: boldStyle);
+      dateTimeColumn[l.utcDateTime] = columnIndex;
+      columnIndex += 1;
+    }
+    // row B onward
+    rowIndex = 1;
+    for (final s in students) {
+      columnIndex = 0;
+      cellIndex = pkg_excel.CellIndex.indexByColumnRow(
+        rowIndex: rowIndex,
+        columnIndex: columnIndex,
+      );
+      cellValue = pkg_excel.TextCellValue(s.individual.displayFullName);
+      sheet.updateCell(cellIndex, cellValue);
+      // ----------
+      columnIndex = 1;
+      cellIndex = pkg_excel.CellIndex.indexByColumnRow(
+        rowIndex: rowIndex,
+        columnIndex: columnIndex,
+      );
+      cellValue = pkg_excel.TextCellValue(s.registration);
+      sheet.updateCell(cellIndex, cellValue);
+      // ----------
+      for (columnIndex=2; columnIndex<2+_lessons.length; columnIndex+=1) {
+        cellIndex = pkg_excel.CellIndex.indexByColumnRow(
+          rowIndex: rowIndex,
+          columnIndex: columnIndex,
+        );
+        cellValue = pkg_excel.TextCellValue('n');
+        sheet.updateCell(cellIndex, cellValue, cellStyle: centerStyle);
+      }
+      final studentAttendance = attendances[s];
+      if (studentAttendance != null ) {
+        for (final a in studentAttendance) {
+          final aux = dateTimeColumn[a.lesson.utcDateTime];
+          if (aux == null) {
+            continue;
+          }
+          columnIndex = aux;
+          cellIndex = pkg_excel.CellIndex.indexByColumnRow(
+            rowIndex: rowIndex,
+            columnIndex: columnIndex,
+          );
+          cellValue = pkg_excel.TextCellValue('P');
+          sheet.updateCell(cellIndex, cellValue, cellStyle: centerStyle);
+        }
+      }
+      // ----------
+      rowIndex += 1;
+    }
+  }
 }
