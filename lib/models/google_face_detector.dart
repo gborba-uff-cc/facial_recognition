@@ -1,24 +1,21 @@
 import 'dart:io';
-import 'dart:typed_data';
-import 'dart:ui';
 
+import 'package:camera/camera.dart' as pkg_camera;
 import 'package:facial_recognition/interfaces.dart';
 import 'package:facial_recognition/utils/project_logger.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
-import 'package:camera/camera.dart' as pkg_camera;
 
 class GoogleFaceDetector
     implements IFaceDetector<pkg_camera.CameraImage, pkg_camera.CameraController> {
   final FaceDetector _detector;
 
-  ///
-  GoogleFaceDetector() : _detector = FaceDetector(
-    options: FaceDetectorOptions(
-      performanceMode: FaceDetectorMode.fast,
-    ),
-  );
+  GoogleFaceDetector()
+      : _detector = FaceDetector(
+          options: FaceDetectorOptions(
+            performanceMode: FaceDetectorMode.fast,
+          ),
+        );
 
   ///
   void close() {
@@ -101,40 +98,84 @@ class GoogleFaceDetector
 
     // get image format
     final format = InputImageFormatValue.fromRawValue(image.format.raw);
-    // validate format because it is platform dependent:
-    switch (format) {  // switch is for the exaustive comparisson
+    // validate format because it is platform dependent;
+    // (using switch for the exaustive comparison)
+    switch (format) {
       case null:
         return null;
       case InputImageFormat.yuv_420_888:
       case InputImageFormat.nv21:
-      case InputImageFormat.yv12:
         if (!Platform.isAndroid) {
           return null;
         }
         break;
       case InputImageFormat.bgra8888:
-      case InputImageFormat.yuv420:
         if (!Platform.isIOS) {
           return null;
         }
         break;
+      case InputImageFormat.yv12:
+      case InputImageFormat.yuv420:
+        projectLogger
+            .info('[GoogleFaceDetector] input image format not supported');
+        return null;
     }
 
-    // since format is constraint to nv21 or bgra8888, both only have one plane
-    if (image.planes.length != 1) {
+    Uint8List? bytes;
+    InputImageMetadata? metadata;
+    switch (format) {
+      case InputImageFormat.yuv_420_888:
+        final planes = image.planes;
+        if (planes.length != 3) {
+          bytes = null;
+          metadata = null;
+        }
+        else {
+          int nBytes = 0;
+          for (final plane in image.planes) {
+            nBytes += plane.bytes.length;
+          }
+          assert (nBytes == 3*planes.first.bytes.length);
+
+          final flat = <int>[];
+          for (final plane in image.planes) {
+            flat.addAll(plane.bytes);
+          }
+          bytes = Uint8List.fromList(flat);
+          metadata = InputImageMetadata(
+            size: Size(image.width.toDouble(), image.height.toDouble()),
+            rotation: rotation, // used only in Android
+            format: format,     // used only in iOS
+            bytesPerRow: planes.first.bytesPerRow,  // used only in iOS
+          );
+        }
+        break;
+      case InputImageFormat.nv21:
+      case InputImageFormat.bgra8888:
+        final plane = image.planes.singleOrNull;
+        if (plane == null) {
+          bytes = null;
+          metadata = null;
+        }
+        else {
+          bytes = plane.bytes;
+          metadata = InputImageMetadata(
+            size: Size(image.width.toDouble(), image.height.toDouble()),
+            rotation: rotation, // used only in Android
+            format: format,     // used only in iOS
+            bytesPerRow: plane.bytesPerRow, // used only in iOS
+          );
+        }
+        break;
+      default:
+        return null;
+    }
+    if (bytes == null || metadata == null) {
       return null;
     }
-    final plane = image.planes.first;
-
-    // compose InputImage using bytes
     return InputImage.fromBytes(
-      bytes: plane.bytes,
-      metadata: InputImageMetadata(
-        size: Size(image.width.toDouble(), image.height.toDouble()),
-        rotation: rotation, // used only in Android
-        format: format, // used only in iOS
-        bytesPerRow: plane.bytesPerRow, // used only in iOS
-      ),
+      bytes: bytes,
+      metadata: metadata,
     );
   }
 }
