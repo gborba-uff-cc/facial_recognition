@@ -10,6 +10,11 @@ typedef CameraWrapperCallBack = void Function(
   pkg_camera.CameraImage cameraImage,
 );
 
+typedef _CameraStreamContent = ({
+  pkg_camera.CameraImage image,
+  pkg_camera.CameraController controller,
+});
+
 class CameraWrapper extends StatefulWidget {
   const CameraWrapper({
     super.key,
@@ -39,12 +44,12 @@ class CameraWrapper extends StatefulWidget {
 class _CameraWrapperState extends State<CameraWrapper> with WidgetsBindingObserver {
   // SECTION - STREAMS ---------------------------------------------------------
   /* wrap original stream allowing multiple subscriptions */
-  final StreamController<pkg_camera.CameraImage> _cameraImageBroadcastStream =
+  final StreamController<_CameraStreamContent> _cameraImageBroadcastStream =
       StreamController.broadcast();
   /* subscription receiving the same elements as the original stream */
-  StreamSubscription<pkg_camera.CameraImage>? _cameraImageStreamSubscription;
+  late final StreamSubscription<_CameraStreamContent> _cameraImageStreamSubscription;
   /* subscription receiving elements when capture button is tapped */
-  StreamSubscription<pkg_camera.CameraImage>? _cameraImageCaptureSubscription;
+  late final StreamSubscription<_CameraStreamContent> _cameraImageCaptureSubscription;
   /*
   the frequency at which images are processed in the stream subscription;
   i.e. how many discarded images after handling one image;
@@ -52,6 +57,7 @@ class _CameraWrapperState extends State<CameraWrapper> with WidgetsBindingObserv
   late _ModularCounter _imageCounterFilter;
   /* sinalize the capture stream handler to handle images when true */
   final _Box<bool> _shouldCaptureImage = _Box(false);
+  final _Box<bool> _isDisposing = _Box(false);
   // !SECTION ------------------------------------------------------------------
 
   // SECTION - CAMERA CONTROLLER -----------------------------------------------
@@ -65,24 +71,22 @@ class _CameraWrapperState extends State<CameraWrapper> with WidgetsBindingObserv
 
   @override
   void initState() {
+    projectLogger.fine('[camera_wrapper] initState()');
     super.initState();
     // setup to receive calls to didChangeAppLifecycleState
     WidgetsBinding.instance.addObserver(this);
     // ----- late variables
     _imageCounterFilter = _ModularCounter(widget.streamDiscardCount);
     _selectedCameraIndex = _ModularCounter(widget.camerasAvailable.length);
-    // -----
-    // _cameraImageBroadcastStream.onListen = () => projectLogger.fine(
-    //       '_CameraWrapperState: at least one handler',
-    //     );
-    // _cameraImageBroadcastStream.onCancel = () => projectLogger.fine(
-    //       '_CameraWrapperState: no more handlers',
-    //     );
     _cameraImageStreamSubscription =
         _cameraImageBroadcastStream.stream.listen(null);
     _cameraImageCaptureSubscription =
         _cameraImageBroadcastStream.stream.listen(null);
     // -----
+    _updateStreamHandlers(
+      capturedImageHandler: widget._imageCaptureHandler,
+      streamedImageHandler: widget._imageStreamHandler,
+    );
     if (widget.camerasAvailable.isNotEmpty) {
       final description = widget.camerasAvailable[_selectedCameraIndex.current];
       _onNewCameraSelected(description);
@@ -91,60 +95,49 @@ class _CameraWrapperState extends State<CameraWrapper> with WidgetsBindingObserv
 
   @override
   void dispose() {
+    projectLogger.fine('[camera_wrapper] dispose()');
+    _isDisposing.value = true;
     final controller = _cameraController;
     if (controller != null) {
-      _disposeCameraController(controller);
+      _stopCameraController(controller);
     }
     // -----
-    _cameraImageStreamSubscription?.cancel();
-    _cameraImageCaptureSubscription?.cancel();
+    _cameraImageStreamSubscription.cancel();
+    _cameraImageCaptureSubscription.cancel();
     _cameraImageBroadcastStream.close();
     // -----
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 
-  @override
-  void activate() {
-    super.activate();
-    if (widget.camerasAvailable.isNotEmpty) {
-      final description = widget.camerasAvailable[_selectedCameraIndex.current];
-      _onNewCameraSelected(description);
-    }
-  }
-
-  @override
-  void deactivate() {
-    final controller = _cameraController;
-    if (controller != null) {
-      _disposeCameraController(controller);
-    }
-    super.deactivate();
-  }
-
-  // handle calls to build that updates this.widget
+  // handle calls to build targeting this.widget
   @override
   void didUpdateWidget(covariant CameraWrapper oldWidget) {
+    projectLogger.fine('[camera_wrapper] didUpdateWidget()');
     super.didUpdateWidget(oldWidget);
-    _updateCaptureSubscriptionHandler(widget._imageCaptureHandler);
-    _updateStreamSubscriptionHandler(widget._imageStreamHandler);
+
+    _updateStreamHandlers(
+      capturedImageHandler: widget._imageCaptureHandler,
+      streamedImageHandler: widget._imageStreamHandler,
+    );
   }
 
   @override
   void didChangeAppLifecycleState(
     AppLifecycleState state,
-  ) {
+  ) async {
+    projectLogger.fine('[camera_wrapper] didUpdateLifeCycleState()');
     super.didChangeAppLifecycleState(state);
 
     final controller = _cameraController;
     switch (state) {
       case AppLifecycleState.resumed:
         final description = widget.camerasAvailable[_selectedCameraIndex.current];
-        _onNewCameraSelected(description);
+        await _onNewCameraSelected(description);
         break;
       case AppLifecycleState.inactive:
         if (controller != null) {
-          _disposeCameraController(controller);
+          await _stopCameraController(controller);
         }
         break;
       default:
@@ -153,30 +146,38 @@ class _CameraWrapperState extends State<CameraWrapper> with WidgetsBindingObserv
 
   Future<void> _onNewCameraSelected(
     pkg_camera.CameraDescription description,
-  ) {
-    return _initializeCameraController(description).then(
-      (startedController) {
-        if (startedController != null) {
-          startedController.startImageStream(
-            // _cameraImageBroadcastStream is not null because of initState
-            (image) => _cameraImageBroadcastStream.add(image),
-          );
-          _updateCaptureSubscriptionHandler(widget._imageCaptureHandler);
-          _updateStreamSubscriptionHandler(widget._imageStreamHandler);
-        }
-
-        if (mounted) {
-          setState(() {
-            _cameraController = startedController;
-          });
-        }
-      },
-    );
+  ) async {
+    final oldController = _cameraController;
+    projectLogger.fine('[camera_wrapper] _onNewCameraSelected()');
+    if (oldController != null && oldController.value.isInitialized) {
+      await _stopCameraController(oldController);
+    }
+    await _startCameraController(description);
+    if (mounted) {
+      setState(() {});
+    }
   }
 
-  Future<pkg_camera.CameraController?> _initializeCameraController(
-      pkg_camera.CameraDescription description,
+  Future<void> _stopCameraController(
+    pkg_camera.CameraController controller,
   ) async {
+    projectLogger.fine('[camera_wrapper] _stopCameraController()');
+    _cameraController = null;
+    if (controller.value.isStreamingImages) {
+      await controller.stopImageStream();
+    }
+    if (controller.value.isInitialized) {
+      await controller.dispose();
+    }
+  }
+
+  Future<void> _startCameraController(
+    pkg_camera.CameraDescription description,
+  ) async {
+    projectLogger.fine('[camera_wrapper] _startCameraController()');
+    _cameraControllerCurrentZoom = 1.0;
+    _cameraControllerMinZoom = 1.0;
+    _cameraControllerMaxZoom = 1.0;
     final controller = pkg_camera.CameraController(
       description,
       pkg_camera.ResolutionPreset.high,
@@ -188,58 +189,28 @@ class _CameraWrapperState extends State<CameraWrapper> with WidgetsBindingObserv
               : pkg_camera.ImageFormatGroup.jpeg,
     );
 
-    controller.addListener(
-      () {
-        if (controller.value.hasError) {
-          projectLogger.warning(controller.value.errorDescription);
-        }
-      },
-    );
-
-    _cameraControllerCurrentZoom = 1.0;
-    _cameraControllerMinZoom = 1.0;
-    _cameraControllerMaxZoom = 1.0;
-
-    return controller.initialize().then(
-      (initialized) {
-        return controller.getMinZoomLevel();
-      },
-      onError: (error) {
-        _logCameraException(error);
-        return 1.0;
-      },
-    ).then(
-      (minLevel) {
-        _cameraControllerMinZoom = minLevel;
-        return controller.getMaxZoomLevel();
-      },
-      onError: (error) {
-        _logCameraException(error);
-        return 1.0;
-      },
-    ).then(
-      (maxLevel) {
-        _cameraControllerMaxZoom = maxLevel;
-        return controller;
-      },
-      onError: (error) {
-        _logCameraException(error);
-        return controller;
-      },
-    );
-  }
-
-  Future<void> _disposeCameraController(
-    pkg_camera.CameraController controller,
-  ) {
-    return Future<void>(
-      () {
-        if (controller.value.isStreamingImages) {
-          return controller.stopImageStream();
-        }
-        else {}
-      },
-    ).then((value) => controller.dispose());
+    try {
+      await controller.initialize();
+      final futures = await Future.wait([
+        controller.getMinZoomLevel(),
+        controller.getMaxZoomLevel(),
+      ]);
+      _cameraControllerCurrentZoom = futures[0];
+      _cameraControllerMinZoom = futures[0];
+      _cameraControllerMaxZoom = futures[1];
+      if (controller.value.isPreviewPaused) {
+        await controller.pausePreview();
+      }
+      await controller.startImageStream((image) {
+        _cameraImageBroadcastStream.add((image: image, controller: controller));
+      });
+    }
+    on pkg_camera.CameraException catch (e) {
+      _logCameraException(e);
+    }
+    setState(() {
+      _cameraController = controller;
+    });
   }
 
   void _logCameraException(
@@ -281,12 +252,12 @@ class _CameraWrapperState extends State<CameraWrapper> with WidgetsBindingObserv
   Widget build(BuildContext context) {
     final controller = _cameraController;
     Widget buildObject;
-    if (controller == null) {
+    if (controller == null || !controller.value.isInitialized) {
       buildObject = const Center(
         child: Padding(
           padding: EdgeInsets.all(8.0),
           child: Text(
-            'Camera preview',
+            'Iniciando camera',
           ),
         ),
       );
@@ -294,8 +265,7 @@ class _CameraWrapperState extends State<CameraWrapper> with WidgetsBindingObserv
     else {
       final iconColor = Theme.of(context).colorScheme.primary;
       final backgroundIconColor = Colors.grey.shade300;
-      buildObject =
-      pkg_camera.CameraPreview(
+      buildObject = pkg_camera.CameraPreview(
         controller,
         child: SizedBox(
           height: double.infinity,
@@ -426,56 +396,49 @@ class _CameraWrapperState extends State<CameraWrapper> with WidgetsBindingObserv
     _shouldCaptureImage.value = true;
   }
 
-  Future<void> _onSwitchCameraPressed()
-  {
-    final controller = _cameraController;
+  Future<void> _onSwitchCameraPressed() async {
+    projectLogger.fine('[camera_wrapper] _onSwitchCameraPressed()');
     _selectedCameraIndex.tick();
     final description = widget.camerasAvailable[_selectedCameraIndex.current];
-
-    return Future<void>(() {
-      if (controller != null) {
-        return _disposeCameraController(controller);
-      }
-    }).then<void>((disposed) {
-      _onNewCameraSelected(description);
-    });
+    await _onNewCameraSelected(description);
   }
 
+  /// start/stop capture and stream data handler
+  void _updateStreamHandlers({
+    required final CameraWrapperCallBack? capturedImageHandler,
+    required final CameraWrapperCallBack? streamedImageHandler,
+  }) {
+    _updateCaptureSubscriptionHandler(capturedImageHandler);
+    _updateStreamSubscriptionHandler(streamedImageHandler);
+  }
+
+  /// start/stop calling the stream dataHandler
   void _updateStreamSubscriptionHandler(
     CameraWrapperCallBack? dataHandler,
   ) {
-    final controller = _cameraController;
-    final streamSubscription = _cameraImageStreamSubscription;
-    if (streamSubscription == null) {
-      return;
-    }
-    streamSubscription.onData(
-      dataHandler != null && controller != null
-          ? (cameraImage) {
+    _cameraImageStreamSubscription.onData(
+      dataHandler != null
+          ? (streamContent) {
               final isZero = _imageCounterFilter.current == 0;
               _imageCounterFilter.tick();
               if (isZero) {
-                dataHandler(controller, cameraImage);
+                dataHandler(streamContent.controller, streamContent.image);
               }
             }
           : null,
     );
   }
 
+  /// start/stop calling the capture dataHandler
   void _updateCaptureSubscriptionHandler(
     CameraWrapperCallBack? dataHandler,
   ) {
-    final controller = _cameraController;
-    final streamSubscription = _cameraImageCaptureSubscription;
-    if (streamSubscription == null) {
-      return;
-    }
-    streamSubscription.onData(
-      dataHandler != null && controller != null
-          ? (cameraImage) {
+    _cameraImageCaptureSubscription.onData(
+      dataHandler != null
+          ? (streamContent) {
               if (_shouldCaptureImage.value) {
                 _shouldCaptureImage.value = false;
-                dataHandler(controller, cameraImage);
+                dataHandler(streamContent.controller, streamContent.image);
               }
             }
           : null,
