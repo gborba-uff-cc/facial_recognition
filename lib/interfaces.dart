@@ -30,6 +30,7 @@ abstract class IFaceDetector<CI, CC> {
 
 abstract class IImageHandler<CI, CD, I, J> {
   I fromCameraImage(final CI cameraImage, CD cameraDescription);
+  Uint8List rgbaFromCameraImage(CI image);
   List<I> cropFromImage(final I image, final List<Rect> rect);
   I resizeImage(final I image, final int width, final int height);
   I flipHorizontal(final I image);
