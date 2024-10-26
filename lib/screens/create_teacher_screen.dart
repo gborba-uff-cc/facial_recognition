@@ -1,18 +1,22 @@
 import 'dart:typed_data';
 
+import 'package:facial_recognition/interfaces.dart';
 import 'package:facial_recognition/models/domain.dart';
 import 'package:facial_recognition/screens/common/create_teacher.dart';
 import 'package:facial_recognition/screens/common/submit_form_button.dart';
 import 'package:facial_recognition/use_case/create_models.dart';
 import 'package:flutter/material.dart';
+import 'package:camerawesome/camerawesome_plugin.dart' as pkg_awesome;
 
 class CreateTeacherScreen extends StatefulWidget {
   const CreateTeacherScreen({
     super.key,
-    required this.useCase,
+    required this.createModelsUseCase,
+    required this.facialDataHandlerUseCase,
   });
 
-  final CreateModels useCase;
+  final CreateModels createModelsUseCase;
+  final IFacialDataHandler<pkg_awesome.AnalysisImage, JpegPictureBytes, FaceEmbedding> facialDataHandlerUseCase;
 
   @override
   State<CreateTeacherScreen> createState() => _CreateTeacherScreenState();
@@ -67,20 +71,11 @@ class _CreateTeacherScreenState extends State<CreateTeacherScreen> {
             Form(
               key: _teacherForm,
               child: CreateTeacher(
-                faceDetector: widget.useCase.detectFaces,
-                faceEmbedder: widget.useCase.extractEmbedding,
-                jpgConverter: (image) async => widget.useCase.fromImageToJpg(image),
-                facePictureOnSaved: (final cameraImage, final cameraController, final faceEmbedding) {
-                  // REVIEW - cameraDescription should not be null?;
-                  final facePicture = cameraController == null || cameraImage == null
-                      ? null
-                      : widget.useCase.fromCameraImagetoJpg(
-                          cameraImage,
-                          cameraController.description,
-                        );
-                  _facePicture = facePicture;
-                  _faceEmbedding = faceEmbedding;
-                },
+                // FIXME
+                faceDetector: null,
+                faceEmbedder: null,
+                jpgConverter: null,
+                facePictureOnSaved: null,
                 individualRegistrationController: _individualRegistration,
                 registrationController: _registration,
                 nameController: _name,
@@ -91,7 +86,7 @@ class _CreateTeacherScreenState extends State<CreateTeacherScreen> {
               formKey: _teacherForm,
               action: () {
                 try {
-                  widget.useCase.createTeacher(
+                  widget.createModelsUseCase.createTeacher(
                     individualRegistration: _individualRegistration.text,
                     registration: _registration.text,
                     name: _name.text,
@@ -99,14 +94,14 @@ class _CreateTeacherScreenState extends State<CreateTeacherScreen> {
                   );
                   final facePicture = _facePicture;
                   if (facePicture != null) {
-                    widget.useCase.createTeacherFacePicture(
+                    widget.createModelsUseCase.createTeacherFacePicture(
                       jpegFacePicture: facePicture,
                       teacherRegistration: _registration.text,
                     );
                   }
                   final faceEmbedding = _faceEmbedding;
                   if (faceEmbedding != null) {
-                    widget.useCase.createTeacherFacialData(
+                    widget.createModelsUseCase.createTeacherFacialData(
                       embedding: faceEmbedding,
                       teacherRegistration: _registration.text,
                     );

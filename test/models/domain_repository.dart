@@ -24,7 +24,7 @@ class _ModelsCollection {
   final List<Attendance> attendances;
   final List<EmbeddingRecognitionResult> faceNotRecognized;
   final List<EmbeddingRecognitionResult> faceRecognized;
-  final List<Duple<JpegPictureBytes, FaceEmbedding>> deferred;
+  final List<({List<double> embedding, Uint8List face})> deferred;
 
   _ModelsCollection({
     required this.individuals,
@@ -134,11 +134,11 @@ _ModelsCollection _newCollection() {
       recognized: true,
     ),
   ]);
-  final deferred = List<Duple<JpegPictureBytes, FaceEmbedding>>.unmodifiable(<
-      Duple<JpegPictureBytes, FaceEmbedding>>[
-    Duple(Uint8List.fromList([1, 1, 1, 1]), [0.1, 0.1, 0.1, 0.1]),
-    Duple(Uint8List.fromList([1, 1, 2, 1]), [0.1, 0.1, 0.2, 0.1]),
-    Duple(Uint8List.fromList([1, 1, 3, 1]), [0.1, 0.1, 0.3, 0.1]),
+  final deferred = List<({List<double> embedding, Uint8List face})>.unmodifiable(<
+      ({List<double> embedding, Uint8List face})>[
+    (face: Uint8List.fromList([1, 1, 1, 1]), embedding: [0.1, 0.1, 0.1, 0.1]),
+    (face: Uint8List.fromList([1, 1, 2, 1]), embedding: [0.1, 0.1, 0.2, 0.1]),
+    (face: Uint8List.fromList([1, 1, 3, 1]), embedding: [0.1, 0.1, 0.3, 0.1]),
   ]);
 
   return _ModelsCollection(
@@ -951,7 +951,7 @@ void main() {
     });
 
     test('getDeferredFacesEmbedding', () {
-      final expected =<Lesson, List<Duple<JpegPictureBytes, FaceEmbedding>>>{
+      final expected =<Lesson, List<({List<double> embedding, Uint8List face})>>{
         modelsCollection.lessons[0]: modelsCollection.deferred.toList(),
         modelsCollection.lessons[1]: [],
       };
@@ -974,11 +974,11 @@ void main() {
       for (final e in expected.keys) {
         final expectedList = expected[e]!
           ..sort(
-            (a, b) => compareNumLists(a.value2, b.value2),
+            (a, b) => compareNumLists(a.embedding, b.embedding),
           );
         final actualList = actual[e]!.toList()
           ..sort(
-            (a, b) => compareNumLists(a.value2, b.value2),
+            (a, b) => compareNumLists(a.embedding, b.embedding),
           );
 
         expect(actualList, hasLength(expectedList.length));
@@ -988,8 +988,8 @@ void main() {
           expect(
             actualElement,
             isA<Duple<JpegPictureBytes, FaceEmbedding>>()
-                .having((p0) => p0.value1, 'jpegPictureBytes', equals(expectedElement.value1))
-                .having((p0) => p0.value2, 'faceEmbedding', equals(expectedElement.value2))
+                .having((p0) => p0.value1, 'jpegPictureBytes', equals(expectedElement.face))
+                .having((p0) => p0.value2, 'faceEmbedding', equals(expectedElement.embedding))
           );
         }
       }

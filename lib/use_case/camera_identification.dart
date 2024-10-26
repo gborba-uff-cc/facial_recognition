@@ -1,4 +1,3 @@
-import 'dart:math';
 import 'dart:typed_data';
 import 'dart:ui';
 
@@ -88,7 +87,7 @@ class CameraIdentificationInputType {
         Iterable<EmbeddingRecognitionResult>> recognizedAndNot = const Duple([], []);
     // ignore: dead_code
     if (tryRecognizeLater) {
-      projectLogger.info('could not recognize embedding now', e);
+      projectLogger.info('could not recognize embedding now');
       _deferRecognizeEmbedding(jpegsAndEmbeddings, lesson);
       return;
     }
@@ -203,7 +202,7 @@ class CameraIdentificationForCamerawesome implements
     ICameraAttendance<pkg_awesome.AnalysisImage, JpegPictureBytes>
 {
 
-  final IImageHandler<
+  final ICameraImageHandler<
       pkg_awesome.AnalysisImage,
       pkg_image.Image,
       Uint8List> imageHandler;
@@ -267,14 +266,24 @@ class CameraIdentificationForCamerawesome implements
             Iterable<EmbeddingRecognitionResult>> recognizedAndNot =
         const Duple([], []); */
         // TODO - continue here
+    final embeddingsAndFaces = List.generate(
+      embeddings.length,
+      (index) => (
+        embedding: embeddings[index],
+        face: jpgs[index],
+      ),
+    );
+    // do recognitions later
     // ignore: dead_code
     if (tryRecognizeLater) {
-      projectLogger.info('could not recognize embedding now', e);
-      _deferRecognizeEmbedding(embeddings, lesson);
+      projectLogger.info('could not recognize embedding now');
+      projectLogger.info('face recognition is going to be deferred');
+      domainRepository.addFaceEmbeddingToDeferredPool(embeddingsAndFaces, lesson);
       return;
     }
+
     final recognizedAndNot = recognitionPipeline.recognizeEmbedding(
-      inputs: embeddings,
+      inputs: embeddingsAndFaces,
       embeddingsByStudent: embeddingsByStudent,
     );
 
@@ -284,49 +293,14 @@ class CameraIdentificationForCamerawesome implements
     projectLogger.info('not recognized students: ${notRecognized.length}');
 
     // handle recognized students
-    _faceRecognized(recognized, lesson);
+    if (recognized.isNotEmpty) {
+      domainRepository.addFaceEmbeddingToCameraRecognized(recognized, lesson);
+    }
 
     // handle not recognized faces embedding
-    _faceNotRecognized(notRecognized, lesson);
-  }
-
-  void _deferRecognizeEmbedding(
-    final Iterable<Duple<Uint8List, FaceEmbedding>> input,
-    final Lesson lesson,
-  ) {
-    projectLogger.info('face recognition is going to be deferred');
-    _domainRepo.addFaceEmbeddingToDeferredPool(input, lesson);
-  }
-
-  Map<Student, Iterable<FacialData>> _getFacialDataFromSubjectClass(
-    SubjectClass subjectClass,
-  ) {
-    final studentByClass =
-        domainRepository.getStudentFromSubjectClass([subjectClass])[subjectClass]!;
-    final facialDataByStudent = domainRepository
-        .getFacialDataFromStudent(studentByClass);
-    return facialDataByStudent;
-  }
-
-  void _faceRecognized(
-    Iterable<EmbeddingRecognitionResult> recognized,
-    Lesson lesson,
-  ) {
-    if (recognized.isEmpty) {
-      return;
+    if (notRecognized.isNotEmpty) {
+      domainRepository.addFaceEmbeddingToCameraNotRecognized(
+          notRecognized, lesson);
     }
-
-    _domainRepo.addFaceEmbeddingToCameraRecognized(recognized, lesson);
-  }
-
-  void _faceNotRecognized(
-    Iterable<EmbeddingRecognitionResult> notRecognized,
-    Lesson lesson,
-  ) {
-    if (notRecognized.isEmpty) {
-      return;
-    }
-
-    _domainRepo.addFaceEmbeddingToCameraNotRecognized(notRecognized, lesson);
   }
 }

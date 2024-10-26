@@ -1,4 +1,4 @@
-import 'package:camera/camera.dart' as pkg_camera;
+/* import 'package:camera/camera.dart' as pkg_camera;
 import 'package:facial_recognition/screens/common/camera_wrapper.dart';
 import 'package:facial_recognition/use_case/camera_identification.dart';
 import 'package:flutter/foundation.dart';
@@ -117,3 +117,4 @@ class _CameraIdentificationScreenState extends State<CameraIdentificationScreen>
     );
   }
 }
+ */

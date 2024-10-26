@@ -60,6 +60,7 @@ class DistanceClassifier<TElement extends List<num>, TLabel>
     );
     final result = { for (final u in unknown) u : tmp };
 
+    int nRecognized = 0;
     // compute for all the inputs
     for (final anInput in unknown) {
       //measure the distances
@@ -74,12 +75,17 @@ class DistanceClassifier<TElement extends List<num>, TLabel>
 
       // get the nearest
       final nearest = distanceStructure.first;
+      final status = _recognitionStatus(nearest.distance) ? FaceRecognitionStatus.recognized : FaceRecognitionStatus.notRecognized;
       result[anInput] = FaceRecognitionResult(
         label: nearest.label,
         recognitionValue: nearest.distance,
         status: _recognitionStatus(nearest.distance) ? FaceRecognitionStatus.recognized : FaceRecognitionStatus.notRecognized,
       );
+      if (status == FaceRecognitionStatus.recognized) {
+        nRecognized += 1;
+      }
     }
+    projectLogger.info('[FaceRecognizer] total: ${unknown.length}, recognized: $nRecognized, not recognized: ${unknown.length-nRecognized}');
     return result;
   }
 

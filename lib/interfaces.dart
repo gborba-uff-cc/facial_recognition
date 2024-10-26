@@ -4,6 +4,10 @@ import 'dart:ui';
 import 'package:facial_recognition/models/domain.dart';
 import 'package:facial_recognition/models/use_case.dart';
 
+abstract class IFacialDataHandler<CI, J, V> {
+  Future<({Rect rect, J face, V embedding})?> processImage(CI input);
+}
+
 abstract class IRecognitionPipeline<CI, I, J, L, V> {
   Future<List<Rect>> detectFace(final CI input);
   Future<List<I>> cropFaces({
@@ -23,9 +27,16 @@ abstract class IFaceDetector<CI> {
   Future<List<Rect>> detect(final CI input);
 }
 
-abstract class IImageHandler<CI, I, J> {
+abstract class ICameraImageHandler<CI, I, J> implements
+    ICameraImageConverter<CI, I>,
+    IImageHandler<I, J>
+{}
+
+abstract class ICameraImageConverter<CI, I> {
   I fromCameraImage(final CI input);
-  Uint8List rgbaFromCameraImage(CI image);
+}
+
+abstract class IImageHandler<I, J> {
   List<I> cropFromImage(final I image, final List<Rect> rect);
   I resizeImage(final I image, final int width, final int height);
   I flipHorizontal(final I image);
@@ -33,7 +44,6 @@ abstract class IImageHandler<CI, I, J> {
   J toJpg(final I image);
   I? fromJpg(final J jpgBytes);
   List<List<List<int>>> toRgbMatrix(final I image);
-  Uint8List toBgraBuffer(I image);
 }
 
 abstract class IFaceEmbedder {
@@ -88,7 +98,7 @@ abstract class IDomainRepository {
       Iterable<EmbeddingRecognitionResult> recognized, Lesson lesson);
 
   void addFaceEmbeddingToDeferredPool(
-      Iterable<Duple<JpegPictureBytes, FaceEmbedding>> embedding,
+      List<({FaceEmbedding embedding, JpegPictureBytes face})> embedding,
       Lesson lesson);
 
   void addFacePicture(Iterable<FacePicture> facePicture);
@@ -115,7 +125,7 @@ abstract class IDomainRepository {
   Map<Lesson, Iterable<EmbeddingRecognitionResult>> getCameraRecognized(
       Iterable<Lesson> lesson);
 
-  Map<Lesson, Iterable<Duple<JpegPictureBytes, FaceEmbedding>>>
+  Map<Lesson, List<({FaceEmbedding embedding, JpegPictureBytes face})>>
       getDeferredFacesEmbedding(Iterable<Lesson> lesson);
 
   Map<Student, FacePicture?> getFacePictureFromStudent(

@@ -1,7 +1,5 @@
 import 'dart:typed_data';
 
-import 'package:camera/camera.dart' as pkg_camera;
-import 'package:facial_recognition/models/use_case.dart';
 import 'package:image/image.dart' as pkg_image;
 import 'package:facial_recognition/interfaces.dart';
 import 'package:facial_recognition/models/domain.dart';
@@ -9,25 +7,9 @@ import 'package:facial_recognition/models/domain.dart';
 class CreateModels {
   CreateModels(
     IDomainRepository domainRepository,
-    IImageHandler<pkg_camera.CameraImage, pkg_camera.CameraDescription,
-            pkg_image.Image, Uint8List>
-        imageHandler,
-    IRecognitionPipeline<pkg_camera.CameraImage, pkg_camera.CameraController, pkg_image.Image, Uint8List, Student, FaceEmbedding>
-        recognitionPipeline,
-  )   : _domainRepository = domainRepository,
-        _recognitionPipeline = recognitionPipeline,
-        _imageHandler = imageHandler;
+  ) : _domainRepository = domainRepository;
 
   final IDomainRepository _domainRepository;
-  final IRecognitionPipeline<
-      pkg_camera.CameraImage,
-      pkg_camera.CameraController,
-      pkg_image.Image,
-      Uint8List,
-      Student,
-      FaceEmbedding> _recognitionPipeline;
-  final IImageHandler<pkg_camera.CameraImage, pkg_camera.CameraDescription,
-      pkg_image.Image, Uint8List> _imageHandler;
 
   void createLesson({
     required String codeOfSubject,
@@ -200,32 +182,6 @@ class CreateModels {
     }
   }
 
-  Future<List<pkg_image.Image>> detectFaces(
-    final pkg_camera.CameraImage image,
-    final pkg_camera.CameraController cameraController,
-  ) {
-    return _recognitionPipeline.detectFace(cameraImage: image, cameraController: cameraController);
-  }
-
-  Future<List<Duple<Uint8List, FaceEmbedding>>> extractEmbedding(
-    final pkg_image.Image face,
-  ) {
-    return _recognitionPipeline.extractEmbedding([face]);
-  }
-
-  Uint8List fromCameraImagetoJpg(pkg_camera.CameraImage cameraImage, pkg_camera.CameraDescription cameraDescription) {
-    return _imageHandler.toJpg(
-      _imageHandler.fromCameraImage(
-        cameraImage,
-        cameraDescription,
-      ),
-    );
-  }
-
-  Uint8List fromImageToJpg(pkg_image.Image image) {
-    return pkg_image.encodeJpg(image);
-  }
-
   /// throws an [ArgumentError]
   void createStudent({
     required String individualRegistration,
@@ -261,7 +217,7 @@ class CreateModels {
     _domainRepository.addStudent([student]);
   }
 
-  /// returns all the students that already exist (should return anything)
+  /// returns all the students that already exist (should return anything?)
   List<({
     String individualRegistration,
     String name,

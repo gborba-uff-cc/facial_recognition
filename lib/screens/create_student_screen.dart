@@ -67,20 +67,11 @@ class _CreateStudentScreenState extends State<CreateStudentScreen> {
             Form(
               key: _studentForm,
               child: CreateStudent(
-                faceDetector: widget.useCase.detectFaces,
-                faceEmbedder: widget.useCase.extractEmbedding,
-                jpgConverter: (image) async => widget.useCase.fromImageToJpg(image),
-                facePictureOnSaved: (final cameraImage, final cameraController, final faceEmbedding) {
-                  // REVIEW - cameraDescription should not be null?;
-                  final facePicture = cameraController == null || cameraImage == null
-                      ? null
-                      : widget.useCase.fromCameraImagetoJpg(
-                          cameraImage,
-                          cameraController.description,
-                        );
-                  _facePicture = facePicture;
-                  _faceEmbedding = faceEmbedding;
-                },
+                // FIXME
+                faceDetector: null,
+                faceEmbedder: null,
+                jpgConverter: null,
+                facePictureOnSaved: null,
                 individualRegistrationController: _individualRegistration,
                 registrationController: _registration,
                 nameController: _name,

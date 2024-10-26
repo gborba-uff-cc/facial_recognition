@@ -1,34 +1,63 @@
 import 'dart:ui';
 
 import 'package:camera/camera.dart' as pkg_camera;
+import 'package:camerawesome/camerawesome_plugin.dart' as pkg_awesome;
 import 'package:facial_recognition/interfaces.dart';
 import 'package:facial_recognition/models/domain.dart';
+import 'package:facial_recognition/models/use_case.dart';
 import 'package:facial_recognition/utils/algorithms.dart';
 import 'package:flutter/foundation.dart';
 import 'package:image/image.dart' as pkg_image;
 
-class ImageHandler
-    implements IImageHandler<pkg_camera.CameraImage, pkg_camera.CameraDescription, pkg_image.Image, JpegPictureBytes> {
-  ImageHandler();
-
+class CameraImageConverter implements
+    ICameraImageConverter<PackageCameraMethodsInput, pkg_image.Image> {
   /// return a manipulable image from the camera image
   @override
   pkg_image.Image fromCameraImage(
-    final pkg_camera.CameraImage image,
-    final pkg_camera.CameraDescription description,
+    final PackageCameraMethodsInput input,
   ) {
+    final image = input.image;
     switch (image.format.group) {
       case pkg_camera.ImageFormatGroup.yuv420:
+        final rgba = rgbaFromPlanes(
+            width: image.width,
+            height: image.height,
+            format: PlanesFormatsToRgbaPacked.yuv420,
+            planes: image.planes
+                .map((plane) => (
+                      bytes: plane.bytes,
+                      bytesPerPixel: plane.bytesPerPixel ?? 1,
+                      bytesPerRow: plane.bytesPerRow
+                    ))
+                .toList());
+        final aux = pkg_image.Image.fromBytes(
+          width: image.width,
+          height: image.height,
+          bytes: ByteData.sublistView(rgba).buffer,
+          numChannels: 4,
+          order: pkg_image.ChannelOrder.rgba,
+        );
+        return aux;
       case pkg_camera.ImageFormatGroup.nv21:
-      final rgba = rgbaFromCameraImage(image);
-      final aux = pkg_image.Image.fromBytes(
-        width: image.width,
-        height: image.height,
-        bytes: ByteData.sublistView(rgba).buffer,
-        numChannels: 4,
-        order: pkg_image.ChannelOrder.rgba,
-      );
-      return aux;
+        final rgba = rgbaFromPlanes(
+            width: image.width,
+            height: image.height,
+            format: PlanesFormatsToRgbaPacked.nv21,
+            planes: image.planes
+                .map((plane) => (
+                      bytes: plane.bytes,
+                      bytesPerPixel: plane.bytesPerPixel ?? 1,
+                      bytesPerRow: plane.bytesPerRow
+                    ))
+                .toList());
+        final aux = pkg_image.Image.fromBytes(
+          width: image.width,
+          height: image.height,
+          bytes: ByteData.sublistView(rgba).buffer,
+          numChannels: 4,
+          order: pkg_image.ChannelOrder.rgba,
+        );
+        return aux;
       case pkg_camera.ImageFormatGroup.bgra8888:
         return pkg_image.Image.fromBytes(
           width: image.width,
@@ -48,246 +77,84 @@ class ImageHandler
         return pkg_image.Image(width: 64, height: 64);
     }
   }
+}
 
-  /// convert a camera image to a packed rgba buffer
+class CameraImageConverterForCamerawesome implements
+    ICameraImageConverter<pkg_awesome.AnalysisImage, pkg_image.Image> {
   @override
-  Uint8List rgbaFromCameraImage(pkg_camera.CameraImage image) {
-    switch (image.format.group) {
-      case pkg_camera.ImageFormatGroup.yuv420:
-        return _rgbaFromYuv420(
+  pkg_image.Image fromCameraImage(pkg_awesome.AnalysisImage input) {
+    final image = input.when(
+      yuv420: (image) {
+        final rgba = rgbaFromPlanes(
+            width: image.width,
+            height: image.height,
+            format: PlanesFormatsToRgbaPacked.yuv420,
+            planes: image.planes
+                .map((plane) => (
+                      bytes: plane.bytes,
+                      bytesPerPixel: plane.bytesPerPixel ?? 1,
+                      bytesPerRow: plane.bytesPerRow
+                    ))
+                .toList());
+        final aux = pkg_image.Image.fromBytes(
           width: image.width,
           height: image.height,
-          planes: image.planes,
-        );
-      case pkg_camera.ImageFormatGroup.nv21:
-        return _rgbaFromNv21(
-          width: image.width,
-          height: image.height,
-          planes: image.planes,
-        );
-      case pkg_camera.ImageFormatGroup.bgra8888:
-        return _rgbaFromBgra8888(
-          width: image.width,
-          height: image.height,
-          planes: image.planes,
-        );
-      case pkg_camera.ImageFormatGroup.jpeg:
-        final img = pkg_image.decodeJpg(image.planes.single.bytes);
-        if (img == null) {
-          return Uint8List(0);
-        }
-        img.convert(
-          format: pkg_image.Format.uint8,
+          bytes: ByteData.sublistView(rgba).buffer,
           numChannels: 4,
+          order: pkg_image.ChannelOrder.rgba,
         );
-        img.remapChannels(pkg_image.ChannelOrder.rgba);
-        return img.buffer.asUint8List();
-      default:
-        return Uint8List(0);
+        return aux;
+      },
+      nv21: (image) {
+        final rgba = rgbaFromPlanes(
+            width: image.width,
+            height: image.height,
+            format: PlanesFormatsToRgbaPacked.nv21,
+            planes: image.planes
+                .map((plane) => (
+                      bytes: plane.bytes,
+                      bytesPerPixel: plane.bytesPerPixel ?? 1,
+                      bytesPerRow: plane.bytesPerRow
+                    ))
+                .toList());
+        final aux = pkg_image.Image.fromBytes(
+          width: image.width,
+          height: image.height,
+          bytes: ByteData.sublistView(rgba).buffer,
+          numChannels: 4,
+          order: pkg_image.ChannelOrder.rgba,
+        );
+        return aux;
+      },
+      bgra8888: (image) {
+        return pkg_image.Image.fromBytes(
+          width: image.width,
+          height: image.height,
+          bytes: image.planes.single.bytes.buffer,
+          numChannels: 4,
+          order: pkg_image.ChannelOrder.bgra,
+        );
+      },
+      jpeg: (image) {
+        final newImage = pkg_image.decodeJpg(image.bytes);
+        if (newImage == null) {
+          return pkg_image.Image(width: 64, height: 64);
+        }
+        return newImage;
+      },
+    );
+
+    if (image == null) {
+      return pkg_image.Image(width: 64, height: 64);
+    }
+    else {
+      return image;
     }
   }
+}
 
-  /// Convert YUV (YCbcr) 4:2:0 3-planar cameraImage to a rgbaBuffer
-  ///
-  /// RGB plane is generated by reading the image from left to right and top to
-  /// bottom and interleaving the color bytes as r1,g1,b1,r2,g2,b2,....
-  static Uint8List _rgbaFromYuv420({
-    required final int width,
-    required final int height,
-    required final List<pkg_camera.Plane> planes,
-  }) {
-    if (planes.length != 3) {
-      return Uint8List(0);
-    }
-    final yBytes  = planes[0].bytes; // Y
-    final cbBytes = planes[1].bytes; // U
-    final crBytes = planes[2].bytes; // V
-    final yBytesPerPixel = planes[0].bytesPerPixel ?? 1;
-    final yBytesPerRow   = planes[0].bytesPerRow;
-    final cbCrBytesPerPixel = planes[1].bytesPerPixel ?? 1;
-    final cbCrBytesPerRow   = planes[1].bytesPerRow;
-    final WriteBuffer rgbaBytes = WriteBuffer(startCapacity: 4 * width * height);
-
-    for (int y = 0; y < height; y++) {
-      for (int x = 0; x < width; x++) {
-        final int yIndex = map2dTo1dCoordinate(
-          x,
-          y,
-          xLength: yBytesPerRow,
-          length: yBytesPerPixel,
-        );
-        final int cbCrIndex = map2dTo1dCoordinate(
-          x,
-          y,
-          xGroupLength: 2,
-          yGroupLength: 2,
-          xLength: cbCrBytesPerRow,
-          length: cbCrBytesPerPixel,
-        );
-
-        final yValue = yBytes[yIndex];
-        final uValue = cbBytes[cbCrIndex];
-        final vValue = crBytes[cbCrIndex];
-
-        final rgbTuple= _rgbFromYuvRec601FullRange(y: yValue, u: uValue, v: vValue,);
-        rgbaBytes.putUint8(rgbTuple.r);
-        rgbaBytes.putUint8(rgbTuple.g);
-        rgbaBytes.putUint8(rgbTuple.b);
-        rgbaBytes.putUint8(255);
-      }
-    }
-    return rgbaBytes.done().buffer.asUint8List();
-  }
-
-  static Uint8List _rgbaFromNv21({
-    required final int width,
-    required final int height,
-    required final List<pkg_camera.Plane> planes,
-  }) {
-    if (planes.length != 1) {
-      return Uint8List(0);
-    }
-    final plane = planes.single;
-    final WriteBuffer rgbaBytes =
-        WriteBuffer(startCapacity: 4 * width * height);
-
-    final yBytes = Uint8List.sublistView(plane.bytes, 0, width * height);
-    final vuBytes =
-        Uint8List.sublistView(plane.bytes, width * height, plane.bytes.length);
-    final yvuBytesPerPixel = plane.bytesPerPixel ?? 1;
-    final yvuBytesPerRow = plane.bytesPerRow;
-
-    for (int y = 0; y < height; y++) {
-      for (int x = 0; x < width; x++) {
-        final yIndex = map2dTo1dCoordinate(
-          x,
-          y,
-          xLength: yBytes.length,
-          length: yvuBytesPerPixel,
-        );
-        final vuIndex = map2dTo1dCoordinate(
-          x,
-          y,
-          xLength: vuBytes.length,
-          length: yvuBytesPerRow*2,
-        );
-        final yValue = yBytes[yIndex];
-        final uValue = vuBytes[vuIndex+yvuBytesPerRow];
-        final vValue = vuBytes[vuIndex];
-
-        final rgbTuple = _rgbFromYuvRec601FullRange(
-          y: yValue,
-          u: uValue,
-          v: vValue,
-        );
-        rgbaBytes.putUint8(rgbTuple.r);
-        rgbaBytes.putUint8(rgbTuple.g);
-        rgbaBytes.putUint8(rgbTuple.b);
-        rgbaBytes.putUint8(255);
-      }
-    }
-
-    return rgbaBytes.done().buffer.asUint8List();
-  }
-
-  static Uint8List _rgbaFromBgra8888({
-    required final int width,
-    required final int height,
-    required final List<pkg_camera.Plane> planes,
-  }) {
-    if (planes.length != 1) {
-      return Uint8List(0);
-    }
-    final plane = planes.single.bytes;
-    final Uint8List rgbaBytes =
-        Uint8List(plane.length);
-
-
-    for (int i = 0; i < plane.length; i += 4) {
-      // 1st: r
-      rgbaBytes[i] = plane[i + 2];
-      // 2nd: g
-      rgbaBytes[i] = plane[i + 1];
-      // 3rd: b
-      rgbaBytes[i] = plane[i];
-      // 4th: a
-      rgbaBytes[i] = plane[i + 3];
-    }
-
-    return rgbaBytes;
-  }
-
-
-  static ({int r, int g, int b}) _rgbFromYuvRec601FullRange({
-    required final int y,
-    required final int u,
-    required final int v,
-  }) {
-// identifying which standard to use when converting the YCbCr color to RGB
-/*
-// unknown - work, found on internet but no rationale
-        final r = (y + v * 1436 / 1024 - 179)
-          .round()
-          .clamp(0, 255);
-        final g = (y - u * 46549 / 131072 + 44 - v * 93604 / 131072 + 91)
-            .round()
-            .clamp(0, 255);
-        final b = (y + u * 1814 / 1024 - 227)
-          .round()
-          .clamp(0, 255);
-*/
-// JFIF modified Rec.601 with Y,Cb and Cr with full 8-bit range - working
-        final cbAux = u-128;
-        final crAux = v-128;
-        final r = (y +1.402*(crAux))
-          .round()
-          .clamp(0, 255);
-        final g = (y -0.344136*(cbAux) -0.714136*(crAux))
-          .round()
-          .clamp(0, 255);
-        final b = (y +1.772*(cbAux))
-          .round()
-          .clamp(0, 255);
-/**/
-/*
-// ITU-R BT.601 - working
-        final int r = ( (255/219)*(y-16) +(255/224)*1.402*(v-128) )
-          .round()
-          .clamp(0, 255);
-        final int g = ( (255/219)*(y-16) -(255/224)*1.772*(0.114/0.587)*(u-128) -(255/224)*1.402*(0.299/0.587)*(v-128) )
-          .round()
-          .clamp(0, 255);
-        final int b = ( (255/219)*(y-16) +(255/224)*1.772*(u-128) )
-          .round()
-          .clamp(0, 255);
-*/
-/*
-// ITU-R BT.709 - don't work
-        final r = (y + 1.5748*v)
-          .round()
-          .clamp(0, 255);
-        final g = (y - 0.1873*u -0.4681*v)
-            .round()
-            .clamp(0, 255);
-        final b = (y + 1.8556*u)
-          .round()
-          .clamp(0, 255);
-*/
-/*
-// ITU-R BT.2020 - don't work
-        final r = (y + 1.4746*v)
-          .round()
-          .clamp(0, 255);
-        final g = (y - 0.16455312684366*u -0.57135312684366*v)
-            .round()
-            .clamp(0, 255);
-        final b = (y + 1.8814*u)
-          .round()
-          .clamp(0, 255);
-*/
-    return (r: r, g: g, b: b);
-  }
-
+class ImageHanler implements
+    IImageHandler<pkg_image.Image, JpegPictureBytes> {
   /// Return new images from subareas of [image].
   @override
   List<pkg_image.Image> cropFromImage(
@@ -362,19 +229,109 @@ class ImageHandler
       growable: false,
     );
   }
+}
+
+class CameraImageHandler implements
+    ICameraImageHandler<
+        PackageCameraMethodsInput,
+        pkg_image.Image,
+        JpegPictureBytes>
+{
+  ICameraImageConverter<PackageCameraMethodsInput, pkg_image.Image> cameraImageConverter = CameraImageConverter();
+  IImageHandler<pkg_image.Image, JpegPictureBytes> imageHandler = ImageHanler();
+  CameraImageHandler();
 
   @override
-  Uint8List toBgraBuffer(
-    pkg_image.Image image,
-  ) {
-    final buffer = WriteBuffer(startCapacity: image.length*4);
-    // pixels are laid from top left to right bottom
-    for (final pixel in image) {
-      buffer.putUint8(pixel.b.toInt());
-      buffer.putUint8(pixel.g.toInt());
-      buffer.putUint8(pixel.r.toInt());
-      buffer.putUint8(255);
-    }
-    return buffer.done().buffer.asUint8List();
+  List<pkg_image.Image> cropFromImage(pkg_image.Image image, List<Rect> rect) {
+    return imageHandler.cropFromImage(image, rect);
+  }
+
+  @override
+  pkg_image.Image flipHorizontal(pkg_image.Image image) {
+    return imageHandler.flipHorizontal(image);
+  }
+
+  @override
+  pkg_image.Image fromCameraImage(PackageCameraMethodsInput input) {
+    return cameraImageConverter.fromCameraImage(input);
+  }
+
+  @override
+  pkg_image.Image? fromJpg(JpegPictureBytes jpgBytes) {
+    return imageHandler.fromJpg(jpgBytes);
+  }
+
+  @override
+  pkg_image.Image resizeImage(pkg_image.Image image, int width, int height) {
+    return imageHandler.resizeImage(image, width, height);
+  }
+
+  @override
+  pkg_image.Image rotateImage(pkg_image.Image image, num angle) {
+    return imageHandler.rotateImage(image, angle);
+  }
+
+  @override
+  JpegPictureBytes toJpg(pkg_image.Image image) {
+    return imageHandler.toJpg(image);
+  }
+
+  @override
+  List<List<List<int>>> toRgbMatrix(pkg_image.Image image) {
+    return imageHandler.toRgbMatrix(image);
+  }
+
+
+}
+
+class CameraImageHandlerForCamerawesome implements
+    ICameraImageHandler<
+        pkg_awesome.AnalysisImage,
+        pkg_image.Image,
+        JpegPictureBytes>
+{
+  final ICameraImageConverter<pkg_awesome.AnalysisImage, pkg_image.Image>
+      cameraImageConverter = CameraImageConverterForCamerawesome();
+  final IImageHandler<pkg_image.Image, JpegPictureBytes> imageHandler =
+      ImageHanler();
+
+  @override
+  List<pkg_image.Image> cropFromImage(pkg_image.Image image, List<Rect> rect) {
+    return imageHandler.cropFromImage(image, rect);
+  }
+
+  @override
+  pkg_image.Image flipHorizontal(pkg_image.Image image) {
+    return imageHandler.flipHorizontal(image);
+  }
+
+  @override
+  pkg_image.Image fromCameraImage(pkg_awesome.AnalysisImage input) {
+    return cameraImageConverter.fromCameraImage(input);
+  }
+
+  @override
+  pkg_image.Image? fromJpg(JpegPictureBytes jpgBytes) {
+    return imageHandler.fromJpg(jpgBytes);
+  }
+
+  @override
+  pkg_image.Image resizeImage(pkg_image.Image image, int width, int height) {
+    return imageHandler.resizeImage(image, width, height);
+  }
+
+  @override
+  pkg_image.Image rotateImage(pkg_image.Image image, num angle) {
+    return imageHandler.rotateImage(image, angle);
+  }
+
+  @override
+  JpegPictureBytes toJpg(pkg_image.Image image) {
+    return imageHandler.toJpg(image);
+  }
+
+  @override
+  List<List<List<int>>> toRgbMatrix(pkg_image.Image image) {
+    return imageHandler.toRgbMatrix(image);
   }
 }

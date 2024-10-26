@@ -29,8 +29,10 @@ import 'package:facial_recognition/screens/grid_student_selector_screen.dart';
 import 'package:facial_recognition/screens/landing_screen.dart';
 import 'package:facial_recognition/screens/mark_attendance_screen.dart';
 import 'package:facial_recognition/screens/common/one_shot_camera.dart';
+import 'package:facial_recognition/screens/new_camera_identification_screen.dart';
 import 'package:facial_recognition/screens/select_information_screen.dart';
 import 'package:facial_recognition/use_case/attendance_summary.dart';
+import 'package:facial_recognition/use_case/facial_data_handler.dart';
 import 'package:facial_recognition/use_case/spreadsheet_read.dart';
 import 'package:facial_recognition/use_case/camera_identification.dart';
 import 'package:facial_recognition/use_case/create_models.dart';
@@ -45,6 +47,7 @@ import 'package:go_router/go_router.dart';
 import 'package:image/image.dart' as pkg_image;
 import 'package:path/path.dart' as pkg_path;
 import 'package:path_provider/path_provider.dart' as pkg_path_provider;
+import 'package:camerawesome/camerawesome_plugin.dart' as pkg_awesome;
 
 import 'models/domain_repository.dart';
 
@@ -140,27 +143,22 @@ class MainApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final IFaceDetector faceDetector = GoogleFaceDetectorForCamerawesome();
-    final IImageHandler<pkg_camera.CameraImage, pkg_camera.CameraDescription, pkg_image.Image, Uint8List> imageHandler = ImageHandler();
+    final IFaceDetector<pkg_awesome.AnalysisImage> faceDetector = GoogleFaceDetectorForCamerawesome();
+    final ICameraImageHandler<pkg_awesome.AnalysisImage , pkg_image.Image, Uint8List> imageHandler = CameraImageHandlerForCamerawesome();
     final IFaceEmbedder faceEmbedder = FacenetFaceEmbedder();
     final IFaceRecognizer<Student, List<double>> faceRecognizer = DistanceClassifier(distanceFunction: euclideanDistance);
     final IRecognitionPipeline<
-        pkg_camera.CameraImage,
-        pkg_camera.CameraController,
+        pkg_awesome.AnalysisImage,
         pkg_image.Image,
         Uint8List,
         Student,
-        FaceEmbedding> recognitionPipeline = RecognitionPipeline(
+        FaceEmbedding> recognitionPipeline = RecognitionPipelineForCamerawesome(
       faceDetector: faceDetector,
       imageHandler: imageHandler,
       faceEmbedder: faceEmbedder,
       faceRecognizer: faceRecognizer,
     );
-    final CreateModels createModels = CreateModels(
-      domainRepository,
-      imageHandler,
-      recognitionPipeline
-    );
+    final CreateModels createModels = CreateModels(domainRepository);
     final spreadsheetRead = SpreadsheetRead();
     return MaterialApp.router(
       theme: ThemeData(useMaterial3: true),
@@ -195,7 +193,7 @@ class MainApp extends StatelessWidget {
                       state.uri.queryParameters['hideSubjectClass'] == '${true}',
                 ),
               ),
-              GoRoute(
+              /* GoRoute(
                 path: 'camera_view',
                 builder: (context, state) => CameraIdentificationScreen(
                   cameras: cameras,
@@ -205,6 +203,18 @@ class MainApp extends StatelessWidget {
                     domainRepository,
                     // null, // showFaceImages
                     state.extra as Lesson,
+                  ),
+                ),
+              ), */
+              GoRoute(
+                path: 'camera_view',
+                builder: (context, state) => NewCameraIdentificationScreen(
+                  useCase: CameraIdentificationForCamerawesome(
+                    domainRepository: domainRepository,
+                    recognitionPipeline: recognitionPipeline,
+                    imageHandler: imageHandler,
+                    // null, // showFaceImages
+                    lesson: state.extra as Lesson,
                   ),
                 ),
               ),
@@ -297,7 +307,16 @@ class MainApp extends StatelessWidget {
               GoRoute(
                 path: 'create_teacher',
                 builder: (context, state) => CreateTeacherScreen(
-                  useCase: createModels,
+                  createModelsUseCase: createModels,
+                  facialDataHandlerUseCase: FacialDataHandlerForCameraAwesome<
+                  pkg_awesome.AnalysisImage,
+                  pkg_image.Image,
+                  JpegPictureBytes,
+                  Student,
+                  FaceEmbedding>(
+                    recognitionPipeline: recognitionPipeline,
+                    imageHandler: imageHandler,
+                  ),
                 ),
               ),
               GoRoute(
@@ -306,13 +325,13 @@ class MainApp extends StatelessWidget {
                   useCase: createModels,
                 ),
               ),
-              GoRoute(
+              /* GoRoute(
                 path: 'take_photo',
                 builder: (context, state) => OneShotCamera(
                   camerasAvailable: cameras,
                   imageHandler: imageHandler,
                 ),
-              ),
+              ), */
             ],
           ),
         ],

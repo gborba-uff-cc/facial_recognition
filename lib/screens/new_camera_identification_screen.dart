@@ -6,6 +6,7 @@ import 'package:camerawesome/camerawesome_plugin.dart';
 import 'package:facial_recognition/interfaces.dart';
 import 'package:facial_recognition/models/domain.dart';
 import 'package:facial_recognition/screens/common/app_defaults.dart';
+import 'package:facial_recognition/utils/project_logger.dart';
 // import 'package:facial_recognition/use_case/camera_identification.dart';
 import 'package:flutter/material.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
@@ -65,32 +66,36 @@ class _CameraPageState extends State<NewCameraIdentificationScreen> {
         ),
         onImageForAnalysis: _handleAnalysisImage,
         imageAnalysisConfig: AnalysisConfig(
-          androidOptions: const AndroidAnalysisOptions.nv21(
+          androidOptions: const AndroidAnalysisOptions.yuv420(
             width: 720,
           ),
           cupertinoOptions: const CupertinoAnalysisOptions.bgra8888(),
-          maxFramesPerSecond: 5,
+          maxFramesPerSecond: 2,
         ),
         builder: (state, preview) {
           return Align(
             alignment: Alignment.bottomCenter,
-            child: Row(
-              children: [
-                switch (_identificationMode) {
-                  _IdentificationMode.manual => FilledButton(
-                      onPressed: () => setState(() =>
-                          _identificationMode = _IdentificationMode.automatic),
-                      child: const Text('Auto'),
-                    ),
-                  _IdentificationMode.automatic => FilledButton.tonal(
-                      onPressed: () => setState(() =>
-                          _identificationMode = _IdentificationMode.manual),
-                      child: const Text('Auto'),
-                    ),
-                },
-                AppDefaultCameraShutter(),
-                AppDefaultCameraSwitcher(),
-              ],
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  switch (_identificationMode) {
+                    _IdentificationMode.manual => FilledButton(
+                        onPressed: () => setState(() =>
+                            _identificationMode = _IdentificationMode.automatic),
+                        child: const Text('Auto'),
+                      ),
+                    _IdentificationMode.automatic => FilledButton.tonal(
+                        onPressed: () => setState(() =>
+                            _identificationMode = _IdentificationMode.manual),
+                        child: const Text('Auto'),
+                      ),
+                  },
+                  AppDefaultCameraShutter(),
+                  AppDefaultCameraSwitcher(),
+                ],
+              ),
             ),
           );
         },
@@ -99,6 +104,8 @@ class _CameraPageState extends State<NewCameraIdentificationScreen> {
   }
 
   Future<void> _handleAnalysisImage(AnalysisImage image) {
+    projectLogger.fine('got image for analisis');
+    return Future.value();
     if (_identificationMode == _IdentificationMode.manual && !_shouldCaptureImage) {
       return Future.value();
     }

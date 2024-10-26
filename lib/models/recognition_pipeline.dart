@@ -168,7 +168,7 @@ class RecognitionPipelineForCamerawesome implements
         FaceEmbedding>
 {
   final IFaceDetector<pkg_awesome.AnalysisImage> faceDetector;
-  final IImageHandler<
+  final ICameraImageHandler<
       pkg_awesome.AnalysisImage,
       pkg_image.Image,
       Uint8List> imageHandler;
@@ -218,17 +218,9 @@ class RecognitionPipelineForCamerawesome implements
     return facesEmbedding;
   }
 
-  /// originally thought to be paired with something like:
-  /// ```dart
-  ///  // retrieve all students in this class that have facial data added
-  ///  final Map<Student, Iterable<FacialData>> facialDataByStudent;
-  ///  try {
-  ///    facialDataByStudent = _getFacialDataFromSubjectClass(subjectClass);
-  ///  }
-  ///  catch (e) {  // STUB - change to the correct condition
-  ///    throw _TryRecognizeLater();
-  ///  }
-  /// ```
+  /// originally thought to throw an exception to be caugth if the recognition
+  /// should be done another later due to not being able to access the needed
+  /// info
   @override
   ({
     List<EmbeddingRecognitionResult> notRecognized,

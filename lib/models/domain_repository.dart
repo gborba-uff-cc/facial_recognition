@@ -21,7 +21,7 @@ class InMemoryDomainRepository  implements IDomainRepository {
   final Set<Enrollment> _enrollment = {};
   final Set<Attendance> _attendance = {};
   // ---
-  final Map<Lesson, List<Duple<JpegPictureBytes, FaceEmbedding>>> _faceEmbeddingDeferredPool = {};
+  final Map<Lesson, List<({FaceEmbedding embedding, JpegPictureBytes face})>> _faceEmbeddingDeferredPool = {};
   final Map<Lesson, List<EmbeddingRecognitionResult>> _faceRecognizedFromCamera = {};
   final Map<Lesson, List<EmbeddingRecognitionResult>> _faceNotRecognizedFromCamera = {};
 // ---------------------------
@@ -92,7 +92,7 @@ class InMemoryDomainRepository  implements IDomainRepository {
   // ---
   @override
   void addFaceEmbeddingToDeferredPool(
-    final Iterable<Duple<JpegPictureBytes, FaceEmbedding>> embedding,
+    final List<({FaceEmbedding embedding, JpegPictureBytes face})> embedding,
     final Lesson lesson,
   ) {
     _faceEmbeddingDeferredPool.putIfAbsent(lesson, () => []);
@@ -370,11 +370,12 @@ class InMemoryDomainRepository  implements IDomainRepository {
 
   // ---
   @override
-  Map<Lesson, Iterable<Duple<JpegPictureBytes, FaceEmbedding>>>
+  Map<Lesson, List<({FaceEmbedding embedding, JpegPictureBytes face})>>
       getDeferredFacesEmbedding(
     Iterable<Lesson> lesson,
   ) {
-    final Map<Lesson, Iterable<Duple<JpegPictureBytes, FaceEmbedding>>>result;
+    final Map<Lesson, List<({FaceEmbedding embedding, JpegPictureBytes face})>>
+        result;
     // if (lesson == null) {
     //   result = {
     //     for (final l in _faceEmbeddingDeferredPool.keys)
@@ -751,7 +752,7 @@ class SQLite3DomainRepository implements IDomainRepository {
   }
 
   @override
-  void addFaceEmbeddingToDeferredPool(Iterable<Duple<JpegPictureBytes, FaceEmbedding>> embedding, Lesson lesson) {
+  void addFaceEmbeddingToDeferredPool(final List<({FaceEmbedding embedding, JpegPictureBytes face})> embedding, Lesson lesson) {
     final insert = _database.prepare(
       _statementsLoader
           .getStatement(['deferredRecognitionPool', 'dml', 'insert']),
@@ -762,8 +763,8 @@ class SQLite3DomainRepository implements IDomainRepository {
     dynamic errorOrException;
     try {
       for (var element in embedding) {
-        final pictureMd5 = _pictureMd5(element.value1);
-        final embedding = listDoubleToBytes(element.value2);
+        final pictureMd5 = _pictureMd5(element.face);
+        final embedding = listDoubleToBytes(element.embedding);
         insert.executeWith(
           pkg_sqlite3.StatementParameters.named({
             ':subjectCode': lesson.subjectClass.subject.code,
@@ -771,7 +772,7 @@ class SQLite3DomainRepository implements IDomainRepository {
             ':semester': lesson.subjectClass.semester,
             ':name': lesson.subjectClass.name,
             ':utcDateTime': lesson.utcDateTime.toIso8601String(),
-            ':picture': element.value1,
+            ':picture': element.face,
             ':pictureMd5': pictureMd5,
             ':embedding': embedding,
           }),
@@ -1299,11 +1300,12 @@ class SQLite3DomainRepository implements IDomainRepository {
   }
 
   @override
-  Map<Lesson, Iterable<Duple<JpegPictureBytes, FaceEmbedding>>> getDeferredFacesEmbedding(
+  Map<Lesson, List<({FaceEmbedding embedding, JpegPictureBytes face})>>
+      getDeferredFacesEmbedding(
     Iterable<Lesson> lesson,
   ) {
-    final Map<Lesson, Iterable<Duple<JpegPictureBytes, FaceEmbedding>>> result =
-        {};
+    final Map<Lesson, List<({FaceEmbedding embedding, JpegPictureBytes face})>>
+        result = {};
     final select = _database.prepare(
       _statementsLoader.getStatement(
         ['dql', 'deferredRecognitionPoolByLesson'],
@@ -1335,10 +1337,7 @@ class SQLite3DomainRepository implements IDomainRepository {
       final resultValue = selected.map(
         (e) {
           final embedding = listBytesToDouble(e['embedding']);
-          return Duple<JpegPictureBytes, FaceEmbedding>(
-            e['picture'],
-            embedding,
-          );
+          return (face: e['picture'] as JpegPictureBytes, embedding: embedding);
         },
       ).toList(growable: false);
       result[l] = resultValue;
