@@ -186,3 +186,79 @@ class AppDefaultMenuTitle extends StatelessWidget {
     );
   }
 }
+
+final _cameraBaseIconSize = 80.0;
+final _cameraBackgroundIconColor = Colors.grey.shade300;
+
+class AppDefaultCameraShutter extends StatelessWidget {
+  const AppDefaultCameraShutter({
+    super.key,
+    this.onTap,
+  });
+  final void Function()? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final iconColor = Theme.of(context).colorScheme.primary;
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Container(
+        height: _cameraBaseIconSize,
+        width: _cameraBaseIconSize,
+        decoration: ShapeDecoration(
+          shape: const CircleBorder(),
+          color: _cameraBackgroundIconColor,
+        ),
+        child: FittedBox(
+          fit: BoxFit.contain,
+          child: Icon(
+            Icons.circle_outlined,
+            color: iconColor,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class AppDefaultCameraSwitcher extends StatelessWidget {
+  const AppDefaultCameraSwitcher({
+    super.key,
+    this.onTap,
+  });
+
+  final void Function()? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final iconColor = Theme.of(context).colorScheme.primary;
+    return SizedBox(
+      height: _cameraBaseIconSize,
+      width: _cameraBaseIconSize,
+      child: Padding(
+        padding: const EdgeInsets.all(20.0),
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: onTap,
+          child: DecoratedBox(
+            decoration: ShapeDecoration(
+              shape: const CircleBorder(),
+              color: _cameraBackgroundIconColor,
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(6.0),
+              child: FittedBox(
+                fit: BoxFit.contain,
+                child: Icon(
+                  Icons.cameraswitch_outlined,
+                  color: iconColor,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}

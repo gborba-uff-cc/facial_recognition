@@ -140,7 +140,7 @@ class MainApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final IFaceDetector faceDetector = GoogleFaceDetector();
+    final IFaceDetector faceDetector = GoogleFaceDetectorForCamerawesome();
     final IImageHandler<pkg_camera.CameraImage, pkg_camera.CameraDescription, pkg_image.Image, Uint8List> imageHandler = ImageHandler();
     final IFaceEmbedder faceEmbedder = FacenetFaceEmbedder();
     final IFaceRecognizer<Student, List<double>> faceRecognizer = DistanceClassifier(distanceFunction: euclideanDistance);
@@ -203,7 +203,7 @@ class MainApp extends StatelessWidget {
                     recognitionPipeline,
                     imageHandler,
                     domainRepository,
-                    null,
+                    // null, // showFaceImages
                     state.extra as Lesson,
                   ),
                 ),

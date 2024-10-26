@@ -4,32 +4,27 @@ import 'dart:ui';
 import 'package:facial_recognition/models/domain.dart';
 import 'package:facial_recognition/models/use_case.dart';
 
-abstract class IRecognitionPipeline<CI, CC, I, J, L, V> {
-  Future<List<I>> detectFace({
-    required final CI cameraImage,
-    required final CC cameraController,
-  });
-
-  Future<List<Duple<J, FaceEmbedding>>> extractEmbedding(
-    final List<I> faces,
-  );
-
-  Duple<Iterable<EmbeddingRecognitionResult>, Iterable<EmbeddingRecognitionResult>>
-      recognizeEmbedding(
-    final Iterable<Duple<J, FaceEmbedding>> input,
-    final Map<L, Iterable<V>>embeddingsByStudent,
-  );
-}
-
-abstract class IFaceDetector<CI, CC> {
-  Future<List<Rect>> detect({
-    required final CI cameraImage,
-    required final CC cameraController,
+abstract class IRecognitionPipeline<CI, I, J, L, V> {
+  Future<List<Rect>> detectFace(final CI input);
+  Future<List<I>> cropFaces({
+    required final CI input,
+    required final List<Rect> rects,});
+  Future<List<V>> extractEmbedding(final List<I> faces);
+  ({
+    List<EmbeddingRecognitionResult> notRecognized,
+    List<EmbeddingRecognitionResult> recognized,
+  }) recognizeEmbedding({
+    required final List<({V embedding, J face})> inputs,
+    required final Map<L, List<V>> embeddingsByStudent,
   });
 }
 
-abstract class IImageHandler<CI, CD, I, J> {
-  I fromCameraImage(final CI cameraImage, CD cameraDescription);
+abstract class IFaceDetector<CI> {
+  Future<List<Rect>> detect(final CI input);
+}
+
+abstract class IImageHandler<CI, I, J> {
+  I fromCameraImage(final CI input);
   Uint8List rgbaFromCameraImage(CI image);
   List<I> cropFromImage(final I image, final List<Rect> rect);
   I resizeImage(final I image, final int width, final int height);
@@ -44,7 +39,9 @@ abstract class IImageHandler<CI, CD, I, J> {
 abstract class IFaceEmbedder {
   int get neededImageWidth;
   int get neededImageHeight;
-  Future<List<FaceEmbedding>> extractEmbedding(final List<List<List<List<num>>>> facesRgbMatrix);
+  Future<List<FaceEmbedding>> extractEmbedding(
+    final List<List<List<List<num>>>> facesRgbMatrix,
+  );
 }
 
 abstract class IFaceRecognizer<TLabel, TElement> {
@@ -68,27 +65,31 @@ enum FaceRecognitionStatus {
   notRecognized,
 }
 
-abstract class ICameraAttendance<CI, CD> {
-  void onNewCameraImage(
-    final CI cameraImage,
-    final CD cameraDescription,
-  );
+abstract class ICameraAttendance<CI, O> {
+  void onNewCameraInput(final CI input);
+  set onDetectedFaces(
+      void Function(List<({Rect rect, O face})> detected)? f);
+  void Function(List<({Rect rect, O face})> detected)? get onDetectedFaces;
 }
 
 typedef DistanceFunction<TElement> = double Function(TElement a, TElement b);
 
-abstract class IDomainRepository{
+abstract class IDomainRepository {
   void dispose();
 
   void addAttendance(Iterable<Attendance> attendance);
 
   void addEnrollment(Iterable<Enrollment> enrollment);
 
-  void addFaceEmbeddingToCameraNotRecognized(Iterable<EmbeddingRecognitionResult> notRecognized, Lesson lesson);
+  void addFaceEmbeddingToCameraNotRecognized(
+      Iterable<EmbeddingRecognitionResult> notRecognized, Lesson lesson);
 
-  void addFaceEmbeddingToCameraRecognized(Iterable<EmbeddingRecognitionResult> recognized, Lesson lesson);
+  void addFaceEmbeddingToCameraRecognized(
+      Iterable<EmbeddingRecognitionResult> recognized, Lesson lesson);
 
-  void addFaceEmbeddingToDeferredPool(Iterable<Duple<JpegPictureBytes, FaceEmbedding>> embedding, Lesson lesson);
+  void addFaceEmbeddingToDeferredPool(
+      Iterable<Duple<JpegPictureBytes, FaceEmbedding>> embedding,
+      Lesson lesson);
 
   void addFacePicture(Iterable<FacePicture> facePicture);
 
@@ -108,41 +109,64 @@ abstract class IDomainRepository{
 
   List<Subject> getAllSubjects();
 
-  Map<Lesson, Iterable<EmbeddingRecognitionResult>> getCameraNotRecognized(Iterable<Lesson> lesson);
+  Map<Lesson, Iterable<EmbeddingRecognitionResult>> getCameraNotRecognized(
+      Iterable<Lesson> lesson);
 
-  Map<Lesson, Iterable<EmbeddingRecognitionResult>> getCameraRecognized(Iterable<Lesson> lesson);
+  Map<Lesson, Iterable<EmbeddingRecognitionResult>> getCameraRecognized(
+      Iterable<Lesson> lesson);
 
-  Map<Lesson, Iterable<Duple<JpegPictureBytes, FaceEmbedding>>> getDeferredFacesEmbedding(Iterable<Lesson> lesson);
+  Map<Lesson, Iterable<Duple<JpegPictureBytes, FaceEmbedding>>>
+      getDeferredFacesEmbedding(Iterable<Lesson> lesson);
 
-  Map<Student, FacePicture?> getFacePictureFromStudent(Iterable<Student> student);
+  Map<Student, FacePicture?> getFacePictureFromStudent(
+      Iterable<Student> student);
 
-  Map<Teacher, FacePicture?> getFacePictureFromTeacher(Iterable<Teacher> teacher);
+  Map<Teacher, FacePicture?> getFacePictureFromTeacher(
+      Iterable<Teacher> teacher);
 
-  Map<Student, List<FacialData>> getFacialDataFromStudent(Iterable<Student> student);
+  Map<Student, List<FacialData>> getFacialDataFromStudent(
+      Iterable<Student> student);
 
-  Map<Teacher, List<FacialData>> getFacialDataFromTeacher(Iterable<Teacher> teacher);
+  Map<Teacher, List<FacialData>> getFacialDataFromTeacher(
+      Iterable<Teacher> teacher);
 
-  Map<String, Individual?> getIndividualFromRegistration(Iterable<String> individualRegistration);
+  Map<String, Individual?> getIndividualFromRegistration(
+      Iterable<String> individualRegistration);
 
-  Map<SubjectClass, List<Lesson>> getLessonFromSubjectClass(Iterable<SubjectClass> subjectClass);
+  Map<SubjectClass, List<Lesson>> getLessonFromSubjectClass(
+      Iterable<SubjectClass> subjectClass);
 
-  Map<String, Student?> getStudentFromRegistration(Iterable<String> registration);
+  Map<String, Student?> getStudentFromRegistration(
+      Iterable<String> registration);
 
-  Map<SubjectClass, List<Student>> getStudentFromSubjectClass(Iterable<SubjectClass> subjectClass);
+  Map<SubjectClass, List<Student>> getStudentFromSubjectClass(
+      Iterable<SubjectClass> subjectClass);
 
-  SubjectClass? getSubjectClass({required int year, required int semester, required String subjectCode, required String name});
+  SubjectClass? getSubjectClass(
+      {required int year,
+      required int semester,
+      required String subjectCode,
+      required String name});
 
-  Map<SubjectClass, Map<Student, List<Attendance>>> getSubjectClassAttendance(Iterable<SubjectClass> subjectClass);
+  Map<SubjectClass, Map<Student, List<Attendance>>> getSubjectClassAttendance(
+      Iterable<SubjectClass> subjectClass);
 
-  Map<Subject, List<SubjectClass>> getSubjectClassFromSubject(Iterable<Subject> subject);
+  Map<Subject, List<SubjectClass>> getSubjectClassFromSubject(
+      Iterable<Subject> subject);
 
   Map<String, Subject?> getSubjectFromCode(Iterable<String> code);
 
-  Map<String, Teacher?> getTeacherFromRegistration(Iterable<String> registration);
+  Map<String, Teacher?> getTeacherFromRegistration(
+      Iterable<String> registration);
 
-  void removeFaceEmbeddingNotRecognizedFromCamera(Iterable<EmbeddingRecognitionResult> recognition, Lesson lesson);
+  void removeFaceEmbeddingNotRecognizedFromCamera(
+      Iterable<EmbeddingRecognitionResult> recognition, Lesson lesson);
 
-  void removeFaceEmbeddingRecognizedFromCamera(Iterable<EmbeddingRecognitionResult> recognition, Lesson lesson);
+  void removeFaceEmbeddingRecognizedFromCamera(
+      Iterable<EmbeddingRecognitionResult> recognition, Lesson lesson);
 
-  void replaceRecordOfRecognitionResultFromCamera(EmbeddingRecognitionResult oldRecord, EmbeddingRecognitionResult newRecord, Lesson lesson);
+  void replaceRecordOfRecognitionResultFromCamera(
+      EmbeddingRecognitionResult oldRecord,
+      EmbeddingRecognitionResult newRecord,
+      Lesson lesson);
 }

@@ -1,13 +1,15 @@
 import 'dart:io';
 
 import 'package:camera/camera.dart' as pkg_camera;
+import 'package:camerawesome/camerawesome_plugin.dart' as pkg_awesome;
 import 'package:facial_recognition/interfaces.dart';
+import 'package:facial_recognition/models/use_case.dart';
 import 'package:facial_recognition/utils/project_logger.dart';
 import 'package:flutter/services.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 
-class GoogleFaceDetector
-    implements IFaceDetector<pkg_camera.CameraImage, pkg_camera.CameraController> {
+/* class GoogleFaceDetector
+    implements IFaceDetector<PackageCameraMethodsInput> {
   final FaceDetector _detector;
 
   GoogleFaceDetector()
@@ -24,19 +26,18 @@ class GoogleFaceDetector
 
   ///
   @override
-  Future<List<Rect>> detect({
-    required final pkg_camera.CameraImage cameraImage,
-    required final pkg_camera.CameraController cameraController,
-  }) async {
+  Future<List<Rect>> detect(
+    final GoogleFaceDetectorInputType input,
+  ) async {
     try {
-      final input = _toInputImage(
-        image: cameraImage,
-        controller: cameraController,
+      final inputImage = _toInputImage(
+        image: input.image,
+        controller: input.controller,
       );
-      if (input == null) {
+      if (inputImage == null) {
         return const [];
       }
-      final faces = await _detector.processImage(input);
+      final faces = await _detector.processImage(inputImage);
 
       return faces
           .map(
@@ -178,4 +179,131 @@ class GoogleFaceDetector
       metadata: metadata,
     );
   }
+} */
+
+class GoogleFaceDetectorForCamerawesome implements
+    IFaceDetector<pkg_awesome.AnalysisImage>
+{
+  final FaceDetector _detector;
+
+  GoogleFaceDetectorForCamerawesome()
+      : _detector = FaceDetector(
+          options: FaceDetectorOptions(
+            performanceMode: FaceDetectorMode.accurate,
+          ),
+        );
+
+  ///
+  void close() {
+    _detector.close();
+  }
+
+  ///
+  @override
+  Future<List<Rect>> detect(
+    final pkg_awesome.AnalysisImage input,
+  ) async {
+    final inputImage = input.when(
+      bgra8888: (image) {
+        final plane = image.planes.single;
+        return InputImage.fromBytes(
+          bytes: plane.bytes,
+          metadata: InputImageMetadata(
+            size: image.size,
+            rotation: InputImageRotation.values.byName(image.rotation.name),
+            format: InputImageFormat.bgra8888,
+            bytesPerRow: plane.bytesPerRow,
+          ),
+        );
+      },
+      nv21: (image) {
+        final plane = image.planes.single;
+        return InputImage.fromBytes(
+          bytes: plane.bytes,
+          metadata: InputImageMetadata(
+            size: image.size,
+            rotation: InputImageRotation.values.byName(image.rotation.name),
+            format: InputImageFormat.nv21,
+            bytesPerRow: plane.bytesPerRow,
+          ),
+        );
+      },
+      yuv420: (image) {
+        projectLogger
+            .info('yuv420 input not implemented for face detection');
+        return null;
+      },
+    );
+    if (inputImage == null) {
+      return Future.value(const []);
+    }
+    final detection = await _detector.processImage(inputImage);
+    final rects = List<Rect>.unmodifiable(
+      detection.map<Rect>((e) => e.boundingBox),
+    );
+    projectLogger.info('detected faces: ${rects.length}');
+    return Future.value(rects);
+  }
 }
+
+/*
+...
+  const compensations = {
+    DeviceOrientation.portraitUp: 0,
+    DeviceOrientation.landscapeLeft: 90,
+    DeviceOrientation.portraitDown: 180,
+    DeviceOrientation.landscapeRight: 270,
+  };
+
+  final deviceOrientation = controller.value.deviceOrientation;
+  final sensorOrientation = controller.description.sensorOrientation;
+  final lensDirection = controller.description.lensDirection;
+  // get image rotation
+  // it is used in android to convert the InputImage from Dart to Java
+  // `rotation` is not used in iOS to convert the InputImage from Dart to Obj-C
+  // in both platforms `rotation` and `camera.lensDirection` can be used to compensate `x` and `y` coordinates on a canvas
+  InputImageRotation? rotation;
+...
+  if (Platform.isAndroid) {
+    var rotationCompensation = compensations[deviceOrientation];
+    if (rotationCompensation == null) {
+      return null;
+    }
+    if (lensDirection == pkg_camera.CameraLensDirection.front) {
+      // front-facing
+      rotationCompensation = (sensorOrientation + rotationCompensation) % 360;
+    } else {
+      // back-facing
+      rotationCompensation =
+          (sensorOrientation - rotationCompensation + 360) % 360;
+    }
+    rotation = InputImageRotationValue.fromRawValue(rotationCompensation);
+  }
+...
+  case InputImageFormat.yuv_420_888:
+    final planes = image.planes;
+    if (planes.length != 3) {
+      bytes = null;
+      metadata = null;
+    }
+    else {
+      int nBytes = 0;
+      for (final plane in image.planes) {
+        nBytes += plane.bytes.length;
+      }
+      assert (nBytes == 3*planes.first.bytes.length);
+
+      final flat = <int>[];
+      for (final plane in image.planes) {
+        flat.addAll(plane.bytes);
+      }
+      bytes = Uint8List.fromList(flat);
+      metadata = InputImageMetadata(
+        size: Size(image.width.toDouble(), image.height.toDouble()),
+        rotation: rotation, // used only in Android
+        format: format,     // used only in iOS
+        bytesPerRow: planes.first.bytesPerRow,  // used only in iOS
+      );
+    }
+...
+*/

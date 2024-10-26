@@ -28,11 +28,11 @@ class _CameraIdentificationScreenState extends State<CameraIdentificationScreen>
   void initState() {
     super.initState();
     facesPhotos.clear();
-    widget.useCase.showFaceImages = (jpegImages) async {
+/*     widget.useCase.onDetectedFaces = (jpegImages) async {
       if (mounted) {
         setState(() => facesPhotos.addAll(jpegImages));
       }
-    };
+    }; */
 /*
     // NOTE - remove one image at time from view
     _autoclearFacePhotos = Timer.periodic(const Duration(seconds: 3), (timer) {
@@ -60,12 +60,14 @@ class _CameraIdentificationScreenState extends State<CameraIdentificationScreen>
       camerasAvailable: widget.cameras,
       imageCaptureHandler: _isAutoMode
           ? null
-          : (cameraDescription, cameraImage) => widget.useCase.onNewCameraImage(
-              cameraImage, cameraDescription),
+          : (cameraController, cameraImage) => widget.useCase.onNewCameraInput(
+              CameraIdentificationInputType(
+                  image: cameraImage, controller: cameraController)),
       imageStreamHandler: !_isAutoMode
           ? null
-          : (cameraDescription, cameraImage) => widget.useCase.onNewCameraImage(
-              cameraImage, cameraDescription),
+          : (cameraController, cameraImage) => widget.useCase.onNewCameraInput(
+              CameraIdentificationInputType(
+                  image: cameraImage, controller: cameraController)),
     );
     return Scaffold(
       appBar: AppBar(),
