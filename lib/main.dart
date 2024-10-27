@@ -29,7 +29,7 @@ import 'package:facial_recognition/screens/grid_student_selector_screen.dart';
 import 'package:facial_recognition/screens/landing_screen.dart';
 import 'package:facial_recognition/screens/mark_attendance_screen.dart';
 import 'package:facial_recognition/screens/common/one_shot_camera.dart';
-import 'package:facial_recognition/screens/new_camera_identification_screen.dart';
+import 'package:facial_recognition/screens/camera_identification_handheld_screen.dart';
 import 'package:facial_recognition/screens/select_information_screen.dart';
 import 'package:facial_recognition/use_case/attendance_summary.dart';
 import 'package:facial_recognition/use_case/facial_data_handler.dart';
@@ -208,7 +208,7 @@ class MainApp extends StatelessWidget {
               ), */
               GoRoute(
                 path: 'camera_view',
-                builder: (context, state) => NewCameraIdentificationScreen(
+                builder: (context, state) => CameraIdentificationHandheldScreen(
                   useCase: CameraIdentificationForCamerawesome(
                     domainRepository: domainRepository,
                     recognitionPipeline: recognitionPipeline,

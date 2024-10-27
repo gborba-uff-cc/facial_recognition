@@ -205,26 +205,24 @@ class GoogleFaceDetectorForCamerawesome implements
   ) async {
     final inputImage = input.when(
       bgra8888: (image) {
-        final plane = image.planes.single;
         return InputImage.fromBytes(
-          bytes: plane.bytes,
+          bytes: image.bytes,
           metadata: InputImageMetadata(
             size: image.size,
             rotation: InputImageRotation.values.byName(image.rotation.name),
             format: InputImageFormat.bgra8888,
-            bytesPerRow: plane.bytesPerRow,
+            bytesPerRow: image.planes.first.bytesPerRow,
           ),
         );
       },
       nv21: (image) {
-        final plane = image.planes.single;
         return InputImage.fromBytes(
-          bytes: plane.bytes,
+          bytes: image.bytes,
           metadata: InputImageMetadata(
             size: image.size,
             rotation: InputImageRotation.values.byName(image.rotation.name),
             format: InputImageFormat.nv21,
-            bytesPerRow: plane.bytesPerRow,
+            bytesPerRow: image.planes.first.bytesPerRow,
           ),
         );
       },
@@ -232,6 +230,25 @@ class GoogleFaceDetectorForCamerawesome implements
         projectLogger
             .info('yuv420 input not implemented for face detection');
         return null;
+/*         // final planes = image.planes;
+        // int nBytes = 0;
+        // for (final plane in image.planes) {
+        //   nBytes += plane.bytes.length;
+        // }
+        // assert (nBytes == 3*image.planes.first.bytes.length);
+
+        final flat = <int>[];
+        for (final plane in image.planes) {
+          flat.addAll(plane.bytes);
+        }
+        final bytes = Uint8List.fromList(flat);
+        final metadata = InputImageMetadata(
+          size: Size(image.width.toDouble(), image.height.toDouble()),
+          rotation: InputImageRotation.values.byName(image.rotation.name),
+          format: InputImageFormat.yuv_420_888,
+          bytesPerRow: image.planes.first.bytesPerRow,
+        );
+        return InputImage.fromBytes(bytes: bytes, metadata: metadata); */
       },
     );
     if (inputImage == null) {

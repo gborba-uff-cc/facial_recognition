@@ -60,6 +60,10 @@ class DistanceClassifier<TElement extends List<num>, TLabel>
     );
     final result = { for (final u in unknown) u : tmp };
 
+    if (distanceStructure.isEmpty) {
+      return result;
+    }
+
     int nRecognized = 0;
     // compute for all the inputs
     for (final anInput in unknown) {
@@ -138,6 +142,10 @@ class KnnClassifier<TElement extends List<num>, TLabel>
       status: FaceRecognitionStatus.notRecognized,
     );
     final result = {for (final u in unknown) u: tmp};
+
+    if (distanceStructure.isEmpty) {
+      return result;
+    }
 
     final Map<TLabel, double> scoreStructure = {};
     // compute for all the inputs

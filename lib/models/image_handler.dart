@@ -85,17 +85,36 @@ class CameraImageConverterForCamerawesome implements
   pkg_image.Image fromCameraImage(pkg_awesome.AnalysisImage input) {
     final image = input.when(
       yuv420: (image) {
+        final planesInfos = [
+          (
+            bytes: image.planes[0].bytes,
+            bytesPerPixel: image.planes[0].bytesPerPixel ?? 1,
+            // NOTE - here is correct
+            bytesPerRow: image.planes[0].bytesPerRow
+          ),
+          (
+            bytes: image.planes[1].bytes,
+            bytesPerPixel: image.planes[1].bytesPerPixel ?? 1,
+            // NOTE - must divide by two because nv21 is a 4:2:0 subsamplig
+            // (implying in half width resolution) and received information do
+            // not account for that
+            bytesPerRow: image.planes[1].bytesPerRow ~/ 2
+          ),
+          (
+            bytes: image.planes[2].bytes,
+            bytesPerPixel: image.planes[2].bytesPerPixel ?? 1,
+            // NOTE - must divide by two because nv21 is a 4:2:0 subsamplig
+            // (implying in half width resolution) and received information do
+            // not account for that
+            bytesPerRow: image.planes[2].bytesPerRow ~/ 2
+          ),
+        ];
         final rgba = rgbaFromPlanes(
-            width: image.width,
-            height: image.height,
-            format: PlanesFormatsToRgbaPacked.yuv420,
-            planes: image.planes
-                .map((plane) => (
-                      bytes: plane.bytes,
-                      bytesPerPixel: plane.bytesPerPixel ?? 1,
-                      bytesPerRow: plane.bytesPerRow
-                    ))
-                .toList());
+          width: image.width,
+          height: image.height,
+          format: PlanesFormatsToRgbaPacked.yuv420,
+          planes: planesInfos,
+        );
         final aux = pkg_image.Image.fromBytes(
           width: image.width,
           height: image.height,
@@ -106,17 +125,33 @@ class CameraImageConverterForCamerawesome implements
         return aux;
       },
       nv21: (image) {
+        final yPlaneSize = image.height * image.planes.first.bytesPerRow;
+        final yPlane = Uint8List.sublistView(
+            image.bytes, 0, yPlaneSize);
+        final vuPlane = Uint8List.sublistView(
+            image.bytes, yPlaneSize, image.bytes.length);
+        final planesInfos = [
+          (
+            bytes: yPlane,
+            bytesPerPixel: image.planes[0].bytesPerPixel ?? 1,
+            // NOTE - here is correct
+            bytesPerRow: image.planes[0].bytesPerRow
+          ),
+          (
+            bytes: vuPlane,
+            bytesPerPixel: image.planes[1].bytesPerPixel ?? 1,
+            // NOTE - must divide by two because nv21 is a 4:2:0 subsamplig
+            // (implying in half width resolution) and received information do
+            // not account for that
+            bytesPerRow: image.planes[1].bytesPerRow ~/ 2
+          )
+        ];
         final rgba = rgbaFromPlanes(
-            width: image.width,
-            height: image.height,
-            format: PlanesFormatsToRgbaPacked.nv21,
-            planes: image.planes
-                .map((plane) => (
-                      bytes: plane.bytes,
-                      bytesPerPixel: plane.bytesPerPixel ?? 1,
-                      bytesPerRow: plane.bytesPerRow
-                    ))
-                .toList());
+          width: image.width,
+          height: image.height,
+          format: PlanesFormatsToRgbaPacked.nv21,
+          planes: planesInfos,
+        );
         final aux = pkg_image.Image.fromBytes(
           width: image.width,
           height: image.height,

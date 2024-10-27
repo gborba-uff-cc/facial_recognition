@@ -196,6 +196,7 @@ Uint8List _rgbaFromNv21TwoPlanes({
   final vuBytes = planes[1].bytes;
   final yBytesPerPixel = planes[0].bytesPerPixel;
   final vuBytesPerPixel = planes[1].bytesPerPixel;
+  final vuHalfBytesPerPixel = planes[1].bytesPerPixel ~/ 2;
   final yBytesPerRow = planes[0].bytesPerRow;
   final vuBytesPerRow = planes[1].bytesPerRow;
 
@@ -213,11 +214,11 @@ Uint8List _rgbaFromNv21TwoPlanes({
         xGroupLength: 2,
         yGroupLength: 2,
         xLength: vuBytesPerRow,
-        length: vuBytesPerPixel * 2,
+        length: vuBytesPerPixel,
       );
       final yValue = yBytes[yIndex];
       final vValue = vuBytes[vuIndex];
-      final uValue = vuBytes[vuIndex + vuBytesPerPixel];
+      final uValue = vuBytes[vuIndex + vuHalfBytesPerPixel];
 
       final rgbTuple = _rgbFromYuvRec601FullRange(
         y: yValue,

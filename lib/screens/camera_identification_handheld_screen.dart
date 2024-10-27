@@ -19,8 +19,8 @@ enum _IdentificationMode {
   manual,
 }
 
-class NewCameraIdentificationScreen extends StatefulWidget {
-  const NewCameraIdentificationScreen({
+class CameraIdentificationHandheldScreen extends StatefulWidget {
+  const CameraIdentificationHandheldScreen({
     super.key,
     required this.useCase,
   });
@@ -29,14 +29,15 @@ class NewCameraIdentificationScreen extends StatefulWidget {
   final ICameraAttendance<AnalysisImage, JpegPictureBytes> useCase;
 
   @override
-  State<NewCameraIdentificationScreen> createState() => _CameraPageState();
+  State<CameraIdentificationHandheldScreen> createState() => _CameraPageState();
 }
 
-class _CameraPageState extends State<NewCameraIdentificationScreen> {
+class _CameraPageState extends State<CameraIdentificationHandheldScreen> {
   // final _faceDetectionController = BehaviorSubject<FaceDetectionModel>();
   final List _detectedFaces = [];
   _IdentificationMode _identificationMode = _IdentificationMode.manual;
   bool _shouldCaptureImage = false;
+  bool _isHandlingImage = false;
 
   @override
   void initState() {
@@ -65,35 +66,42 @@ class _CameraPageState extends State<NewCameraIdentificationScreen> {
           aspectRatio: CameraAspectRatios.ratio_1_1,
         ),
         onImageForAnalysis: _handleAnalysisImage,
-        imageAnalysisConfig: AnalysisConfig(
-          androidOptions: const AndroidAnalysisOptions.yuv420(
-            width: 720,
-          ),
-          cupertinoOptions: const CupertinoAnalysisOptions.bgra8888(),
-          maxFramesPerSecond: 2,
-        ),
+        // image analysis default use nv21 for android and bgra for ios
+        // (width configuration not working for some reason)
+        imageAnalysisConfig: AnalysisConfig(maxFramesPerSecond: 2),
         builder: (state, preview) {
           return Align(
             alignment: Alignment.bottomCenter,
             child: Padding(
               padding: const EdgeInsets.all(16.0),
-              child: Row(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  switch (_identificationMode) {
-                    _IdentificationMode.manual => FilledButton(
-                        onPressed: () => setState(() =>
-                            _identificationMode = _IdentificationMode.automatic),
-                        child: const Text('Auto'),
+                  Row(children: [],),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      switch (_identificationMode) {
+                        _IdentificationMode.manual => FilledButton.tonal(
+                            onPressed: () => setState(() =>
+                                _identificationMode = _IdentificationMode.automatic),
+                            child: const Text('Auto'),
+                          ),
+                        _IdentificationMode.automatic => FilledButton(
+                            onPressed: () => setState(() =>
+                                _identificationMode = _IdentificationMode.manual),
+                            child: const Text('Auto'),
+                          ),
+                      },
+                      AppDefaultCameraShutter(
+                        onTap: () => _shouldCaptureImage = true,
                       ),
-                    _IdentificationMode.automatic => FilledButton.tonal(
-                        onPressed: () => setState(() =>
-                            _identificationMode = _IdentificationMode.manual),
-                        child: const Text('Auto'),
+                      AppDefaultCameraSwitcher(
+                        onTap: state.switchCameraSensor,
                       ),
-                  },
-                  AppDefaultCameraShutter(),
-                  AppDefaultCameraSwitcher(),
+                    ],
+                  ),
                 ],
               ),
             ),
@@ -104,13 +112,17 @@ class _CameraPageState extends State<NewCameraIdentificationScreen> {
   }
 
   Future<void> _handleAnalysisImage(AnalysisImage image) {
-    projectLogger.fine('got image for analisis');
-    return Future.value();
+    if (_isHandlingImage) {
+      return Future.value();
+    }
     if (_identificationMode == _IdentificationMode.manual && !_shouldCaptureImage) {
       return Future.value();
     }
+    _isHandlingImage = true;
     _shouldCaptureImage = false;
-    widget.useCase.onNewCameraInput(image);
+    // run asyncronously
+    Future(() => widget.useCase.onNewCameraInput(image))
+        .then((value) => _isHandlingImage = false);
     return Future.value();
   }
 
