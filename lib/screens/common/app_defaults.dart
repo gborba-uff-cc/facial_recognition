@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 
 final _appBarPreferredSize = AppBar().preferredSize;
@@ -320,6 +322,190 @@ class AppDefaultSingleOptionCard extends StatelessWidget {
                   ),
                 ),
               ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class AppDefaultTripleOptionsCard extends StatelessWidget {
+  const AppDefaultTripleOptionsCard({
+    super.key,
+    required this.child,
+    required this.leftOption,
+    this.centerOption,
+    required this.rightOption,
+    this.leftOptionColor,
+    this.centerOptionColor,
+    this.rightOptionColor,
+    this.onLeftOptionTap,
+    this.onCenterOptionTap,
+    this.onRightOptionTap,
+  });
+
+  final Widget child;
+  final Widget leftOption;
+  final Widget? centerOption;
+  final Widget rightOption;
+  final Color? leftOptionColor;
+  final Color? centerOptionColor;
+  final Color? rightOptionColor;
+  final void Function()? onLeftOptionTap;
+  final void Function()? onCenterOptionTap;
+  final void Function()? onRightOptionTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final optionsSpace = 2.0;
+    final List<Widget> widgetsForCenterOption = [
+      SizedBox(
+        width: optionsSpace,
+      ),
+      Flexible(
+        fit: FlexFit.tight,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 2.0),
+          child: Container(
+            padding: _cardOptionInnerPadding,
+            decoration: BoxDecoration(
+              color: onCenterOptionTap != null
+                  ? centerOptionColor ?? Theme.of(context).primaryColor
+                  : Theme.of(context).disabledColor,
+            ),
+            child: InkWell(
+              onTap: onCenterOptionTap,
+              child: centerOption,
+            ),
+          ),
+        ),
+      ),
+      SizedBox(
+        width: 1.0,
+      ),
+    ];
+    return Card(
+      margin: EdgeInsets.zero,
+      elevation: 3.0,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          child,
+          Row(
+            children: [
+              Flexible(
+                fit: FlexFit.tight,
+                child: Container(
+                  padding: _cardOptionInnerPadding,
+                  decoration: BoxDecoration(
+                    color: onLeftOptionTap != null
+                        ? leftOptionColor ?? Theme.of(context).primaryColor
+                        : Theme.of(context).disabledColor,
+                    shape: BoxShape.rectangle,
+                    borderRadius: const BorderRadius.only(
+                      bottomLeft: _cardOptionBorderRadius,
+                    ),
+                  ),
+                  child: InkWell(
+                    onTap: onLeftOptionTap,
+                    child: leftOption,
+                  ),
+                ),
+              ),
+              if (centerOption != null)
+                ...widgetsForCenterOption,
+              if (centerOption == null)
+                SizedBox(width: optionsSpace,),
+              Flexible(
+                fit: FlexFit.tight,
+                child: Container(
+                  padding: _cardOptionInnerPadding,
+                  decoration: BoxDecoration(
+                    color: onRightOptionTap != null
+                        ? rightOptionColor ?? Theme.of(context).primaryColor
+                        : Theme.of(context).disabledColor,
+                    shape: BoxShape.rectangle,
+                    borderRadius: const BorderRadius.only(
+                      bottomRight: _cardOptionBorderRadius,
+                    ),
+                  ),
+                  child: InkWell(
+                    onTap: onRightOptionTap,
+                    child: rightOption,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class AppDefaultTotenIdentificationCard extends StatelessWidget {
+  const AppDefaultTotenIdentificationCard({
+    super.key,
+    required this.faceJpg,
+    required this.name,
+    required this.registration,
+    this.onAccept,
+    this.onRevise,
+  });
+
+  final Uint8List faceJpg;
+  final String name;
+  final String registration;
+  final void Function()? onAccept;
+  final void Function()? onRevise;
+
+  @override
+  Widget build(BuildContext context) {
+    final optionsTextStyle = Theme.of(context).textTheme.titleMedium?.apply(
+          // fontSizeFactor: 1.2,
+          color: Theme.of(context).colorScheme.onSecondary,
+        );
+    return AppDefaultTripleOptionsCard(
+      leftOption: Center(child: Text('Corrigir',style: optionsTextStyle,softWrap: false,),),
+      // centerOption: Center(child: Text('C',style: optionsTextStyle,softWrap: false,),),
+      rightOption: Center(child: Text('Aceitar',style: optionsTextStyle,softWrap: false,),),
+      leftOptionColor: Colors.red.shade600,
+      rightOptionColor: Colors.green.shade600,
+      onLeftOptionTap: onRevise,
+      onRightOptionTap: onAccept,
+      child: Padding(
+        padding: const EdgeInsets.all(4.0),
+        child: Row(
+          children: [
+            Flexible(
+              flex: 1,
+              fit: FlexFit.tight,
+              child: AspectRatio(
+                aspectRatio: 1,
+                child: Image.memory(
+                  faceJpg,
+                  fit: BoxFit.contain,
+                  errorBuilder: (context, error, stackTrace) => Icon(Icons.person),
+                ),
+              ),
+            ),
+            SizedBox(width: 2.0,),
+            Flexible(
+              flex: 2,
+              fit: FlexFit.tight,
+              child: Column(
+                children: [
+                  Text(
+                    name,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  Text(
+                    registration,
+                    style: Theme.of(context).textTheme.bodyLarge,
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
       ),
