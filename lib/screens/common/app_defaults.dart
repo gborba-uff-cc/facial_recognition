@@ -262,3 +262,71 @@ class AppDefaultCameraSwitcher extends StatelessWidget {
     );
   }
 }
+
+const _cardOptionInnerPadding = EdgeInsets.all(16.0);
+const _cardOptionBorderRadius = Radius.circular(8.0);
+
+class AppDefaultSingleOptionCard extends StatelessWidget {
+  const AppDefaultSingleOptionCard({
+    super.key,
+    required this.child,
+    String? actionName,
+    void Function()? action,
+  })  : _actionName = actionName,
+        _action = action;
+
+  final Widget child;
+  final String? _actionName;
+  final void Function()? _action;
+
+  @override
+  Widget build(BuildContext context) {
+    final name = _actionName;
+    final action = _action;
+    final bottomBannerTextStyle = Theme.of(context)
+        .textTheme
+        .copyWith()
+        .apply(
+          fontSizeFactor: 1.2,
+          bodyColor: Theme.of(context).colorScheme.onSecondary,
+        )
+        .labelLarge;
+    return Card(
+      margin: EdgeInsets.zero,
+      elevation: 3.0,
+      child: InkWell(
+        onTap: action,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+              child: child,
+            ),
+            if (name != null)
+              Container(
+                padding: _cardOptionInnerPadding,
+                decoration: BoxDecoration(
+                  color: action != null
+                      ? Theme.of(context).primaryColor
+                      : Theme.of(context).disabledColor,
+                  shape: BoxShape.rectangle,
+                  borderRadius: const BorderRadius.only(
+                    bottomLeft: _cardOptionBorderRadius,
+                    bottomRight: _cardOptionBorderRadius,
+                  ),
+                ),
+                child: Center(
+                  child: Text(
+                    name,
+                    style: bottomBannerTextStyle,
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}

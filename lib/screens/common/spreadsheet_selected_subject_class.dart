@@ -1,4 +1,4 @@
-import 'package:facial_recognition/screens/common/card_single_action.dart';
+import 'package:facial_recognition/screens/common/app_defaults.dart';
 import 'package:flutter/material.dart';
 
 class SpreadsheetSelectedSubjectClass extends StatelessWidget {
@@ -15,7 +15,7 @@ class SpreadsheetSelectedSubjectClass extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SingleActionCard(
+    return AppDefaultSingleOptionCard(
       action: action,
       actionName: 'Selecionar',
       child: Column(

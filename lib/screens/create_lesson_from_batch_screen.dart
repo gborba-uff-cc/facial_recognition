@@ -1,6 +1,5 @@
 import 'package:facial_recognition/models/domain.dart';
 import 'package:facial_recognition/screens/common/app_defaults.dart';
-import 'package:facial_recognition/screens/common/card_single_action.dart';
 import 'package:facial_recognition/screens/common/excel_picker_button.dart';
 import 'package:facial_recognition/screens/common/select_information_return.dart';
 import 'package:facial_recognition/screens/common/selector.dart';
@@ -225,7 +224,7 @@ class _SubjectClassInfo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SingleActionCard(
+    return AppDefaultSingleOptionCard(
       action: action,
       actionName: 'Selecionar',
       child: Column(

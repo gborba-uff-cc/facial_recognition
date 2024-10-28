@@ -2,7 +2,6 @@ import 'dart:typed_data';
 
 import 'package:facial_recognition/models/domain.dart';
 import 'package:facial_recognition/screens/common/app_defaults.dart';
-import 'package:facial_recognition/screens/common/card_single_action.dart';
 import 'package:facial_recognition/use_case/attendance_summary.dart';
 import 'package:facial_recognition/utils/project_logger.dart';
 import 'package:facial_recognition/utils/ui.dart';
@@ -362,7 +361,7 @@ class _SummaryTile extends StatelessWidget {
         ),
       ],
     );
-    return SingleActionCard(
+    return AppDefaultSingleOptionCard(
       actionName: 'Detalhar',
       action: onTap,
       child: Column(
