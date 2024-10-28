@@ -362,35 +362,38 @@ class _SummaryTile extends StatelessWidget {
       ],
     );
     return AppDefaultSingleOptionCard(
-      actionName: 'Detalhar',
-      action: onTap,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          nameAndRegistrationView,
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
-            child: Row(
-              children: [
-                Flexible(fit: FlexFit.tight, flex: 1, child: imageView),
-                Flexible(
-                  fit: FlexFit.tight,
-                  flex: 1,
-                  child: Padding(
-                    padding: const EdgeInsets.only(left: 8.0),
-                    child: attendanceView,
+      option: 'Detalhar',
+      onOptionTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            nameAndRegistrationView,
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
+              child: Row(
+                children: [
+                  Flexible(fit: FlexFit.tight, flex: 1, child: imageView),
+                  Flexible(
+                    fit: FlexFit.tight,
+                    flex: 1,
+                    child: Padding(
+                      padding: const EdgeInsets.only(left: 8.0),
+                      child: attendanceView,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8.0) +
-                EdgeInsets.only(bottom: 8.0),
-            child: statusView,
-          ),
-        ],
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8.0) +
+                  EdgeInsets.only(bottom: 8.0),
+              child: statusView,
+            ),
+          ],
+        ),
       ),
     );
   }

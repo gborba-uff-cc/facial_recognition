@@ -270,10 +270,10 @@ class AppDefaultSingleOptionCard extends StatelessWidget {
   const AppDefaultSingleOptionCard({
     super.key,
     required this.child,
-    String? actionName,
-    void Function()? action,
-  })  : _actionName = actionName,
-        _action = action;
+    String? option,
+    void Function()? onOptionTap,
+  })  : _actionName = option,
+        _action = onOptionTap;
 
   final Widget child;
   final String? _actionName;
@@ -299,11 +299,7 @@ class AppDefaultSingleOptionCard extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-              child: child,
-            ),
+            child,
             if (name != null)
               Container(
                 padding: _cardOptionInnerPadding,

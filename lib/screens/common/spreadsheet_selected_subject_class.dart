@@ -16,55 +16,58 @@ class SpreadsheetSelectedSubjectClass extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AppDefaultSingleOptionCard(
-      action: action,
-      actionName: 'Selecionar',
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            'Turma selecionada',
-            style: Theme.of(context).textTheme.titleLarge,
-          ),
-          const SizedBox(height: 8.0),
-          Row(
-            children: [
-              Text(
-                'Disciplina:',
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.only(left: 4.0),
-                  child: Text(
-                    subject,
-                    style: Theme.of(context).textTheme.labelMedium,
-                    overflow: TextOverflow.fade,
-                    softWrap: false,
+      onOptionTap: action,
+      option: 'Selecionar',
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Turma selecionada',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: 8.0),
+            Row(
+              children: [
+                Text(
+                  'Disciplina:',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.only(left: 4.0),
+                    child: Text(
+                      subject,
+                      style: Theme.of(context).textTheme.labelMedium,
+                      overflow: TextOverflow.fade,
+                      softWrap: false,
+                    ),
                   ),
                 ),
-              ),
-            ],
-          ),
-          Row(
-            children: [
-              Text(
-                'Turma:',
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.only(left: 4.0),
-                  child: Text(
-                    subjectClass,
-                    style: Theme.of(context).textTheme.labelMedium,
-                    overflow: TextOverflow.fade,
-                    softWrap: false,
+              ],
+            ),
+            Row(
+              children: [
+                Text(
+                  'Turma:',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.only(left: 4.0),
+                    child: Text(
+                      subjectClass,
+                      style: Theme.of(context).textTheme.labelMedium,
+                      overflow: TextOverflow.fade,
+                      softWrap: false,
+                    ),
                   ),
                 ),
-              ),
-            ],
-          ),
-        ],
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
