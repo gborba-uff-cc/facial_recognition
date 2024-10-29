@@ -77,9 +77,17 @@ enum FaceRecognitionStatus {
 
 abstract class ICameraAttendance<CI, O> {
   void onNewCameraInput(final CI input);
-  set onDetectedFaces(
+  set onDetectionResult(
       void Function(List<({Rect rect, O face})> detected)? f);
-  void Function(List<({Rect rect, O face})> detected)? get onDetectedFaces;
+  void Function(List<({Rect rect, O face})> detected)? get onDetectionResult;
+  set onRecognitionResult(void Function({
+    Iterable<EmbeddingRecognitionResult> recognized,
+    Iterable<EmbeddingRecognitionResult> notRecognized,
+  })? f);
+  void Function({
+    Iterable<EmbeddingRecognitionResult> recognized,
+    Iterable<EmbeddingRecognitionResult> notRecognized,
+  })? get onRecognitionResult;
 }
 
 typedef DistanceFunction<TElement> = double Function(TElement a, TElement b);

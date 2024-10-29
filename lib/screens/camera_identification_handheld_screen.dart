@@ -42,7 +42,7 @@ class _CameraPageState extends State<CameraIdentificationHandheldScreen> {
   @override
   void initState() {
     super.initState();
-    widget.useCase.onDetectedFaces = (jpegImages) async {
+    widget.useCase.onDetectionResult = (jpegImages) async {
       if (mounted) {
         setState(() => _detectedFaces.addAll(jpegImages));
       }

@@ -1,3 +1,4 @@
+import 'package:facial_recognition/models/domain.dart';
 import 'package:flutter/material.dart';
 
 class GridSelector<T> extends StatelessWidget {
@@ -88,6 +89,99 @@ class GridItem extends StatelessWidget {
               position: DecorationPosition.foreground,
               child: child)
           : child,
+    );
+  }
+}
+
+class StudentGridSelector extends StatefulWidget {
+  const StudentGridSelector({
+    super.key,
+    this.initialySelected,
+    required this.items,
+    this.onSelection,
+  });
+
+  final List<({Student student, JpegPictureBytes? jpg})> items;
+  final ({Student student, JpegPictureBytes? jpg})? initialySelected;
+  final void Function(({Student student, JpegPictureBytes? jpg})?)? onSelection;
+
+  @override
+  State<StudentGridSelector> createState() => _StudentGridSelectorState();
+}
+
+class _StudentGridSelectorState extends State<StudentGridSelector> {
+  ({Student student, JpegPictureBytes? jpg})? selected;
+
+  @override
+  void initState() {
+    selected = widget.initialySelected;
+    super.initState();
+  }
+
+  Widget gridItemBuilder(({Student student, JpegPictureBytes? jpg}) item) {
+    final student = item.student;
+    final jpg = item.jpg;
+    return AspectRatio(
+      aspectRatio: 1.0,
+      child: jpg != null
+          ? Image.memory(jpg, fit: BoxFit.contain)
+          : Text(
+              student.individual.displayFullName,
+              softWrap: true,
+              overflow: TextOverflow.fade,
+            ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final onSelection = widget.onSelection;
+    return Padding(
+      padding: const EdgeInsets.all(8.0),
+      child: Column(
+        children: [
+          Flexible(
+            fit: FlexFit.tight,
+            child: GridSelector(
+              selected: selected,
+              items: widget.items,
+              toWidget: (context, item) =>  gridItemBuilder(item),
+              onChanged: (item) {
+                setState(() {
+                  selected = item;
+                });
+              },
+            ),
+          ),
+          Wrap(
+            direction: Axis.horizontal,
+            spacing: 8.0,
+            alignment: WrapAlignment.center,
+            runAlignment: WrapAlignment.center,
+            runSpacing: 0.0,
+            children: [
+              FilledButton(
+                onPressed: onSelection == null
+                    ? null
+                    : () => onSelection(widget.initialySelected),
+                child: const Text(
+                  'Cancelar',
+                  maxLines: 1,
+                ),
+              ),
+              FilledButton(
+                onPressed: onSelection == null
+                    ? null
+                    : () => onSelection(selected),
+                child: const Text(
+                  'Aceitar',
+                  maxLines: 1,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }

@@ -37,6 +37,19 @@ class _LandingScreenState extends State<LandingScreen> {
                     style: Theme.of(context).textTheme.bodyLarge),
               )
             : GoRouter.of(context).push(
+                '/camera_identification_totem',
+                extra: lesson,
+              ),
+        text: 'Autoverificação',
+      ),
+      (
+        action: () => (lesson == null)
+            ? _showAlert(
+                context,
+                Text('Selecione uma aula antes de continuar',
+                    style: Theme.of(context).textTheme.bodyLarge),
+              )
+            : GoRouter.of(context).push(
                 '/camera_view',
                 extra: lesson,
               ),

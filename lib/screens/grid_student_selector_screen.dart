@@ -14,9 +14,9 @@ class GridStudentSelectorScreenArguments<T> {
 
 /// Configure a fullscreen grid selector to change students to the mark
 /// attendance screen
-GridSelectorScreen<MapEntry<Student, FacePicture?>> gridstudentSelector(
+GridSelectorScreen<MapEntry<Student, FacePicture?>> gridStudentSelector(
   GridStudentSelectorScreenArguments<MapEntry<Student, FacePicture?>> args,
-) => GridSelectorScreen(
+) => GridSelectorScreen<MapEntry<Student, FacePicture?>>(
     initialySelected: args.initialySelected,
     items: args.items,
     gridItemBuilder: (context, item) => AspectRatio(

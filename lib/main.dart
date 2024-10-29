@@ -11,6 +11,7 @@ import 'package:facial_recognition/models/image_handler.dart';
 import 'package:facial_recognition/models/recognition_pipeline.dart';
 import 'package:facial_recognition/screens/attendance_summary_screen.dart';
 import 'package:facial_recognition/screens/camera_identification_screen.dart';
+import 'package:facial_recognition/screens/camera_identification_toten_screen.dart';
 import 'package:facial_recognition/screens/create_attendance_from_spreadsheet_screen.dart';
 import 'package:facial_recognition/screens/create_enrollment_screen.dart';
 import 'package:facial_recognition/screens/create_information_manually_screen.dart';
@@ -181,6 +182,11 @@ class MainApp extends StatelessWidget {
               domainRepository: domainRepository,
             ),
             routes: <RouteBase>[
+              // NOTE - for development
+              GoRoute(
+                path: 'fast_view',
+                builder: (context, state) => FastView(),
+              ),
               GoRoute(
                 path: 'select_information',
                 builder: (context, state) => SelectInformationScreen(
@@ -209,12 +215,28 @@ class MainApp extends StatelessWidget {
               GoRoute(
                 path: 'camera_view',
                 builder: (context, state) => CameraIdentificationHandheldScreen(
-                  useCase: CameraIdentificationForCamerawesome(
+                  useCase: CameraIdentificationHandheldForCamerawesome(
                     domainRepository: domainRepository,
                     recognitionPipeline: recognitionPipeline,
                     imageHandler: imageHandler,
                     // null, // showFaceImages
                     lesson: state.extra as Lesson,
+                  ),
+                ),
+              ),
+              GoRoute(
+                path: 'camera_identification_totem',
+                builder: (context, state) => CameraIdentificationTotemScreen(
+                  cameraAttendanceUseCase: CameraIdentificationTotenForCamerawesome(
+                    domainRepository: domainRepository,
+                    recognitionPipeline: recognitionPipeline,
+                    imageHandler: imageHandler,
+                    // null, // showFaceImages
+                    lesson: state.extra as Lesson,
+                  ),
+                  markAttendanceUseCase: MarkAttendance(
+                    domainRepository,
+                    state.extra as Lesson,
                   ),
                 ),
               ),
@@ -229,7 +251,7 @@ class MainApp extends StatelessWidget {
               ),
               GoRoute(
                 path: 'mark_attendance_edit_student',
-                builder: (context, state) => gridstudentSelector(
+                builder: (context, state) => gridStudentSelector(
                   state.extra as GridStudentSelectorScreenArguments<MapEntry<Student, FacePicture?>>,
                 ),
               ),

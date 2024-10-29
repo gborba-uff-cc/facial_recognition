@@ -1,3 +1,4 @@
+import 'package:facial_recognition/screens/common/app_defaults.dart';
 import 'package:facial_recognition/screens/common/grid_selector.dart';
 import 'package:facial_recognition/utils/project_logger.dart';
 import 'package:flutter/material.dart';
@@ -30,12 +31,14 @@ class _GridSelectorScreenState<T> extends State<GridSelectorScreen<T>> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(),
+    return AppDefaultScaffold(
+      appBar: AppDefaultAppBar(title: 'Aluno(a)',),
       body: Padding(
         padding: const EdgeInsets.all(8.0),
         child: Center(
-          child: Column(
+          child: widget.items.isEmpty
+              ? Text('Não há alunos nesta turma')
+              : Column(
             children: [
               Flexible(
                 fit: FlexFit.tight,
@@ -59,7 +62,6 @@ class _GridSelectorScreenState<T> extends State<GridSelectorScreen<T>> {
                 children: [
                   FilledButton(
                     onPressed: () {
-                      projectLogger.fine('selected ${widget._initialySelected}');
                       final router = GoRouter.of(context);
                       if (router.canPop()) {
                         router.pop(widget._initialySelected);

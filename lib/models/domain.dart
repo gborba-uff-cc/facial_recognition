@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+// REVIEW - should maintain this class?
 class Individual {
   String individualRegistration;
   String name;
@@ -192,21 +193,25 @@ class Enrollment {
     other.subjectClass == subjectClass;
 }
 
+// TODO
 class Attendance {
   Student student;
   Lesson lesson;
+  // DateTime utcDateTime;
 
   Attendance({
     required this.student,
     required this.lesson,
+    // required this.utcDateTime,
   });
 
   @override
-  int get hashCode => Object.hash(student, lesson);
+  int get hashCode => Object.hash(student, lesson/*, utcDateTime*/);
 
   @override
   bool operator ==(Object other) =>
     other is Attendance &&
     other.student == student &&
-    other.lesson == lesson;
+    other.lesson == lesson/* &&
+    other.utcDateTime == utcDateTime*/;
 }

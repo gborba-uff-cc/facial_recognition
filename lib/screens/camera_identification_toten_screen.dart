@@ -1,0 +1,373 @@
+import 'dart:async';
+import 'dart:typed_data';
+import 'package:camerawesome/camerawesome_plugin.dart';
+import 'package:facial_recognition/interfaces.dart';
+import 'package:facial_recognition/models/domain.dart';
+import 'package:facial_recognition/screens/common/app_defaults.dart';
+import 'package:facial_recognition/screens/common/grid_selector.dart';
+import 'package:facial_recognition/screens/grid_student_selector_screen.dart';
+import 'package:facial_recognition/use_case/mark_attendance.dart';
+import 'package:facial_recognition/utils/project_logger.dart';
+import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+// import 'package:rxdart/rxdart.dart';
+
+// made out of a camerawesome example (camerawesome-2.1.0/example/lib/ai_analysis_faces.dart)
+
+enum _IdentificationMode {
+  automatic,
+  manual,
+}
+
+class CameraIdentificationTotemScreen extends StatefulWidget {
+  factory CameraIdentificationTotemScreen({
+    final Key? key,
+    required final ICameraAttendance<AnalysisImage, JpegPictureBytes> cameraAttendanceUseCase,
+    required final MarkAttendance markAttendanceUseCase,
+  }) {
+    return CameraIdentificationTotemScreen._private(
+      cameraAttendanceUseCase,
+      markAttendanceUseCase,
+      markAttendanceUseCase.getStudentFaceImage(),
+    );
+  }
+
+  const CameraIdentificationTotemScreen._private(
+    this.cameraAttendanceUseCase,
+    this.markAttendanceUseCase,
+    this._facePicturesByStudent,
+  );
+
+  final ICameraAttendance<AnalysisImage, JpegPictureBytes> cameraAttendanceUseCase;
+  final MarkAttendance markAttendanceUseCase;
+  final Map<Student, FacePicture?> _facePicturesByStudent;
+
+  @override
+  State<CameraIdentificationTotemScreen> createState() => _CameraIdentificationTotemScreenState();
+}
+
+class _CameraIdentificationTotemScreenState extends State<CameraIdentificationTotemScreen> {
+  // final _faceDetectionController = BehaviorSubject<FaceDetectionModel>();
+  final _detectedFacesController = StreamController<
+      ({
+        Uint8List face,
+        Student? student,
+      })>.broadcast();
+  // final _canHandleImage = StreamController<bool>();
+  // final StreamSubscription _canHandleImageStream =
+  // final List _detectedFaces = [];
+  _IdentificationMode _identificationMode = _IdentificationMode.automatic;
+  bool _shouldCaptureImage = false;
+  bool _isHandlingImage = false;
+
+  void _clearIsHandlingImage() {
+    _isHandlingImage = false;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    widget.cameraAttendanceUseCase.onDetectionResult = (jpegImages) async {
+      if (jpegImages.isEmpty) {
+        _clearIsHandlingImage();
+        // clearing _isHandlingImage (no face detected)
+        return;
+      }
+      else {
+        _detectedFacesController.add(
+          (
+            face: jpegImages.first.face,
+            student: null
+          ),
+        );
+      }
+    };
+  }
+
+  @override
+  void dispose() {
+    // _detectedFaces.clear();
+    // _faceDetectionController.close();
+    _detectedFacesController.close();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      body: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 48.0),
+        child: CameraAwesomeBuilder.previewOnly(
+          previewAlignment: Alignment.topCenter,
+          previewFit: CameraPreviewFit.contain,
+          sensorConfig: SensorConfig.single(
+            sensor: Sensor.position(SensorPosition.front),
+            aspectRatio: CameraAspectRatios.ratio_1_1,
+          ),
+          onImageForAnalysis: _handleAnalysisImage,
+          // image analysis default use nv21 for android and bgra for ios
+          // (width configuration not working for some reason)
+          imageAnalysisConfig: AnalysisConfig(maxFramesPerSecond: 1),
+          builder: (state, preview) {
+            return Align(
+              alignment: Alignment.bottomCenter,
+              child: _ConfirmationCameraPreviewDecorator(
+                detectedFacesStream: _detectedFacesController.stream,
+                onAccept: (student) {
+                  if (student == null) {
+                    return;
+                  }
+                  widget.markAttendanceUseCase
+                      .writeStudentAttendance([student]);
+                },
+                onRevise: (student) async {
+                  Student? newSelected;
+                  final items = widget._facePicturesByStudent.entries
+                      .map((e) => (student: e.key, jpg: e.value?.faceJpeg))
+                      .toList()
+                    ..sort((a, b) => a.student.individual.displayFullName
+                        .compareTo(b.student.individual.displayFullName));
+                  int initialySelectedIndex = items.indexWhere((element) =>
+                      element.student.individual.displayFullName ==
+                      student?.individual.displayFullName);
+                  final initialySelected = initialySelectedIndex < 0
+                      ? null
+                      : items[initialySelectedIndex];
+                  await showDialog(
+                    context: context,
+                    builder: (context) => Dialog.fullscreen(
+                      child: StudentGridSelector(
+                        items: items,
+                        initialySelected: initialySelected,
+                        onSelection: (selected) {
+                          newSelected = selected?.student;
+                          final router = GoRouter.of(context);
+                          if (router.canPop()) {
+                            router.pop();
+                          }
+                        },
+                      ),
+                    ),
+                  );
+                  if (newSelected == null) {
+                    return;
+                  }
+                  else {
+                    widget.markAttendanceUseCase
+                        .writeStudentAttendance([newSelected!]);
+                  }
+                },
+                // onRevise: () async {
+                //   final items = widget._facePicturesByStudent.entries.toList();
+                //   final newSelection = await GoRouter.of(context)
+                //       .push<MapEntry<Student, FacePicture?>>(
+                //     '/mark_attendance_edit_student',
+                //     extra: GridStudentSelectorScreenArguments<
+                //         MapEntry<Student, FacePicture?>>(
+                //       items: items,
+                //       initialySelected: null,
+                //     ),
+                //   );
+                //   final student = newSelection?.key;
+                //   if (student == null) {
+                //     return;
+                //   }
+                //   else {
+                //     widget.markAttendanceUseCase
+                //         .writeStudentAttendance([student]);
+                //   }
+                // },
+                onDiscard: () {},
+                // clearing _isHandlingImage (after interaction)
+                onClose: _clearIsHandlingImage,
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  Future<void> _handleAnalysisImage(AnalysisImage image) {
+    // SECTION - always start with this
+    if (_isHandlingImage) {
+      return Future.value();
+    }
+    if (_identificationMode == _IdentificationMode.manual && !_shouldCaptureImage) {
+      return Future.value();
+    }
+    projectLogger.fine('handling analysis image');
+    // NOTE - must clear _isHandlingImage when:
+    // no face detected or,
+    // after interaction
+    _isHandlingImage = true;
+    _shouldCaptureImage = false;
+    // !SECTION
+
+    // run asyncronously
+    // SqliteException(1555): while executing statement, UNIQUE constraint failed: notRecognizedFromCamera.pictureMd5, constraint failed (code 1555)
+    return Future(() => widget.cameraAttendanceUseCase.onNewCameraInput(image));
+  }
+}
+
+class _ConfirmationCameraPreviewDecorator extends StatefulWidget {
+  final Stream<({Uint8List face, Student? student})> detectedFacesStream;
+  final void Function()? onClose;
+  final void Function(Student? student)? onAccept;
+  final FutureOr<void> Function(Student? student)? onRevise;
+  final void Function()? onDiscard;
+
+  const _ConfirmationCameraPreviewDecorator({
+    required this.detectedFacesStream,
+    this.onClose,
+    this.onAccept,
+    this.onRevise,
+    this.onDiscard,
+  });
+
+  @override
+  State<_ConfirmationCameraPreviewDecorator> createState() => _ConfirmationCameraPreviewDecoratorState();
+}
+
+class _ConfirmationCameraPreviewDecoratorState extends State<_ConfirmationCameraPreviewDecorator> {
+  ({Uint8List face, Student? student})? _latestData;
+  ({Uint8List face, Student? student})? _latestBuiltData;
+  StreamSubscription? _streamSubscription;
+
+  @override
+  void didUpdateWidget(covariant _ConfirmationCameraPreviewDecorator oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _streamSubscription?.cancel();
+    _startReceiveingFromStream();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _startReceiveingFromStream();
+  }
+
+  @override
+  void dispose() {
+    _streamSubscription?.cancel();
+    super.dispose();
+  }
+
+  _startReceiveingFromStream() {
+    _streamSubscription = widget.detectedFacesStream.listen(
+      (event) {
+        if (mounted) {
+          setState(() {_latestData = event;});
+        }
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final data = _latestData;
+    if (identical(_latestBuiltData, data) || data == null) {
+      return SizedBox.shrink();
+    }
+    _latestBuiltData = data;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24.0),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(minWidth: 300, maxWidth: 600),
+        child: AppDefaultTotenIdentificationCard(
+          faceJpg: data.face,
+          name: data.student?.individual.displayFullName ?? '(não reconhecido)',
+          registration: data.student?.registration ?? '',
+          onAccept: () {
+            if (widget.onAccept != null) {
+              widget.onAccept!(data.student);
+            }
+            if (widget.onClose != null) {
+              widget.onClose!();
+            }
+            if (mounted) {
+              setState(() {});
+            }
+          },
+          onRevise: () async {
+            if (widget.onRevise != null) {
+              await widget.onRevise!(data.student);
+            }
+            if (widget.onClose != null) {
+              widget.onClose!();
+            }
+            if (mounted) {
+              setState(() {});
+            }
+          },
+          onDiscard: () {
+            if (widget.onDiscard != null) {
+              widget.onDiscard!();
+            }
+            if (widget.onClose != null) {
+              widget.onClose!();
+            }
+            if (mounted) {
+              setState(() {});
+            }
+          },
+        ),
+      ),
+    );
+  }
+
+
+  /* @override
+  Widget build(BuildContext context) {
+    return StreamBuilder(
+      stream: widget.detectedFacesStream,
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          if (widget.onClose != null) {
+            widget.onClose!();
+          }
+          return SizedBox.shrink();
+        }
+        else {
+          final data = snapshot.requireData;
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal:  24.0),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minWidth: 300,maxWidth: 600),
+              child: AppDefaultTotenIdentificationCard(
+                faceJpg: data.face,
+                name: data.student?.individual.displayFullName ?? '(não reconhecido)',
+                registration: data.student?.registration ?? '',
+                onAccept: () {
+                  if (widget.onAccept != null) {
+                    widget.onAccept!(data.student);
+                  }
+                  if (widget.onClose != null) {
+                    widget.onClose!();
+                  }
+                },
+                onRevise: () async  {
+                  if (widget.onRevise != null) {
+                    await widget.onRevise!();
+                  }
+                  if (widget.onClose != null) {
+                    widget.onClose!();
+                  }
+                },
+                onDiscard: () {
+                  if (widget.onDiscard != null) {
+                    widget.onDiscard!();
+                  }
+                  if (widget.onClose != null) {
+                    widget.onClose!();
+                  }
+                },
+              ),
+            ),
+          );
+        }
+      },
+    );
+  } */
+}

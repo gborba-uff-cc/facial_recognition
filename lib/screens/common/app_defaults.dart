@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import 'package:facial_recognition/screens/common/grid_selector.dart';
 import 'package:flutter/material.dart';
 
 final _appBarPreferredSize = AppBar().preferredSize;
@@ -381,7 +382,7 @@ class AppDefaultTripleOptionsCard extends StatelessWidget {
         ),
       ),
       SizedBox(
-        width: 1.0,
+        width: optionsSpace,
       ),
     ];
     return Card(
@@ -415,7 +416,7 @@ class AppDefaultTripleOptionsCard extends StatelessWidget {
               if (centerOption != null)
                 ...widgetsForCenterOption,
               if (centerOption == null)
-                SizedBox(width: optionsSpace,),
+                SizedBox(width: optionsSpace),
               Flexible(
                 fit: FlexFit.tight,
                 child: Container(
@@ -451,6 +452,7 @@ class AppDefaultTotenIdentificationCard extends StatelessWidget {
     required this.registration,
     this.onAccept,
     this.onRevise,
+    this.onDiscard,
   });
 
   final Uint8List faceJpg;
@@ -458,6 +460,7 @@ class AppDefaultTotenIdentificationCard extends StatelessWidget {
   final String registration;
   final void Function()? onAccept;
   final void Function()? onRevise;
+  final void Function()? onDiscard;
 
   @override
   Widget build(BuildContext context) {
@@ -466,12 +469,13 @@ class AppDefaultTotenIdentificationCard extends StatelessWidget {
           color: Theme.of(context).colorScheme.onSecondary,
         );
     return AppDefaultTripleOptionsCard(
-      leftOption: Center(child: Text('Corrigir',style: optionsTextStyle,softWrap: false,),),
-      // centerOption: Center(child: Text('C',style: optionsTextStyle,softWrap: false,),),
+      leftOption: Center(child: Text('Descartar',style: optionsTextStyle,softWrap: false,),),
+      centerOption: Center(child: Text('Corrigir',style: optionsTextStyle,softWrap: false,),),
       rightOption: Center(child: Text('Aceitar',style: optionsTextStyle,softWrap: false,),),
       leftOptionColor: Colors.red.shade600,
       rightOptionColor: Colors.green.shade600,
-      onLeftOptionTap: onRevise,
+      onLeftOptionTap: onDiscard,
+      onCenterOptionTap: onRevise,
       onRightOptionTap: onAccept,
       child: Padding(
         padding: const EdgeInsets.all(4.0),
