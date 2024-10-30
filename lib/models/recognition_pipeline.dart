@@ -195,6 +195,10 @@ class RecognitionPipelineForCamerawesome implements
     required final pkg_awesome.AnalysisImage input,
     required final List<Rect> rects,
   }) async {
+    if (rects.isEmpty) {
+      return Future.value(const []);
+    }
+
     // detach faces into manipulable images
     final manipulableImage = imageHandler.fromCameraImage(input);
     final faces = imageHandler.cropFromImage(manipulableImage, rects.toList());
@@ -205,6 +209,10 @@ class RecognitionPipelineForCamerawesome implements
   Future<List<FaceEmbedding>> extractEmbedding(
     final List<pkg_image.Image> faces,
   ) async {
+    if (faces.isEmpty) {
+      return Future.value(const []);
+    }
+
     final List<List<List<List<int>>>> samples = [];
     for (final i in faces) {
       final resizedImage = imageHandler.resizeImage(i, 160, 160);

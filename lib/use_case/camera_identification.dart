@@ -347,12 +347,10 @@ class CameraIdentificationTotemForCamerawesome implements
     final pkg_awesome.AnalysisImage input,
   ) async {
     List<Rect> rects = await recognitionPipeline.detectFace(input);
-    if (rects.isEmpty) {
-      return;
-    }
+    rects = List.of(rects);
     rects.sort((a,b) => (a.width*a.height).compareTo(b.width*b.height));
     final image = imageHandler.fromCameraImage(input);
-    final faces = imageHandler.cropFromImage(image, [rects.last]);
+    final faces = imageHandler.cropFromImage(image, rects.isNotEmpty ? [rects.last] : []);
     final jpgs = faces.map<JpegPictureBytes>((e) => imageHandler.toJpg(image)).toList();
 
     if (onDetectionResult != null) {
