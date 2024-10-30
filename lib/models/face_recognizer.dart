@@ -89,7 +89,7 @@ class DistanceClassifier<TElement extends List<num>, TLabel>
         nRecognized += 1;
       }
     }
-    projectLogger.info('[FaceRecognizer] total: ${unknown.length}, recognized: $nRecognized, not recognized: ${unknown.length-nRecognized}');
+    projectLogger.info('[FaceRecognizer.DistanceClassifier] total: ${unknown.length}, recognized: $nRecognized, not recognized: ${unknown.length-nRecognized}');
     return result;
   }
 
@@ -147,6 +147,7 @@ class KnnClassifier<TElement extends List<num>, TLabel>
       return result;
     }
 
+    int nRecognized = 0;
     final Map<TLabel, double> scoreStructure = {};
     // compute for all the inputs
     for (final anInput in unknown) {
@@ -178,12 +179,17 @@ class KnnClassifier<TElement extends List<num>, TLabel>
 
       // get the most occurring
       final mostOccurring = labelByScore.first;
+      final status = mostOccurring.value1 > 0.0 ? FaceRecognitionStatus.recognized : FaceRecognitionStatus.notRecognized;
       result[anInput] = FaceRecognitionResult(
         label: mostOccurring.value2,
         recognitionValue: mostOccurring.value1,
-        status: mostOccurring.value1 > 0.0 ? FaceRecognitionStatus.recognized : FaceRecognitionStatus.notRecognized,
+        status: status,
       );
+      if (status == FaceRecognitionStatus.recognized) {
+        nRecognized += 1;
+      }
     }
+    projectLogger.info('[FaceRecognizer.KnnClassifier] total: ${unknown.length}, recognized: $nRecognized, not recognized: ${unknown.length-nRecognized}');
     return result;
   }
 }
