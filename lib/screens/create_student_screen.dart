@@ -30,15 +30,6 @@ class _CreateStudentScreenState extends State<CreateStudentScreen> {
   final TextEditingController _surname =
       TextEditingController.fromValue(null);
 
-  /// not used to build the widget, just hold retrieved value from the form
-  Uint8List? _facePicture;
-  FaceEmbedding? _faceEmbedding;
-
-  // String _individualRegistrationValue = '';
-  // String _registrationValue = '';
-  // String _nameValue = '';
-  // String _surnameValue = '';
-
   @override
   void dispose() {
     _individualRegistration.dispose();
@@ -67,11 +58,6 @@ class _CreateStudentScreenState extends State<CreateStudentScreen> {
             Form(
               key: _studentForm,
               child: CreateStudent(
-                // FIXME
-                faceDetector: null,
-                faceEmbedder: null,
-                jpgConverter: null,
-                facePictureOnSaved: null,
                 individualRegistrationController: _individualRegistration,
                 registrationController: _registration,
                 nameController: _name,
@@ -88,7 +74,7 @@ class _CreateStudentScreenState extends State<CreateStudentScreen> {
                     name: _name.text,
                     surname: _surname.text,
                   );
-                  final facePicture = _facePicture;
+                  /* final facePicture = _facePicture;
                   if (facePicture != null) {
                     widget.useCase.createStudentFacePicture(
                       jpegFacePicture: facePicture,
@@ -101,7 +87,7 @@ class _CreateStudentScreenState extends State<CreateStudentScreen> {
                       embedding: faceEmbedding,
                       studentRegistration: _registration.text,
                     );
-                  }
+                  } */
                 } on ArgumentError catch (e) {
                   ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
                 }

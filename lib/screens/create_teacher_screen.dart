@@ -34,15 +34,6 @@ class _CreateTeacherScreenState extends State<CreateTeacherScreen> {
   final TextEditingController _surname =
       TextEditingController.fromValue(null);
 
-  /// not used to build the widget, just hold retrieved value from the form
-  Uint8List? _facePicture;
-  FaceEmbedding? _faceEmbedding;
-
-  // String _individualRegistrationValue = '';
-  // String _registrationValue = '';
-  // String _nameValue = '';
-  // String _surnameValue = '';
-
   @override
   void dispose() {
     _individualRegistration.dispose();
@@ -71,11 +62,6 @@ class _CreateTeacherScreenState extends State<CreateTeacherScreen> {
             Form(
               key: _teacherForm,
               child: CreateTeacher(
-                // FIXME
-                faceDetector: null,
-                faceEmbedder: null,
-                jpgConverter: null,
-                facePictureOnSaved: null,
                 individualRegistrationController: _individualRegistration,
                 registrationController: _registration,
                 nameController: _name,
@@ -92,20 +78,6 @@ class _CreateTeacherScreenState extends State<CreateTeacherScreen> {
                     name: _name.text,
                     surname: _surname.text,
                   );
-                  final facePicture = _facePicture;
-                  if (facePicture != null) {
-                    widget.createModelsUseCase.createTeacherFacePicture(
-                      jpegFacePicture: facePicture,
-                      teacherRegistration: _registration.text,
-                    );
-                  }
-                  final faceEmbedding = _faceEmbedding;
-                  if (faceEmbedding != null) {
-                    widget.createModelsUseCase.createTeacherFacialData(
-                      embedding: faceEmbedding,
-                      teacherRegistration: _registration.text,
-                    );
-                  }
                 } on ArgumentError catch (e) {
                   ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
                 }
