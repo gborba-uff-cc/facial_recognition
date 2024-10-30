@@ -227,7 +227,7 @@ class MainApp extends StatelessWidget {
               GoRoute(
                 path: 'camera_identification_totem',
                 builder: (context, state) => CameraIdentificationTotemScreen(
-                  cameraAttendanceUseCase: CameraIdentificationTotenForCamerawesome(
+                  cameraAttendanceUseCase: CameraIdentificationTotemForCamerawesome(
                     domainRepository: domainRepository,
                     recognitionPipeline: recognitionPipeline,
                     imageHandler: imageHandler,

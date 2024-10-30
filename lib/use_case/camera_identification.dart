@@ -308,7 +308,7 @@ class CameraIdentificationHandheldForCamerawesome implements
   }
 }
 
-class CameraIdentificationTotenForCamerawesome implements
+class CameraIdentificationTotemForCamerawesome implements
     ICameraAttendance<pkg_awesome.AnalysisImage, JpegPictureBytes>
 {
   final ICameraImageHandler<
@@ -333,7 +333,7 @@ class CameraIdentificationTotenForCamerawesome implements
     Iterable<EmbeddingRecognitionResult> notRecognized,
   })? onRecognitionResult;
 
-  CameraIdentificationTotenForCamerawesome({
+  CameraIdentificationTotemForCamerawesome({
     required this.recognitionPipeline,
     required this.imageHandler,
     required this.domainRepository,
@@ -346,9 +346,13 @@ class CameraIdentificationTotenForCamerawesome implements
   Future<void> onNewCameraInput(
     final pkg_awesome.AnalysisImage input,
   ) async {
-    final rects = await recognitionPipeline.detectFace(input);
+    List<Rect> rects = await recognitionPipeline.detectFace(input);
+    if (rects.isEmpty) {
+      return;
+    }
+    rects.sort((a,b) => (a.width*a.height).compareTo(b.width*b.height));
     final image = imageHandler.fromCameraImage(input);
-    final faces = imageHandler.cropFromImage(image, rects);
+    final faces = imageHandler.cropFromImage(image, [rects.last]);
     final jpgs = faces.map<JpegPictureBytes>((e) => imageHandler.toJpg(image)).toList();
 
     if (onDetectionResult != null) {
@@ -361,7 +365,6 @@ class CameraIdentificationTotenForCamerawesome implements
 
     final embeddings = await recognitionPipeline.extractEmbedding(faces);
 
-    const bool tryRecognizeLater = false;
     final Map<Student, List<FaceEmbedding>> embeddingsByStudent =
         facialDataByStudent.map(
       (student, iterableFacialData) => MapEntry(
@@ -383,14 +386,6 @@ class CameraIdentificationTotenForCamerawesome implements
         utcDateTime: dateTime,
       ),
     );
-    // do recognitions later
-    // ignore: dead_code
-    if (tryRecognizeLater) {
-      projectLogger.info(
-          'could not recognize embedding now; face recognition is going to be deferred');
-      domainRepository.addFaceEmbeddingToDeferredPool(embeddingsAndFaces, lesson);
-      return;
-    }
 
     final recognizedAndNot = recognitionPipeline.recognizeEmbedding(
       inputs: embeddingsAndFaces,
@@ -399,8 +394,6 @@ class CameraIdentificationTotenForCamerawesome implements
 
     final Iterable<EmbeddingRecognitionResult> recognized = recognizedAndNot.recognized;
     final Iterable<EmbeddingRecognitionResult> notRecognized = recognizedAndNot.notRecognized;
-    projectLogger.info('recognized students ${recognized.length}');
-    projectLogger.info('not recognized students: ${notRecognized.length}');
 
     if (onRecognitionResult != null) {
       onRecognitionResult!(
