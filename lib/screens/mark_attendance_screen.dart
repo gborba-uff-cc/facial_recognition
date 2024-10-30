@@ -84,7 +84,9 @@ class _RecognitionReviewerState extends State<RecognitionReviewer> {
       projectLogger.severe('a recognition without a student was confirmed.');
       return;
     }
-    widget.useCase.writeStudentAttendance([recognizedStudent]);
+    widget.useCase.writeStudentAttendance([
+      (student: recognizedStudent, arriveUtcDateTime: recognition.utcDateTime),
+    ]);
     widget.useCase.removeRecognitionFromCamera([recognition]);
     setState(() {
       recognitions = widget.useCase.getRecognitionFromCamera();

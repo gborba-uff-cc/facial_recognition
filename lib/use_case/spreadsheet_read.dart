@@ -100,7 +100,11 @@ class SpreadsheetRead {
     return result;
   }
 
-  List<({String registration, DateTime utcDateTime})> readAttendances({
+  List<({
+    DateTime arriveUtcDateTime,
+    DateTime lessonUtcDateTime,
+    String registration
+  })> readAttendances({
     required final pkg_excel.Sheet sheet,
     final int skipRowsCount = 0,
   }) {
@@ -114,7 +118,11 @@ class SpreadsheetRead {
       'true',
       'verdadeiro'
     };
-    final List<({String registration, DateTime utcDateTime})> result = [];
+    final List<({
+      String registration,
+      DateTime lessonUtcDateTime,
+      DateTime arriveUtcDateTime
+    })> result = [];
     final Map<int, DateTime> utcDateTimeOnSheet = {};
     final headerRow = sheet.row(skipRowsCount);
     final headerSize = 1;
@@ -142,9 +150,10 @@ class SpreadsheetRead {
         // if status is present
         final isPresent = presentValues.contains(value.toLowerCase());
         if (isPresent) {
-          final ({String registration, DateTime utcDateTime}) attendance = (
+          final attendance = (
             registration: registrationOnSheet,
-            utcDateTime: utcDateTimeOnSheet[c]!,
+            lessonUtcDateTime: utcDateTimeOnSheet[c]!,
+            arriveUtcDateTime: utcDateTimeOnSheet[c]!
           );
           // add presence to return list
           result.add(attendance);

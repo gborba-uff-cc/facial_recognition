@@ -24,7 +24,9 @@ class _ModelsCollection {
   final List<Attendance> attendances;
   final List<EmbeddingRecognitionResult> faceNotRecognized;
   final List<EmbeddingRecognitionResult> faceRecognized;
-  final List<({List<double> embedding, Uint8List face})> deferred;
+  final List<({
+    List<double> embedding, Uint8List face, DateTime utcDateTime
+  })> deferred;
 
   _ModelsCollection({
     required this.individuals,
@@ -99,10 +101,10 @@ _ModelsCollection _newCollection() {
     Enrollment(student: students[3], subjectClass: classes[1]),
   ]);
   final attendances = List<Attendance>.unmodifiable(<Attendance>[
-    Attendance(student: students[0], lesson: lessons[0]),
-    Attendance(student: students[3], lesson: lessons[0]),
-    Attendance(student: students[0], lesson: lessons[1]),
-    Attendance(student: students[1], lesson: lessons[1]),
+    Attendance(student: students[0], lesson: lessons[0], utcDateTime: dateTime1),
+    Attendance(student: students[3], lesson: lessons[0], utcDateTime: dateTime1),
+    Attendance(student: students[0], lesson: lessons[1], utcDateTime: dateTime2),
+    Attendance(student: students[1], lesson: lessons[1], utcDateTime: dateTime2),
   ]);
   final facesNotRecognized = List<EmbeddingRecognitionResult>.unmodifiable(<
       EmbeddingRecognitionResult>[
@@ -111,12 +113,14 @@ _ModelsCollection _newCollection() {
       inputFaceEmbedding: [0.9, 0.9, 0.9, 0.1],
       nearestStudent: students[0],
       recognized: false,
+      utcDateTime: dateTime1,
     ),
     EmbeddingRecognitionResult(
       inputFace: Uint8List.fromList([1, 1, 1, 1, 2]),
       inputFaceEmbedding: [0.9, 0.9, 0.9, 0.2],
       nearestStudent: null,
       recognized: false,
+      utcDateTime: dateTime2,
     ),
   ]);
   final facesRecognized = List<EmbeddingRecognitionResult>.unmodifiable(<
@@ -126,19 +130,24 @@ _ModelsCollection _newCollection() {
       inputFaceEmbedding: [0.9, 0.9, 0.9, 0.3],
       nearestStudent: students[1],
       recognized: true,
+      utcDateTime: dateTime2,
     ),
     EmbeddingRecognitionResult(
       inputFace: Uint8List.fromList([1, 1, 1, 1, 4]),
       inputFaceEmbedding: [0.9, 0.9, 0.9, 0.4],
       nearestStudent: null,
       recognized: true,
+      utcDateTime: dateTime1,
     ),
   ]);
-  final deferred = List<({List<double> embedding, Uint8List face})>.unmodifiable(<
-      ({List<double> embedding, Uint8List face})>[
-    (face: Uint8List.fromList([1, 1, 1, 1]), embedding: [0.1, 0.1, 0.1, 0.1]),
-    (face: Uint8List.fromList([1, 1, 2, 1]), embedding: [0.1, 0.1, 0.2, 0.1]),
-    (face: Uint8List.fromList([1, 1, 3, 1]), embedding: [0.1, 0.1, 0.3, 0.1]),
+  final deferred = List<({
+    List<double> embedding,
+    Uint8List face,
+    DateTime utcDateTime
+  })>.unmodifiable(<({List<double> embedding, Uint8List face, DateTime utcDateTime})>[
+    (face: Uint8List.fromList([1, 1, 1, 1]), embedding: [0.1, 0.1, 0.1, 0.1], utcDateTime: dateTime1),
+    (face: Uint8List.fromList([1, 1, 2, 1]), embedding: [0.1, 0.1, 0.2, 0.1], utcDateTime: dateTime1),
+    (face: Uint8List.fromList([1, 1, 3, 1]), embedding: [0.1, 0.1, 0.3, 0.1], utcDateTime: dateTime1),
   ]);
 
   return _ModelsCollection(
@@ -731,6 +740,7 @@ void main() {
                   .having((p0) => p0.lesson.teacher.individual.individualRegistration, 'lessonTeacherIndividualRegistration', equals(expectedList[i].lesson.teacher.individual.individualRegistration))
                   .having((p0) => p0.lesson.teacher.individual.name, 'lessonTeacherName', equals(expectedList[i].lesson.teacher.individual.name))
                   .having((p0) => p0.lesson.teacher.individual.surname, 'lessonTeacherSurname', equals(expectedList[i].lesson.teacher.individual.surname))
+                  .having((p0) => p0.utcDateTime, 'utcDateTime', equals(expectedList[i].utcDateTime))
             );
           }
         }
@@ -895,6 +905,7 @@ void main() {
                 .having((p0) => p0.nearestStudent?.individual.name, 'nearestStudentName', equals(expectedElement.nearestStudent?.individual.name))
                 .having((p0) => p0.nearestStudent?.individual.surname, 'nearestStudentSurname', equals(expectedElement.nearestStudent?.individual.surname))
                 .having((p0) => p0.recognized, 'recognized', equals(false))
+                .having((p0) => p0.utcDateTime, 'utcDateTime', equals(expectedElement.utcDateTime))
           );
         }
       }
@@ -945,13 +956,14 @@ void main() {
                 .having((p0) => p0.nearestStudent?.individual.name, 'nearestStudentName', equals(expectedElement.nearestStudent?.individual.name))
                 .having((p0) => p0.nearestStudent?.individual.surname, 'nearestStudentSurname', equals(expectedElement.nearestStudent?.individual.surname))
                 .having((p0) => p0.recognized, 'recognized', equals(true))
+                .having((p0) => p0.utcDateTime, 'utcDateTime', equals(expectedElement.utcDateTime))
           );
         }
       }
     });
 
     test('getDeferredFacesEmbedding', () {
-      final expected =<Lesson, List<({List<double> embedding, Uint8List face})>>{
+      final expected =<Lesson, List<({List<double> embedding, Uint8List face, DateTime utcDateTime})>>{
         modelsCollection.lessons[0]: modelsCollection.deferred.toList(),
         modelsCollection.lessons[1]: [],
       };
@@ -987,9 +999,10 @@ void main() {
           final actualElement = actualList[i];
           expect(
             actualElement,
-            isA<Duple<JpegPictureBytes, FaceEmbedding>>()
-                .having((p0) => p0.value1, 'jpegPictureBytes', equals(expectedElement.face))
-                .having((p0) => p0.value2, 'faceEmbedding', equals(expectedElement.embedding))
+            isA<({JpegPictureBytes face, FaceEmbedding embedding, DateTime utcDateTime})>()
+                .having((p0) => p0.face, 'jpegPictureBytes', equals(expectedElement.face))
+                .having((p0) => p0.embedding, 'faceEmbedding', equals(expectedElement.embedding))
+                .having((p0) => p0.utcDateTime, 'arriveDatetime', equals(expectedElement.utcDateTime))
           );
         }
       }
@@ -1036,6 +1049,7 @@ void main() {
                 .having((p0) => p0.nearestStudent?.individual.name, 'nearestStudentName', equals(expectedElement.nearestStudent?.individual.name))
                 .having((p0) => p0.nearestStudent?.individual.surname, 'nearestStudentSurname', equals(expectedElement.nearestStudent?.individual.surname))
                 .having((p0) => p0.recognized, 'recognized', equals(false))
+                .having((p0) => p0.utcDateTime, 'utcDateTime', equals(expectedElement.utcDateTime))
           );
         }
       }
@@ -1086,6 +1100,7 @@ void main() {
                 .having((p0) => p0.nearestStudent?.individual.name, 'nearestStudentName', equals(expectedElement.nearestStudent?.individual.name))
                 .having((p0) => p0.nearestStudent?.individual.surname, 'nearestStudentSurname', equals(expectedElement.nearestStudent?.individual.surname))
                 .having((p0) => p0.recognized, 'recognized', equals(true))
+                .having((p0) => p0.utcDateTime, 'utcDateTime', equals(expectedElement.utcDateTime))
           );
         }
       }
@@ -1105,7 +1120,8 @@ void main() {
         inputFace: oldRecord1.inputFace,
         inputFaceEmbedding: oldRecord1.inputFaceEmbedding,
         recognized: !oldRecord1.recognized,
-        nearestStudent: oldRecord1.nearestStudent
+        nearestStudent: oldRecord1.nearestStudent,
+        utcDateTime: oldRecord1.utcDateTime,
       );
       final expected11 = {
         modelsCollection.lessons[0]: [
@@ -1156,6 +1172,7 @@ void main() {
                 .having((p0) => p0.nearestStudent?.individual.name, 'nearestStudentName', equals(expectedElement.nearestStudent?.individual.name))
                 .having((p0) => p0.nearestStudent?.individual.surname, 'nearestStudentSurname', equals(expectedElement.nearestStudent?.individual.surname))
                 .having((p0) => p0.recognized, 'recognized', equals(false))
+                .having((p0) => p0.utcDateTime, 'utcDateTime', equals(expectedElement.utcDateTime))
           );
         }
       }
@@ -1185,6 +1202,7 @@ void main() {
                 .having((p0) => p0.nearestStudent?.individual.name, 'nearestStudentName', equals(expectedElement.nearestStudent?.individual.name))
                 .having((p0) => p0.nearestStudent?.individual.surname, 'nearestStudentSurname', equals(expectedElement.nearestStudent?.individual.surname))
                 .having((p0) => p0.recognized, 'recognized', equals(true))
+                .having((p0) => p0.utcDateTime, 'utcDateTime', equals(expectedElement.utcDateTime))
           );
         }
       }
@@ -1234,6 +1252,7 @@ void main() {
                 .having((p0) => p0.nearestStudent?.individual.name, 'nearestStudentName', equals(expectedElement.nearestStudent?.individual.name))
                 .having((p0) => p0.nearestStudent?.individual.surname, 'nearestStudentSurname', equals(expectedElement.nearestStudent?.individual.surname))
                 .having((p0) => p0.recognized, 'recognized', equals(false))
+                .having((p0) => p0.utcDateTime, 'utcDateTime', equals(expectedElement.utcDateTime))
           );
         }
       }
@@ -1263,6 +1282,7 @@ void main() {
                 .having((p0) => p0.nearestStudent?.individual.name, 'nearestStudentName', equals(expectedElement.nearestStudent?.individual.name))
                 .having((p0) => p0.nearestStudent?.individual.surname, 'nearestStudentSurname', equals(expectedElement.nearestStudent?.individual.surname))
                 .having((p0) => p0.recognized, 'recognized', equals(true))
+                .having((p0) => p0.utcDateTime, 'utcDateTime', equals(expectedElement.utcDateTime))
           );
         }
       }

@@ -399,13 +399,18 @@ class CreateModels {
     _domainRepository.addEnrollment(enrollments);
     return const [];
   }
+
   void createAttendances({
     required String codeOfSubject,
     required String registrationOfTeacher,
     required String yearfsubjectClass,
     required String semesterOfSubjectClass,
     required String nameOfSubjectClass,
-    required Iterable<({String registration, DateTime utcDateTime})> attendances,
+    required Iterable<({
+      String registration,
+      DateTime lessonUtcDateTime,
+      DateTime arriveUtcDateTime,
+    })> attendances,
     bool createMissingLessons = false,
   }) {
     // retrieve subject class
@@ -421,7 +426,7 @@ class CreateModels {
       throw ArgumentError('not found', 'subject class');
     }
 
-    // create lessons on subject class if on attendance
+    // create lessons on subject class if it is on attendance
     if (createMissingLessons) {
       final List<Lesson> subjectClassLessons = _domainRepository
           .getLessonFromSubjectClass([theSubjectClass])[theSubjectClass]!;
@@ -429,7 +434,7 @@ class CreateModels {
           .map((e) => e.utcDateTime.toIso8601String())
           .toSet();
       final List<String> notRegisteredLessons = attendances
-          .map((e) => e.utcDateTime.toIso8601String())
+          .map((e) => e.lessonUtcDateTime.toIso8601String())
           .toList()
           .where((element) => !registeredLessons.contains(element))
           .toList();
@@ -456,9 +461,10 @@ class CreateModels {
     final List<Attendance> newAttendances = [];
     for (final entry in attendances) {
       final s = studentsByRegistration[entry.registration];
-      final l = lessonsByUtcDateTime[entry.utcDateTime];
+      final l = lessonsByUtcDateTime[entry.lessonUtcDateTime];
+      final adt = entry.arriveUtcDateTime;
       if (s != null && l != null) {
-        final a = Attendance(student: s, lesson: l);
+        final a = Attendance(student: s, lesson: l, utcDateTime: adt);
         newAttendances.add(a);
       }
     }

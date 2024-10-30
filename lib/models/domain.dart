@@ -193,25 +193,24 @@ class Enrollment {
     other.subjectClass == subjectClass;
 }
 
-// TODO
 class Attendance {
   Student student;
   Lesson lesson;
-  // DateTime utcDateTime;
+  DateTime utcDateTime;
 
   Attendance({
     required this.student,
     required this.lesson,
-    // required this.utcDateTime,
+    required this.utcDateTime,
   });
 
   @override
-  int get hashCode => Object.hash(student, lesson/*, utcDateTime*/);
+  int get hashCode => Object.hash(student, lesson, utcDateTime);
 
   @override
   bool operator ==(Object other) =>
     other is Attendance &&
     other.student == student &&
-    other.lesson == lesson/* &&
-    other.utcDateTime == utcDateTime*/;
+    other.lesson == lesson &&
+    other.utcDateTime == utcDateTime;
 }

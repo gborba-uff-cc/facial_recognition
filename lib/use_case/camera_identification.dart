@@ -267,11 +267,13 @@ class CameraIdentificationHandheldForCamerawesome implements
       ),
     );
 
+    final dateTime = DateTime.now().toUtc();
     final embeddingsAndFaces = List.generate(
       embeddings.length,
       (index) => (
         embedding: embeddings[index],
         face: jpgs[index],
+        utcDateTime: dateTime,
       ),
     );
     // do recognitions later
@@ -372,11 +374,13 @@ class CameraIdentificationTotenForCamerawesome implements
       ),
     );
 
+    final dateTime = DateTime.now().toUtc();
     final embeddingsAndFaces = List.generate(
       embeddings.length,
       (index) => (
         embedding: embeddings[index],
         face: jpgs[index],
+        utcDateTime: dateTime,
       ),
     );
     // do recognitions later

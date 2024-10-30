@@ -170,19 +170,19 @@ class AttendanceSummaryScreen extends StatelessWidget {
           }
           else {
             final indexGenerated = index - prebuilt.length;
-            final element = classAttendance.elementAt(indexGenerated);
-            final picture = pictureOfFaces[element.key];
-            final presenceCount = element.value.length;
+            final studentAndAttendance = classAttendance.elementAt(indexGenerated);
+            final picture = pictureOfFaces[studentAndAttendance.key];
+            final presenceCount = studentAndAttendance.value.length;
             return Padding(
               padding: const EdgeInsets.only(bottom: itemsSpace),
               child: _SummaryTile(
-                key: ObjectKey(element.key),
+                key: ObjectKey(studentAndAttendance.key),
                 faceJpeg: picture?.faceJpeg,
-                studentName: element.key.individual.displayFullName,
-                studentRegistration: element.key.registration,
+                studentName: studentAndAttendance.key.individual.displayFullName,
+                studentRegistration: studentAndAttendance.key.registration,
                 absentOnLastLesson: lastLesson == null
                     ? false
-                    : !element.value
+                    : !studentAndAttendance.value
                         .map(
                           (e) => e.lesson,
                         )
@@ -194,11 +194,9 @@ class AttendanceSummaryScreen extends StatelessWidget {
                 onTap: () => showDialog(
                   context: context,
                   builder: (context) {
-                    final lessonsAttended = element.value
-                        .map(
-                          (e) => e.lesson,
-                        )
-                        .toList();
+                    final attendance = studentAndAttendance.value;
+                    final lessonsAttended =
+                        attendance.map((e) => e.lesson).toList();
                     final lessonsNotAttended = (List.of(pastLessons)
                           ..removeWhere(
                             (element) => lessonsAttended.contains(element),
@@ -206,12 +204,12 @@ class AttendanceSummaryScreen extends StatelessWidget {
                         .toList();
                     return _SummaryDetailedDialog(
                       faceJpeg: picture?.faceJpeg,
-                      studentName: element.key.individual.displayFullName,
-                      studentRegistration: element.key.registration,
+                      studentName: studentAndAttendance.key.individual.displayFullName,
+                      studentRegistration: studentAndAttendance.key.registration,
                       absentCount: nPastLessons - presenceCount,
                       presenceCount: presenceCount,
                       attendanceRatio: presenceCount / nPastLessons,
-                      lessonsAttended: lessonsAttended,
+                      lessonsAttended: attendance,
                       lessonsNotAttended: lessonsNotAttended,
                     );
                   },
@@ -418,15 +416,16 @@ class _SummaryDetailedDialog extends StatelessWidget {
   final int absentCount;
   final int presenceCount;
   final double attendanceRatio;
-  final List<Lesson> lessonsAttended;
+  final List<Attendance> lessonsAttended;
   final List<Lesson> lessonsNotAttended;
 
   @override
   Widget build(BuildContext context) {
     final jpeg = faceJpeg;
     final absentCount = this.absentCount;
-    final titleMediumTheme = Theme.of(context).textTheme.titleMedium;
-    final titleLargeTheme = Theme.of(context).textTheme.titleLarge;
+    final titleMediumStyle = Theme.of(context).textTheme.titleMedium;
+    final titleLargeStyle = Theme.of(context).textTheme.titleLarge;
+    final labelLargeStyle = Theme.of(context).textTheme.labelLarge;
 
     return Dialog(
       child: Padding(
@@ -435,11 +434,11 @@ class _SummaryDetailedDialog extends StatelessWidget {
           children: [
             Text(
               studentName,
-              style: titleLargeTheme,
+              style: titleLargeStyle,
             ),
             Text(
               'Matrícula: $studentRegistration',
-              style: titleMediumTheme,
+              style: titleMediumStyle,
             ),
             DecoratedBox(
               decoration: BoxDecoration(
@@ -461,35 +460,95 @@ class _SummaryDetailedDialog extends StatelessWidget {
             ListTile(title: Center(child: Text('Frequência: ${(attendanceRatio * 100).toInt()}%')),),
             ExpansionTile(
               initiallyExpanded: false,
-              title: Text('Ausência: $absentCount'),
-              children: lessonsNotAttended
-                  .map(
-                    (e) => Padding(
-                      padding: const EdgeInsets.only(bottom: 8.0),
-                      child: Text(
-                        dateTimeToString(
-                          e.utcDateTime.toLocal(),
+              title: Text('Ausência: $absentCount', style: titleMediumStyle,),
+              children: [
+                if (lessonsNotAttended.isNotEmpty)
+                  Row(
+                    children: [
+                      Flexible(
+                        fit: FlexFit.tight,
+                        child: Center(
+                          child: Text('Aula', style: labelLargeStyle),
                         ),
                       ),
+                      Flexible(
+                        fit: FlexFit.tight,
+                        child: SizedBox.shrink(),
+                      ),
+                    ],
+                  ),
+                ...lessonsNotAttended.map(
+                  (e) => Padding(
+                    padding: const EdgeInsets.only(bottom: 8.0),
+                    child: Row(
+                      children: [
+                        Flexible(
+                          fit: FlexFit.tight,
+                          child: Center(
+                            child: Text(
+                              dateTimeToString(e.utcDateTime.toLocal()),
+                            ),
+                          ),
+                        ),
+                        Flexible(
+                          fit: FlexFit.tight,
+                          child: SizedBox.shrink(),
+                        )
+                      ],
                     ),
-                  )
-                  .toList(),
+                  ),
+                ),
+              ],
             ),
             ExpansionTile(
               initiallyExpanded: false,
-              title: Text('Presença: $presenceCount'),
-              children: lessonsAttended
-                  .map(
-                    (e) => Padding(
-                      padding: const EdgeInsets.only(bottom: 8.0),
-                      child: Text(
-                        dateTimeToString(
-                          e.utcDateTime.toLocal(),
+              title: Text('Presença: $presenceCount', style: titleMediumStyle,),
+              children: [
+                if (lessonsAttended.isNotEmpty)
+                  Row(
+                    children: [
+                      Flexible(
+                        fit: FlexFit.tight,
+                        child: Center(
+                          child: Text('Aula', style: labelLargeStyle),
                         ),
                       ),
+                      Flexible(
+                        fit: FlexFit.tight,
+                        child: Center(
+                          child: Text('Presença', style: labelLargeStyle),
+                        ),
+                      ),
+                    ],
+                  ),
+                ...lessonsAttended.map(
+                  (e) => Padding(
+                    padding: const EdgeInsets.only(bottom: 8.0) +
+                        const EdgeInsets.symmetric(horizontal: 8.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: [
+                        Flexible(
+                          fit: FlexFit.tight,
+                          child: Center(
+                            child: Text(
+                              dateTimeToString(e.lesson.utcDateTime.toLocal()),
+                            ),
+                          ),
+                        ),
+                        Flexible(
+                          fit: FlexFit.tight,
+                          child: Center(
+                            child: Text(
+                              dateTimeToString(e.utcDateTime.toLocal()),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                  )
-                  .toList(),
+                  ),
+                ),
+              ],
             )
           ],
         ),

@@ -18,12 +18,14 @@ class EmbeddingRecognitionResult {
   final Uint8List inputFace;
   final FaceEmbedding inputFaceEmbedding;
   final bool recognized;
+  final DateTime utcDateTime;
   final Student? nearestStudent;
 
   EmbeddingRecognitionResult({
     required this.inputFace,
     required this.inputFaceEmbedding,
     required this.recognized,
+    required this.utcDateTime,
     required this.nearestStudent,
   });
 }

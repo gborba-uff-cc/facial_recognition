@@ -21,7 +21,11 @@ class InMemoryDomainRepository  implements IDomainRepository {
   final Set<Enrollment> _enrollment = {};
   final Set<Attendance> _attendance = {};
   // ---
-  final Map<Lesson, List<({FaceEmbedding embedding, JpegPictureBytes face})>> _faceEmbeddingDeferredPool = {};
+  final Map<Lesson, List<({
+    FaceEmbedding embedding,
+    JpegPictureBytes face,
+    DateTime utcDateTime
+  })>> _faceEmbeddingDeferredPool = {};
   final Map<Lesson, List<EmbeddingRecognitionResult>> _faceRecognizedFromCamera = {};
   final Map<Lesson, List<EmbeddingRecognitionResult>> _faceNotRecognizedFromCamera = {};
 // ---------------------------
@@ -92,7 +96,11 @@ class InMemoryDomainRepository  implements IDomainRepository {
   // ---
   @override
   void addFaceEmbeddingToDeferredPool(
-    final List<({FaceEmbedding embedding, JpegPictureBytes face})> embedding,
+    final List<({
+      FaceEmbedding embedding,
+      JpegPictureBytes face,
+      DateTime utcDateTime
+    })> embedding,
     final Lesson lesson,
   ) {
     _faceEmbeddingDeferredPool.putIfAbsent(lesson, () => []);
@@ -370,11 +378,11 @@ class InMemoryDomainRepository  implements IDomainRepository {
 
   // ---
   @override
-  Map<Lesson, List<({FaceEmbedding embedding, JpegPictureBytes face})>>
+  Map<Lesson, List<({FaceEmbedding embedding, JpegPictureBytes face, DateTime utcDateTime})>>
       getDeferredFacesEmbedding(
     Iterable<Lesson> lesson,
   ) {
-    final Map<Lesson, List<({FaceEmbedding embedding, JpegPictureBytes face})>>
+    final Map<Lesson, List<({FaceEmbedding embedding, JpegPictureBytes face, DateTime utcDateTime})>>
         result;
     // if (lesson == null) {
     //   result = {
@@ -522,18 +530,6 @@ class SQLite3DomainRepository implements IDomainRepository {
       ['recognizedFromCamera','ddl','create'],
       ['deferredRecognitionPool','ddl','create'],
     ]);
-    // final tablesCreated = _databaseTables();
-    // statements.every(
-    //   (createSql) => tablesCreated.any((row) {
-    //     String tableName = createSql;
-    //     String prefix = 'CREATE TABLE';
-    //     if (tableName.startsWith(prefix)) {
-    //       tableName = tableName.replaceFirst(prefix, '');
-    //     }
-    //     prefix = 'IF NOT EXISTS'
-    //     row['name'] == createSql;
-    //   }),
-    // );
 
     _beginTransaction();
     bool shouldCommit = true;
@@ -578,8 +574,9 @@ class SQLite3DomainRepository implements IDomainRepository {
             ':year': element.lesson.subjectClass.year,
             ':semester': element.lesson.subjectClass.semester,
             ':name': element.lesson.subjectClass.name,
-            ':utcDateTime': element.lesson.utcDateTime.toIso8601String(),
+            ':lessonUtcDateTime': element.lesson.utcDateTime.toIso8601String(),
             ':studentRegistration': element.student.registration,
+            ':attendanceUtcDateTime': element.utcDateTime.toIso8601String(),
           }),
         );
       }
@@ -671,10 +668,11 @@ class SQLite3DomainRepository implements IDomainRepository {
             ':year': lesson.subjectClass.year,
             ':semester': lesson.subjectClass.semester,
             ':name': lesson.subjectClass.name,
-            ':utcDateTime': lesson.utcDateTime.toIso8601String(),
+            ':lessonUtcDateTime': lesson.utcDateTime.toIso8601String(),
             ':picture': element.inputFace,
             ':pictureMd5': pictureMd5,
             ':embedding': embedding,
+            ':arriveUtcDateTime': element.utcDateTime.toIso8601String(),
             ':nearestStudentRegistration': element.nearestStudent?.registration,
           }),
         );
@@ -721,10 +719,11 @@ class SQLite3DomainRepository implements IDomainRepository {
             ':year': lesson.subjectClass.year,
             ':semester': lesson.subjectClass.semester,
             ':name': lesson.subjectClass.name,
-            ':utcDateTime': lesson.utcDateTime.toIso8601String(),
+            ':lessonUtcDateTime': lesson.utcDateTime.toIso8601String(),
             ':picture': element.inputFace,
             ':pictureMd5': pictureMd5,
             ':embedding': embedding,
+            ':arriveUtcDateTime': element.utcDateTime.toIso8601String(),
             ':nearestStudentRegistration': element.nearestStudent?.registration,
           }),
         );
@@ -752,7 +751,14 @@ class SQLite3DomainRepository implements IDomainRepository {
   }
 
   @override
-  void addFaceEmbeddingToDeferredPool(final List<({FaceEmbedding embedding, JpegPictureBytes face})> embedding, Lesson lesson) {
+  void addFaceEmbeddingToDeferredPool(
+    final List<({
+      FaceEmbedding embedding,
+      JpegPictureBytes face,
+      DateTime utcDateTime,
+    })> embedding,
+    Lesson lesson,
+  ) {
     final insert = _database.prepare(
       _statementsLoader
           .getStatement(['deferredRecognitionPool', 'dml', 'insert']),
@@ -771,10 +777,11 @@ class SQLite3DomainRepository implements IDomainRepository {
             ':year': lesson.subjectClass.year,
             ':semester': lesson.subjectClass.semester,
             ':name': lesson.subjectClass.name,
-            ':utcDateTime': lesson.utcDateTime.toIso8601String(),
+            ':lessonUtcDateTime': lesson.utcDateTime.toIso8601String(),
             ':picture': element.face,
             ':pictureMd5': pictureMd5,
             ':embedding': embedding,
+            ':arriveUtcDateTime': element.utcDateTime.toIso8601String(),
           }),
         );
       }
@@ -1202,13 +1209,20 @@ class SQLite3DomainRepository implements IDomainRepository {
       }
 
       final Map<String, Student> students = {};
+      final Map<String, DateTime> datesTimes = {};
       final resultValue = selected.map(
         (e) {
           final embedding = listBytesToDouble(e['embedding']);
+          final kDateTime = e['utcDateTime'];
+          final dateTime = datesTimes.putIfAbsent(
+            kDateTime,
+            () => DateTime.parse(kDateTime),
+          );
           return EmbeddingRecognitionResult(
             inputFace: e['picture'],
             inputFaceEmbedding: embedding,
             recognized: false,
+            utcDateTime: dateTime,
             nearestStudent: e['registration'] == null
                 ? null
                 : students.putIfAbsent(
@@ -1268,14 +1282,20 @@ class SQLite3DomainRepository implements IDomainRepository {
       }
 
       final Map<String, Student> students = {};
+      final Map<String, DateTime> datesTimes = {};
       final resultValue = selected.map(
         (e) {
           final embedding = listBytesToDouble(e['embedding']);
+          final kDateTime = e['utcDateTime'];
+          final dateTime = datesTimes.putIfAbsent(
+            kDateTime,
+            () => DateTime.parse(kDateTime),
+          );
           return EmbeddingRecognitionResult(
             inputFace: e['picture'],
             inputFaceEmbedding: embedding,
             recognized: true,
-            // nearestStudent: students['nearestStudentRegistration'],
+            utcDateTime: dateTime,
             nearestStudent: e['registration'] == null
                 ? null
                 : students.putIfAbsent(
@@ -1300,11 +1320,11 @@ class SQLite3DomainRepository implements IDomainRepository {
   }
 
   @override
-  Map<Lesson, List<({FaceEmbedding embedding, JpegPictureBytes face})>>
+  Map<Lesson, List<({FaceEmbedding embedding, JpegPictureBytes face, DateTime utcDateTime})>>
       getDeferredFacesEmbedding(
     Iterable<Lesson> lesson,
   ) {
-    final Map<Lesson, List<({FaceEmbedding embedding, JpegPictureBytes face})>>
+    final Map<Lesson, List<({FaceEmbedding embedding, JpegPictureBytes face, DateTime utcDateTime})>>
         result = {};
     final select = _database.prepare(
       _statementsLoader.getStatement(
@@ -1312,6 +1332,7 @@ class SQLite3DomainRepository implements IDomainRepository {
       ),
     );
 
+    final Map<String, DateTime> datesTimes = {};
     for (final l in lesson) {
       pkg_sqlite3.ResultSet selected;
       try {
@@ -1334,10 +1355,23 @@ class SQLite3DomainRepository implements IDomainRepository {
         return Map.unmodifiable({});
       }
 
-      final resultValue = selected.map(
+      final resultValue = selected.map<({
+        FaceEmbedding embedding,
+        JpegPictureBytes face,
+        DateTime utcDateTime
+      })>(
         (e) {
           final embedding = listBytesToDouble(e['embedding']);
-          return (face: e['picture'] as JpegPictureBytes, embedding: embedding);
+          final kDateTime = e['utcDateTime'];
+          final dateTime = datesTimes.putIfAbsent(
+            kDateTime,
+            () => DateTime.parse(kDateTime),
+          );
+          return (
+            face: e['picture'] as JpegPictureBytes,
+            embedding: embedding,
+            utcDateTime: dateTime,
+          );
         },
       ).toList(growable: false);
       result[l] = resultValue;
@@ -1922,6 +1956,7 @@ class SQLite3DomainRepository implements IDomainRepository {
       final Map<String, Student> students = {};
       final Map<String, Teacher> teachers = {};
       final Map<int, Lesson> lessons = {};
+      final Map<String, DateTime> datesAndTimes = {};
       final Map<Student, List<Attendance>> attendancesByStudents = {};
       for (final e in selected) {
         final subjectKey = e['subjectCode']!;
@@ -1993,6 +2028,10 @@ class SQLite3DomainRepository implements IDomainRepository {
           final attendance = Attendance(
             student: students[sKey]!,
             lesson: lessons[lKey]!,
+            utcDateTime: datesAndTimes.putIfAbsent(
+              e['attendanceUtcDateTime'],
+              () => DateTime.parse(e['attendanceUtcDateTime']),
+            ),
           );
           attendancesByStudents[aKey]!.add(attendance);
         }
@@ -2258,153 +2297,114 @@ class SQLite3DomainRepository implements IDomainRepository {
     EmbeddingRecognitionResult newRecord,
     Lesson lesson,
   ) {
-    bool shouldCommit = true;
-    dynamic errorOrExceptionDelete;
-    dynamic errorOrExceptionInsert;
+    pkg_sqlite3.PreparedStatement? delete;
+    pkg_sqlite3.PreparedStatement? insert;
 
-    // remove old
-    _beginTransaction();
-    pkg_sqlite3.PreparedStatement deleteOld;
-    if (oldRecord.recognized) {
-      deleteOld = _database.prepare(
-        _statementsLoader.getStatement(
-          ['recognizedFromCamera', 'dml', 'delete'],
-        ),
-      );
+    try {
+      _beginTransaction();
+      if (oldRecord.recognized) {
+        delete = _database.prepare(
+          _statementsLoader.getStatement(
+            ['recognizedFromCamera', 'dml', 'delete'],
+          ),
+        );
+      }
+      else {
+        delete = _database.prepare(
+          _statementsLoader.getStatement(
+            ['notRecognizedFromCamera', 'dml', 'delete'],
+          ),
+        );
+      }
 
-      final pictureMd5 = _pictureMd5(oldRecord.inputFace);
-      try {
-        deleteOld.executeWith(
+      final removePictureMd5 = _pictureMd5(oldRecord.inputFace);
+      if (oldRecord.recognized) {
+        delete.executeWith(
           pkg_sqlite3.StatementParameters.named({
             ':subjectCode': lesson.subjectClass.subject.code,
             ':year': lesson.subjectClass.year,
             ':semester': lesson.subjectClass.semester,
             ':name': lesson.subjectClass.name,
             ':utcDateTime': lesson.utcDateTime.toIso8601String(),
-            ':pictureMd5': pictureMd5,
+            ':pictureMd5': removePictureMd5,
           }),
         );
       }
-      on ArgumentError catch (e) {
-        errorOrExceptionDelete = e;
-        shouldCommit = false;
-      }
-      on pkg_sqlite3.SqliteException catch (e) {
-        errorOrExceptionDelete = e;
-        shouldCommit = false;
-      }
-    }
-    else {
-      deleteOld = _database.prepare(
-        _statementsLoader.getStatement(
-          ['notRecognizedFromCamera', 'dml', 'delete'],
-        ),
-      );
-
-      final pictureMd5 = _pictureMd5(oldRecord.inputFace);
-      try {
-        deleteOld.executeWith(
+      else {
+        delete.executeWith(
           pkg_sqlite3.StatementParameters.named({
             ':subjectCode': lesson.subjectClass.subject.code,
             ':year': lesson.subjectClass.year,
             ':semester': lesson.subjectClass.semester,
             ':name': lesson.subjectClass.name,
             ':utcDateTime': lesson.utcDateTime.toIso8601String(),
-            ':pictureMd5': pictureMd5,
+            ':pictureMd5': removePictureMd5,
           }),
         );
       }
-      on ArgumentError catch (e) {
-        errorOrExceptionDelete = e;
-        shouldCommit = false;
-      }
-      on pkg_sqlite3.SqliteException catch (e) {
-        errorOrExceptionDelete = e;
-        shouldCommit = false;
-      }
-    }
-    deleteOld.dispose();
 
-    // place new
-    pkg_sqlite3.PreparedStatement insertNew;
-    if (newRecord.recognized) {
-      insertNew = _database.prepare(
-        _statementsLoader
-            .getStatement(['recognizedFromCamera', 'dml', 'insert']),
-      );
-      final pictureMd5 = _pictureMd5(newRecord.inputFace);
-      final embedding = listDoubleToBytes(newRecord.inputFaceEmbedding);
-      try{
-        insertNew.executeWith(
+      if (newRecord.recognized) {
+        insert = _database.prepare(
+          _statementsLoader.getStatement(
+            ['recognizedFromCamera', 'dml', 'insert'],
+          ),
+        );
+      }
+      else {
+        insert = _database.prepare(
+          _statementsLoader.getStatement(
+            ['notRecognizedFromCamera', 'dml', 'insert'],
+          ),
+        );
+      }
+
+      final insertPictureMd5 = _pictureMd5(newRecord.inputFace);
+      final insertEmbedding = listDoubleToBytes(newRecord.inputFaceEmbedding);
+      if (newRecord.recognized) {
+        insert.executeWith(
           pkg_sqlite3.StatementParameters.named({
             ':subjectCode': lesson.subjectClass.subject.code,
             ':year': lesson.subjectClass.year,
             ':semester': lesson.subjectClass.semester,
             ':name': lesson.subjectClass.name,
-            ':utcDateTime': lesson.utcDateTime.toIso8601String(),
+            ':lessonUtcDateTime': lesson.utcDateTime.toIso8601String(),
             ':picture': newRecord.inputFace,
-            ':pictureMd5': pictureMd5,
-            ':embedding': embedding,
+            ':pictureMd5': insertPictureMd5,
+            ':embedding': insertEmbedding,
+            ':arriveUtcDateTime': newRecord.utcDateTime.toIso8601String(),
             ':nearestStudentRegistration':
                 newRecord.nearestStudent?.registration,
           }),
         );
       }
-      on ArgumentError catch (e) {
-        errorOrExceptionInsert = e;
-        shouldCommit = false;
-      }
-      on pkg_sqlite3.SqliteException catch (e) {
-        errorOrExceptionInsert = e;
-        shouldCommit = false;
-      }
-    }
-    else {
-      insertNew = _database.prepare(
-        _statementsLoader
-            .getStatement(['notRecognizedFromCamera', 'dml', 'insert']),
-      );
-
-      final pictureMd5 = _pictureMd5(newRecord.inputFace);
-      final embedding = listDoubleToBytes(newRecord.inputFaceEmbedding);
-      try{
-        insertNew.executeWith(
+      else {
+        insert.executeWith(
           pkg_sqlite3.StatementParameters.named({
             ':subjectCode': lesson.subjectClass.subject.code,
             ':year': lesson.subjectClass.year,
             ':semester': lesson.subjectClass.semester,
             ':name': lesson.subjectClass.name,
-            ':utcDateTime': lesson.utcDateTime.toIso8601String(),
+            ':lessonUtcDateTime': lesson.utcDateTime.toIso8601String(),
             ':picture': newRecord.inputFace,
-            ':pictureMd5': pictureMd5,
-            ':embedding': embedding,
+            ':pictureMd5': insertPictureMd5,
+            ':embedding': insertEmbedding,
+            ':arriveUtcDateTime': newRecord.utcDateTime.toIso8601String(),
             ':nearestStudentRegistration':
                 newRecord.nearestStudent?.registration,
           }),
         );
       }
-      on ArgumentError catch (e) {
-        errorOrExceptionInsert = e;
-        shouldCommit = false;
-      }
-      on pkg_sqlite3.SqliteException catch (e) {
-        errorOrExceptionInsert = e;
-        shouldCommit = false;
-      }
-    }
-    insertNew.dispose();
-
-    if (shouldCommit) {
       _commitTransaction();
     }
-    else {
-      if (errorOrExceptionDelete != null) {
-        projectLogger.severe(errorOrExceptionDelete);
-      }
-      if (errorOrExceptionInsert != null) {
-        projectLogger.severe(errorOrExceptionInsert);
-      }
+    on ArgumentError catch (e) {
+      projectLogger.warning(e);
       _rollbackTransaction();
     }
+    on pkg_sqlite3.SqliteException catch (e) {
+      projectLogger.warning(e);
+      _rollbackTransaction();
+    }
+    delete?.dispose();
+    insert?.dispose();
   }
 }

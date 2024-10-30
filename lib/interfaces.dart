@@ -18,7 +18,7 @@ abstract class IRecognitionPipeline<CI, I, J, L, V> {
     List<EmbeddingRecognitionResult> notRecognized,
     List<EmbeddingRecognitionResult> recognized,
   }) recognizeEmbedding({
-    required final List<({V embedding, J face})> inputs,
+    required final List<({V embedding, J face, DateTime utcDateTime})> inputs,
     required final Map<L, List<V>> embeddingsByStudent,
   });
 }
@@ -106,7 +106,11 @@ abstract class IDomainRepository {
       Iterable<EmbeddingRecognitionResult> recognized, Lesson lesson);
 
   void addFaceEmbeddingToDeferredPool(
-      List<({FaceEmbedding embedding, JpegPictureBytes face})> embedding,
+      List<({
+        FaceEmbedding embedding,
+        JpegPictureBytes face,
+        DateTime utcDateTime,
+      })> embedding,
       Lesson lesson);
 
   void addFacePicture(Iterable<FacePicture> facePicture);
@@ -133,7 +137,7 @@ abstract class IDomainRepository {
   Map<Lesson, Iterable<EmbeddingRecognitionResult>> getCameraRecognized(
       Iterable<Lesson> lesson);
 
-  Map<Lesson, List<({FaceEmbedding embedding, JpegPictureBytes face})>>
+  Map<Lesson, List<({FaceEmbedding embedding, JpegPictureBytes face, DateTime utcDateTime})>>
       getDeferredFacesEmbedding(Iterable<Lesson> lesson);
 
   Map<Student, FacePicture?> getFacePictureFromStudent(

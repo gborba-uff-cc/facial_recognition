@@ -32,6 +32,7 @@ class MarkAttendance {
       inputFaceEmbedding: recognition.inputFaceEmbedding,
       recognized: other != null ? true : false,
       nearestStudent: other,
+      utcDateTime: recognition.utcDateTime
     );
     domainRepository.replaceRecordOfRecognitionResultFromCamera(
       recognition,
@@ -59,14 +60,21 @@ class MarkAttendance {
     domainRepository.removeFaceEmbeddingNotRecognizedFromCamera(notRecognized, lesson);
   }
 
+  /// [students.utcDateTime] is the time that the [students.student] arrived in class
   void writeStudentAttendance(
-    Iterable<Student> students,
+    Iterable<({Student student, DateTime arriveUtcDateTime})> students,
   ) {
     if (students.isEmpty) {
       return;
     }
 
-    final a = students.map((s) => Attendance(student: s, lesson: lesson));
+    final a = students.map(
+      (entry) => Attendance(
+        student: entry.student,
+        lesson: lesson,
+        utcDateTime: entry.arriveUtcDateTime,
+      ),
+    );
     domainRepository.addAttendance(a);
   }
 

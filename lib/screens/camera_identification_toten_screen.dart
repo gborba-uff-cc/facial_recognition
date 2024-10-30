@@ -19,6 +19,12 @@ enum _IdentificationMode {
   manual,
 }
 
+typedef _TotemScreenPayload = ({
+  Uint8List face,
+  Student? student,
+  DateTime arriveUtcDateTime,
+});
+
 class CameraIdentificationTotemScreen extends StatefulWidget {
   factory CameraIdentificationTotemScreen({
     final Key? key,
@@ -48,11 +54,7 @@ class CameraIdentificationTotemScreen extends StatefulWidget {
 
 class _CameraIdentificationTotemScreenState extends State<CameraIdentificationTotemScreen> {
   // final _faceDetectionController = BehaviorSubject<FaceDetectionModel>();
-  final _detectedFacesController = StreamController<
-      ({
-        Uint8List face,
-        Student? student,
-      })>.broadcast();
+  final _detectedFacesController = StreamController<_TotemScreenPayload>.broadcast();
   // final _canHandleImage = StreamController<bool>();
   // final StreamSubscription _canHandleImageStream =
   // final List _detectedFaces = [];
@@ -77,7 +79,8 @@ class _CameraIdentificationTotemScreenState extends State<CameraIdentificationTo
         _detectedFacesController.add(
           (
             face: jpegImages.first.face,
-            student: null
+            student: null,
+            arriveUtcDateTime: DateTime.now().toUtc(),
           ),
         );
       }
@@ -114,14 +117,10 @@ class _CameraIdentificationTotemScreenState extends State<CameraIdentificationTo
               alignment: Alignment.bottomCenter,
               child: _ConfirmationCameraPreviewDecorator(
                 detectedFacesStream: _detectedFacesController.stream,
-                onAccept: (student) {
-                  if (student == null) {
-                    return;
-                  }
-                  widget.markAttendanceUseCase
-                      .writeStudentAttendance([student]);
+                onAccept: (accepted) {
+                  _onTotemRecognitionAccepted(accepted);
                 },
-                onRevise: (student) async {
+                onRevise: (beingRevised) async {
                   Student? newSelected;
                   final items = widget._facePicturesByStudent.entries
                       .map((e) => (student: e.key, jpg: e.value?.faceJpeg))
@@ -130,7 +129,7 @@ class _CameraIdentificationTotemScreenState extends State<CameraIdentificationTo
                         .compareTo(b.student.individual.displayFullName));
                   int initialySelectedIndex = items.indexWhere((element) =>
                       element.student.individual.displayFullName ==
-                      student?.individual.displayFullName);
+                      beingRevised.student?.individual.displayFullName);
                   final initialySelected = initialySelectedIndex < 0
                       ? null
                       : items[initialySelectedIndex];
@@ -154,8 +153,12 @@ class _CameraIdentificationTotemScreenState extends State<CameraIdentificationTo
                     return;
                   }
                   else {
-                    widget.markAttendanceUseCase
-                        .writeStudentAttendance([newSelected!]);
+                    widget.markAttendanceUseCase.writeStudentAttendance([
+                      (
+                        student: newSelected!,
+                        arriveUtcDateTime: beingRevised.arriveUtcDateTime
+                      ),
+                    ]);
                   }
                 },
                 // onRevise: () async {
@@ -209,13 +212,22 @@ class _CameraIdentificationTotemScreenState extends State<CameraIdentificationTo
     // SqliteException(1555): while executing statement, UNIQUE constraint failed: notRecognizedFromCamera.pictureMd5, constraint failed (code 1555)
     return Future(() => widget.cameraAttendanceUseCase.onNewCameraInput(image));
   }
+
+  void _onTotemRecognitionAccepted(_TotemScreenPayload item) {
+    if (item.student == null) {
+      return;
+    }
+    widget.markAttendanceUseCase.writeStudentAttendance([
+      (student: item.student!, arriveUtcDateTime: item.arriveUtcDateTime),
+    ]);
+  }
 }
 
 class _ConfirmationCameraPreviewDecorator extends StatefulWidget {
-  final Stream<({Uint8List face, Student? student})> detectedFacesStream;
+  final Stream<_TotemScreenPayload> detectedFacesStream;
   final void Function()? onClose;
-  final void Function(Student? student)? onAccept;
-  final FutureOr<void> Function(Student? student)? onRevise;
+  final void Function(_TotemScreenPayload)? onAccept;
+  final FutureOr<void> Function(_TotemScreenPayload)? onRevise;
   final void Function()? onDiscard;
 
   const _ConfirmationCameraPreviewDecorator({
@@ -231,8 +243,8 @@ class _ConfirmationCameraPreviewDecorator extends StatefulWidget {
 }
 
 class _ConfirmationCameraPreviewDecoratorState extends State<_ConfirmationCameraPreviewDecorator> {
-  ({Uint8List face, Student? student})? _latestData;
-  ({Uint8List face, Student? student})? _latestBuiltData;
+  _TotemScreenPayload? _latestData;
+  _TotemScreenPayload? _latestBuiltData;
   StreamSubscription? _streamSubscription;
 
   @override
@@ -281,7 +293,7 @@ class _ConfirmationCameraPreviewDecoratorState extends State<_ConfirmationCamera
           registration: data.student?.registration ?? '',
           onAccept: () {
             if (widget.onAccept != null) {
-              widget.onAccept!(data.student);
+              widget.onAccept!(data);
             }
             if (widget.onClose != null) {
               widget.onClose!();
@@ -292,7 +304,7 @@ class _ConfirmationCameraPreviewDecoratorState extends State<_ConfirmationCamera
           },
           onRevise: () async {
             if (widget.onRevise != null) {
-              await widget.onRevise!(data.student);
+              await widget.onRevise!(data);
             }
             if (widget.onClose != null) {
               widget.onClose!();

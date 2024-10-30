@@ -226,7 +226,11 @@ class RecognitionPipelineForCamerawesome implements
     List<EmbeddingRecognitionResult> notRecognized,
     List<EmbeddingRecognitionResult> recognized
   }) recognizeEmbedding({
-    required final List<({FaceEmbedding embedding, JpegPictureBytes face})> inputs,
+    required final List<({
+      FaceEmbedding embedding,
+      JpegPictureBytes face,
+      DateTime utcDateTime,
+    })> inputs,
     required final Map<Student, List<FaceEmbedding>> embeddingsByStudent,
   }) {
     final List<EmbeddingRecognitionResult> recognized = [];
@@ -244,6 +248,7 @@ class RecognitionPipelineForCamerawesome implements
             inputFace: i.face,
             inputFaceEmbedding: i.embedding,
             recognized: false,
+            utcDateTime: i.utcDateTime,
             nearestStudent: null,
           ),
         ),
@@ -265,6 +270,7 @@ class RecognitionPipelineForCamerawesome implements
       final jpeg = inputElement.face;
       final inputEmbedding = inputElement.embedding;
       final r = recognizeResult[inputElement.embedding]!;
+      final arriveTime = inputElement.utcDateTime;
       // decide whether or not the embedding was recognized
       // REVIEW - necessity of different classes to recognized?
       if (r.status == FaceRecognitionStatus.recognized) {
@@ -272,6 +278,7 @@ class RecognitionPipelineForCamerawesome implements
           inputFace: jpeg,
           inputFaceEmbedding: inputEmbedding,
           recognized: true,
+          utcDateTime: arriveTime,
           nearestStudent: r.label,
         );
         recognized.add(newEntry);
@@ -281,6 +288,7 @@ class RecognitionPipelineForCamerawesome implements
           inputFace: jpeg,
           inputFaceEmbedding: inputEmbedding,
           recognized: false,
+          utcDateTime: arriveTime,
           nearestStudent: r.label,
         );
         notRecognized.add(newEntry);

@@ -1,3 +1,6 @@
+import 'dart:typed_data';
+
+import 'package:facial_recognition/screens/common/app_defaults.dart';
 import 'package:flutter/material.dart';
 
 class FastView extends StatelessWidget {
@@ -5,8 +8,19 @@ class FastView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Placeholder(),
+    return Scaffold(
+      body: SafeArea(
+        child: SizedBox(
+          width: 350,
+          child: AppDefaultTotenIdentificationCard(
+            faceJpg: Uint8List(0),
+            name: 'aReallyReallyReallyReallyReallyReallyLongName',
+            registration: 'aVeryLongRegistrationValue',
+            onAccept: () {},
+            onRevise: () {},
+          ),
+        ),
+      ),
     );
   }
 }
