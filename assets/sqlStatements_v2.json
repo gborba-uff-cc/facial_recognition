@@ -34,7 +34,7 @@
             "drop": "DROP TABLE IF EXISTS facePicture;"
         },
         "dml": {
-            "insert": "WITH _individual AS (SELECT auto_id FROM individual WHERE individualRegistration = :individualRegistration) INSERT INTO facePicture (picture, individualId) SELECT :picture, auto_id FROM _individual;",
+            "insert": "WITH _individual AS (SELECT auto_id FROM individual WHERE individualRegistration = :individualRegistration) INSERT OR REPLACE INTO facePicture (picture, individualId) SELECT :picture, auto_id FROM _individual;",
             "delete": "DELETE FROM facePicture WHERE auto_id = :auto_id;"
         }
     },

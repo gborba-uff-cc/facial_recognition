@@ -7,6 +7,7 @@ import 'package:facial_recognition/screens/common/app_defaults.dart';
 import 'package:facial_recognition/screens/common/form_fields.dart';
 import 'package:facial_recognition/use_case/create_models.dart';
 import 'package:facial_recognition/use_case/extract_face_picture_embedding.dart';
+import 'package:facial_recognition/utils/project_logger.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -30,19 +31,27 @@ class _CreateFacePictureEmbeddingForCamerawesomeState extends State<CreateFacePi
   ({
     JpegPictureBytes capturedImage,
     ExtractFacePictureEmbeddingAnalysisResult? detected,
-  })? _faceSeen;
+  })? _imageSeen;
   JpegPictureBytes? _selectedForPicture;
-  final List<ExtractFacePictureEmbeddingAnalysisResult> _selectedForEmbedding = [];
+  final Set<ExtractFacePictureEmbeddingAnalysisResult> _selectedForEmbedding = {};
   final TextEditingController _studentRegistration =
       TextEditingController.fromValue(null);
   final GlobalKey<FormState> _formKey = GlobalKey();
+
+  @override
+  void dispose() {
+    _studentRegistration.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final router = GoRouter.of(context);
     final titleLargeStyle = Theme.of(context).textTheme.titleLarge;
     final List<Widget> screenWidgets = [
+      // student registration
       Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
             padding: const EdgeInsets.only(bottom: 8.0),
@@ -65,6 +74,7 @@ class _CreateFacePictureEmbeddingForCamerawesomeState extends State<CreateFacePi
           ),
         ],
       ),
+      // captured image
       Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -96,13 +106,13 @@ class _CreateFacePictureEmbeddingForCamerawesomeState extends State<CreateFacePi
                           .compareTo(rectB.width * rectB.height);
                     });
                     final biggestFace = facesDetected.last;
-                    _faceSeen = (
+                    _imageSeen = (
                       capturedImage: inputImageJpg,
                       detected: biggestFace,
                     );
                   }
                   else {
-                    _faceSeen = (
+                    _imageSeen = (
                       capturedImage: inputImageJpg,
                       detected: null,
                     );
@@ -126,7 +136,7 @@ class _CreateFacePictureEmbeddingForCamerawesomeState extends State<CreateFacePi
               child: _TappablePictureMiniature(
                 onTap: null,
                 onLongPress: null,
-                jpg: _faceSeen?.detected?.jpg,
+                jpg: _imageSeen?.capturedImage,
                 noJpg: Icon(Icons.image_outlined),
               ),
             ),
@@ -134,10 +144,14 @@ class _CreateFacePictureEmbeddingForCamerawesomeState extends State<CreateFacePi
           SizedBox(
             width: double.infinity,
             child: OutlinedButton(
-              onPressed: _faceSeen == null || _faceSeen?.detected == null
+              onPressed: _imageSeen?.capturedImage == null
                   ? null
                   : () {
-                      _selectedForPicture = _faceSeen!.capturedImage;
+                      if (mounted) {
+                        setState(() {
+                          _selectedForPicture = _imageSeen!.capturedImage;
+                        });
+                      }
                     },
               child: Text('Usar no perfil'),
             ),
@@ -146,16 +160,21 @@ class _CreateFacePictureEmbeddingForCamerawesomeState extends State<CreateFacePi
           SizedBox(
             width: double.infinity,
             child: OutlinedButton(
-              onPressed: _faceSeen == null || _faceSeen?.detected == null
+              onPressed: _imageSeen?.detected == null
                   ? null
                   : () {
-                      _selectedForEmbedding.add(_faceSeen!.detected!);
+                      if (mounted) {
+                        setState(() {
+                          _selectedForEmbedding.add(_imageSeen!.detected!);
+                        });
+                      }
                     },
               child: Text('Usar como Embedding'),
             ),
           ),
         ],
       ),
+      // student image
       Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -189,6 +208,7 @@ class _CreateFacePictureEmbeddingForCamerawesomeState extends State<CreateFacePi
           ),
         ],
       ),
+      // embeddings
       Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -197,35 +217,39 @@ class _CreateFacePictureEmbeddingForCamerawesomeState extends State<CreateFacePi
             child: Text('Embeddings', style: titleLargeStyle),
           ),
           if (_selectedForEmbedding.isNotEmpty)
-            Wrap(
-              children: [
-                ..._selectedForEmbedding.indexed.map(
-                  (indexAndItem) {
-                    final index = indexAndItem.$1;
-                    final jpg = indexAndItem.$2.jpg;
-                    return ConstrainedBox(
-                      constraints: BoxConstraints(
-                        minHeight: 50,
-                        minWidth: 50,
-                        maxHeight: 70,
-                        maxWidth: 70,
-                      ),
-                      child: _TappablePictureMiniature(
-                        onTap: () => _showSnackbar(context, 'Toque e segure para descartar da lista'),
-                        onLongPress: () {
-                          if (mounted) {
-                            setState(() {
-                              _selectedForEmbedding.removeAt(index);
-                            });
-                          }
-                        },
-                        jpg: jpg,
-                        noJpg: Icon(Icons.broken_image),
-                      ),
-                    );
-                  },
-                ),
-              ],
+            Center(
+              child: Wrap(
+                runSpacing: 8.0,
+                spacing: 16.0,
+                alignment: WrapAlignment.center,
+                children: [
+                  ..._selectedForEmbedding.map(
+                    (item) {
+                      final jpg = item.jpg;
+                      return ConstrainedBox(
+                        constraints: BoxConstraints(
+                          minHeight: 50,
+                          minWidth: 50,
+                          maxHeight: 70,
+                          maxWidth: 70,
+                        ),
+                        child: _TappablePictureMiniature(
+                          onTap: () => _showSnackbar(context, 'Toque e segure para descartar da lista'),
+                          onLongPress: () {
+                            if (mounted) {
+                              setState(() {
+                                _selectedForEmbedding.remove(item);
+                              });
+                            }
+                          },
+                          jpg: jpg,
+                          noJpg: Icon(Icons.broken_image),
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
             )
           else
             ConstrainedBox(
@@ -242,7 +266,7 @@ class _CreateFacePictureEmbeddingForCamerawesomeState extends State<CreateFacePi
       SizedBox(
         width: double.infinity,
         child: FilledButton(
-          onPressed: _isValid ? _onInvalid : _onValid,
+          onPressed: _isValid ? _onValid : _onInvalid,
           style: ButtonStyle(),
           child: Text(_isValid ? 'Confirmar' : 'Validar'),
         ),
@@ -252,10 +276,8 @@ class _CreateFacePictureEmbeddingForCamerawesomeState extends State<CreateFacePi
       appBar: AppDefaultAppBar(title: 'Adicionar imagens'),
       body: Padding(
         padding: EdgeInsets.all(8.0),
-        child: Flexible(
-          child: AppDefaultMenuList(
-            children: screenWidgets,
-          ),
+        child: AppDefaultMenuList(
+          children: screenWidgets,
         ),
       ),
     );
@@ -267,9 +289,35 @@ class _CreateFacePictureEmbeddingForCamerawesomeState extends State<CreateFacePi
       return;
     }
     formState.save();
-    //
-    _showSnackbar(context, 'Salvo');
+    final facePicture = _selectedForPicture;
+    final studentRegistration = _studentRegistration.text;
+    if (facePicture != null) {
+      widget.createModelsUseCase.createStudentFacePicture(
+        jpegFacePicture: facePicture,
+        studentRegistration: studentRegistration,
+      );
+    }
+    if (_selectedForEmbedding.isNotEmpty) {
+      widget.createModelsUseCase.createStudentFacialData(
+        embedding: _selectedForEmbedding
+            .map(
+              (e) => e.embedding,
+            )
+            .toList(),
+        studentRegistration: studentRegistration,
+      );
+    }
+    projectLogger.fine(_studentRegistration.text);
+
+    // _studentRegistration.clear();
     formState.reset();
+    _imageSeen = null;
+    _selectedForPicture = null;
+    _selectedForEmbedding.clear();
+    _showSnackbar(context, 'Salvo');
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   void _onInvalid() {
@@ -279,13 +327,18 @@ class _CreateFacePictureEmbeddingForCamerawesomeState extends State<CreateFacePi
     }
   }
 
-  // TODO
   bool _validate() {
     final formState = _formKey.currentState;
     if (formState == null) {
       return false;
     }
-    return formState.validate();
+    final isFormValid = formState.validate();
+    final canSavePicture = isFormValid && _selectedForPicture != null;
+    final canSaveEmbeddings = isFormValid && _selectedForEmbedding.isNotEmpty;
+    if (!canSavePicture && !canSaveEmbeddings) {
+      return false;
+    }
+    return true;
   }
 
   void _showSnackbar(BuildContext context, String text) {
@@ -294,7 +347,7 @@ class _CreateFacePictureEmbeddingForCamerawesomeState extends State<CreateFacePi
       ..showSnackBar(
         SnackBar(
           content: Text(text),
-          elevation: 4,
+          elevation: 8,
         ),
       );
   }

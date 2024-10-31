@@ -209,7 +209,7 @@ class _CameraIdentificationTotemScreenState extends State<CameraIdentificationTo
     // !SECTION
 
     // run asyncronously
-    // SqliteException(1555): while executing statement, UNIQUE constraint failed: notRecognizedFromCamera.pictureMd5, constraint failed (code 1555)
+    
     return Future(() => widget.cameraAttendanceUseCase.onNewCameraInput(image));
   }
 

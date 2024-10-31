@@ -30,7 +30,7 @@ import 'package:facial_recognition/screens/fast_view.dart';
 import 'package:facial_recognition/screens/grid_student_selector_screen.dart';
 import 'package:facial_recognition/screens/landing_screen.dart';
 import 'package:facial_recognition/screens/mark_attendance_screen.dart';
-import 'package:facial_recognition/screens/common/one_shot_camera.dart';
+import 'package:facial_recognition/screens/one_shot_camera_screen.dart';
 import 'package:facial_recognition/screens/camera_identification_handheld_screen.dart';
 import 'package:facial_recognition/screens/select_information_screen.dart';
 import 'package:facial_recognition/use_case/attendance_summary.dart';
@@ -359,13 +359,10 @@ class MainApp extends StatelessWidget {
                   useCase: createModels,
                 ),
               ),
-              /* GoRoute(
+              GoRoute(
                 path: 'take_photo',
-                builder: (context, state) => OneShotCamera(
-                  camerasAvailable: cameras,
-                  imageHandler: imageHandler,
-                ),
-              ), */
+                builder: (context, state) => OneShotCameraForCamerawesome(),
+              ),
             ],
           ),
         ],

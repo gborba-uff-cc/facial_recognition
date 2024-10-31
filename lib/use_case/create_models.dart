@@ -291,29 +291,32 @@ class CreateModels {
     return const [];
   }
 
-  void createStudentFacePicture({
+  bool createStudentFacePicture({
     required Uint8List jpegFacePicture,
     required String studentRegistration,
   }) {
     final s = _domainRepository
         .getStudentFromRegistration([studentRegistration])[studentRegistration];
     if (s == null) {
-      throw ArgumentError(
-        'could not find a registered student',
-        'individualRegistration',
-      );
+      return false;
     }
     else {
       final facePicture = FacePicture(
         faceJpeg: jpegFacePicture,
         individual: s.individual,
       );
-      _domainRepository.addFacePicture([facePicture]);
+      try {
+        _domainRepository.addFacePicture([facePicture]);
+      }
+      on Exception {
+        return false;
+      }
+      return true;
     }
   }
 
   void createStudentFacialData({
-    required FaceEmbedding embedding,
+    required List<FaceEmbedding> embedding,
     required String studentRegistration,
   }){
     final s = _domainRepository
@@ -325,11 +328,13 @@ class CreateModels {
       );
     }
     else {
-      final facialData = FacialData(
-        data: embedding,
-        individual: s.individual,
+      final facialData = embedding.map(
+        (e) => FacialData(
+          data: e,
+          individual: s.individual,
+        ),
       );
-      _domainRepository.addFacialData([facialData]);
+      _domainRepository.addFacialData(facialData);
     }
   }
 

@@ -193,6 +193,15 @@ class AppDefaultMenuTitle extends StatelessWidget {
 final _cameraBaseIconSize = 80.0;
 final _cameraBackgroundIconColor = Colors.grey.shade300;
 
+class AppDefaultCameraEmptySpaceIcon extends StatelessWidget {
+  const AppDefaultCameraEmptySpaceIcon({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox.square(dimension: _cameraBaseIconSize);
+  }
+}
+
 class AppDefaultCameraShutter extends StatelessWidget {
   const AppDefaultCameraShutter({
     super.key,
