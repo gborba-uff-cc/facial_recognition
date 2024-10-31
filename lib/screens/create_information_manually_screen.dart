@@ -10,6 +10,10 @@ class CreateInformationManuallyScreen extends StatelessWidget {
     const String createDestinationTitle = 'Entrada Manual';
     final List<({void Function() action, String text})> createTriggers = [
       (
+        action: () => GoRouter.of(context).push('/create_teacher'),
+        text: 'Professor(a)'
+      ),
+      (
         action: () => GoRouter.of(context).push('/create_subject'),
         text: 'Disciplina',
       ),
@@ -26,12 +30,12 @@ class CreateInformationManuallyScreen extends StatelessWidget {
         text: 'Aluno(a)'
       ),
       (
-        action: () => GoRouter.of(context).push('/create_teacher'),
-        text: 'Professor(a)'
-      ),
-      (
         action: () => GoRouter.of(context).push('/create_enrollment'),
         text: 'Inscrição em turma'
+      ),
+      (
+        action: () => GoRouter.of(context).push('/create_face_picture_embedding'),
+        text: 'Foto e embeddings',
       ),
     ];
     final List<Widget> createMenuItems = createTriggers

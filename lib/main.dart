@@ -14,6 +14,7 @@ import 'package:facial_recognition/screens/camera_identification_screen.dart';
 import 'package:facial_recognition/screens/camera_identification_toten_screen.dart';
 import 'package:facial_recognition/screens/create_attendance_from_spreadsheet_screen.dart';
 import 'package:facial_recognition/screens/create_enrollment_screen.dart';
+import 'package:facial_recognition/screens/create_face_picture_embedding_screen.dart';
 import 'package:facial_recognition/screens/create_information_manually_screen.dart';
 import 'package:facial_recognition/screens/create_information_spreadsheet_screen.dart';
 import 'package:facial_recognition/screens/create_lesson_from_batch_screen.dart';
@@ -33,6 +34,7 @@ import 'package:facial_recognition/screens/common/one_shot_camera.dart';
 import 'package:facial_recognition/screens/camera_identification_handheld_screen.dart';
 import 'package:facial_recognition/screens/select_information_screen.dart';
 import 'package:facial_recognition/use_case/attendance_summary.dart';
+import 'package:facial_recognition/use_case/extract_face_picture_embedding.dart';
 import 'package:facial_recognition/use_case/facial_data_handler.dart';
 import 'package:facial_recognition/use_case/spreadsheet_read.dart';
 import 'package:facial_recognition/use_case/camera_identification.dart';
@@ -278,6 +280,16 @@ class MainApp extends StatelessWidget {
                 builder: (context, state) => CreateAttendanceFromSpreadsheetScreen(
                   createModelsUseCase: createModels,
                   spreadsheetReadUseCase: spreadsheetRead,
+                ),
+              ),
+              GoRoute(
+                path: 'create_face_picture_embedding',
+                builder: (context, state) => CreateFacePictureEmbeddingForCamerawesome(
+                  createModelsUseCase: createModels,
+                  extractFacePictureEmbedding: ExtractFacePictureEmbeddingForCamerawesome(
+                    recognitionPipeline: recognitionPipeline,
+                    imageHandler: imageHandler,
+                  ),
                 ),
               ),
               GoRoute(

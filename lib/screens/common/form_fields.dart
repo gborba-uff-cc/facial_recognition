@@ -17,12 +17,14 @@ abstract class _TextField extends StatelessWidget {
     required this.controller,
     required String labelText,
     required String helperText,
+    this.onChanged,
   }) : _labelText = labelText,
        _helperText = helperText;
 
   final TextEditingController controller;
   final String _labelText;
   final String _helperText;
+  final void Function(String)? onChanged;
 }
 
 class StudentFieldRegistration extends _TextField {
@@ -31,6 +33,7 @@ class StudentFieldRegistration extends _TextField {
     required super.controller,
     required super.labelText,
     required super.helperText,
+    super.onChanged,
   });
 
   @override
@@ -48,6 +51,7 @@ class StudentFieldRegistration extends _TextField {
         }
         return null;
       },
+      onChanged: onChanged,
     );
   }
 }
