@@ -219,6 +219,8 @@ class _AttendaceMonitorInfos extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bodyLargeStyle = Theme.of(context).textTheme.bodyLarge;
+
     return AppDefaultSingleOptionCard(
       onOptionTap: _action,
       option: 'Selecionar',
@@ -243,7 +245,7 @@ class _AttendaceMonitorInfos extends StatelessWidget {
                     padding: const EdgeInsets.only(left: 4.0),
                     child: Text(
                       _subject,
-                      style: Theme.of(context).textTheme.labelMedium,
+                      style: bodyLargeStyle,
                       overflow: TextOverflow.fade,
                       softWrap: false,
                     ),
@@ -262,7 +264,7 @@ class _AttendaceMonitorInfos extends StatelessWidget {
                     padding: const EdgeInsets.only(left: 4.0),
                     child: Text(
                       _subjectClass,
-                      style: Theme.of(context).textTheme.labelMedium,
+                      style: bodyLargeStyle,
                       overflow: TextOverflow.fade,
                       softWrap: false,
                     ),
@@ -281,7 +283,7 @@ class _AttendaceMonitorInfos extends StatelessWidget {
                     padding: const EdgeInsets.only(left: 4.0),
                     child: Text(
                       _lesson,
-                      style: Theme.of(context).textTheme.labelMedium,
+                      style: bodyLargeStyle,
                       overflow: TextOverflow.fade,
                       softWrap: false,
                     ),
