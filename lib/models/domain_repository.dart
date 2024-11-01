@@ -1418,7 +1418,7 @@ class SQLite3DomainRepository implements IDomainRepository {
         if (selected.length > 1) {
           projectLogger.warning('more than 1 face picture related to the same student; proceeding with one;');
         }
-        final row = selected[0];
+        final row = selected.last;
         final resultValue = FacePicture(
           faceJpeg: row['picture'],
           individual: individuals.putIfAbsent(
@@ -1473,9 +1473,9 @@ class SQLite3DomainRepository implements IDomainRepository {
       }
       else {
         if (selected.length > 1) {
-          projectLogger.warning('more than 1 face picture related to the same student; proceeding with one;');
+          projectLogger.warning('more than 1 face picture related to the same teacher; proceeding with one;');
         }
-        final row = selected[0];
+        final row = selected.last;
         final resultValue = FacePicture(
           faceJpeg: row['picture'],
           individual: individuals.putIfAbsent(
@@ -1635,7 +1635,7 @@ class SQLite3DomainRepository implements IDomainRepository {
       }
       else {
         if (selected.length > 1) {
-          projectLogger.warning('more than 1 face picture related to the same student; proceeding with one;');
+          projectLogger.warning('more than 1 individual related to the insividual registration; proceeding with one;');
         }
         final row = selected[0];
         result.putIfAbsent(
@@ -1893,7 +1893,7 @@ class SQLite3DomainRepository implements IDomainRepository {
       return null;
     }
     else if (selected.length > 1) {
-      projectLogger.warning('more than 1 student related to the same registration; proceeding with one;');
+      projectLogger.warning('subject class is not unique; proceeding with one;');
     }
 
     final row = selected[0];

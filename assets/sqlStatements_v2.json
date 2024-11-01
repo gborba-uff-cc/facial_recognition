@@ -30,7 +30,7 @@
     },
     "facePicture": {
         "ddl": {
-            "create": "CREATE TABLE IF NOT EXISTS facePicture (auto_id INTEGER NOT NULL, picture BLOB NOT NULL, individualId INTEGER NOT NULL, FOREIGN KEY (individualId) REFERENCES individual (auto_id), UNIQUE (Picture, individualId) , PRIMARY KEY (auto_id)) STRICT;",
+            "create": "CREATE TABLE IF NOT EXISTS facePicture (auto_id INTEGER NOT NULL, picture BLOB NOT NULL, individualId INTEGER NOT NULL, FOREIGN KEY (individualId) REFERENCES individual (auto_id), UNIQUE (individualId) , PRIMARY KEY (auto_id)) STRICT;",
             "drop": "DROP TABLE IF EXISTS facePicture;"
         },
         "dml": {

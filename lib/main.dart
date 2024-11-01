@@ -338,6 +338,7 @@ class MainApp extends StatelessWidget {
                   createModelsUseCase: createModels,
                 ),
               ),
+              // TODO - remove facial data handler
               GoRoute(
                 path: 'create_teacher',
                 builder: (context, state) => CreateTeacherScreen(

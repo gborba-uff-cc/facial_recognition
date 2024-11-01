@@ -3,10 +3,14 @@ import 'package:facial_recognition/models/domain.dart';
 import 'package:excel/excel.dart' as pkg_excel;
 
 class AttendanceSummary {
+  /// [referenceDatetime] usually the current day being used as reference for
+  /// the most recent lesson given, the number of lessons till
+  /// [referenceDatetime], if null DateTime.now() is used
   factory AttendanceSummary({
     required IDomainRepository domainRepository,
     required SubjectClass subjectClass,
     required double minimumAttendanceRatio,
+    DateTime? referenceDatetime,
   }) {
     final theAttendances = domainRepository
         .getSubjectClassAttendance([subjectClass])[subjectClass]!;
@@ -33,7 +37,7 @@ class AttendanceSummary {
               .compareTo(b.individual.displayFullName),
       ),
     );
-    final now = DateTime.now().toUtc();
+    final now = referenceDatetime ?? DateTime.now().toUtc();
     final pastLessons = List<Lesson>.unmodifiable(
       lessons.where(
         (element) => element.utcDateTime.compareTo(now) < 0,
@@ -59,9 +63,13 @@ class AttendanceSummary {
         (entry) => entry.key,
       ),
     );
-    final classStudents = domainRepository
-        .getStudentFromSubjectClass([subjectClass])[subjectClass]!;
-    final studentsFaceImage = Map<Student, FacePicture?>.unmodifiable(domainRepository.getFacePictureFromStudent(classStudents));
+    final studentsFaceImage = Map<Student, FacePicture?>.unmodifiable(
+        domainRepository.getFacePictureFromStudent(theStudents));
+    final Map<Student, int> studentsNumberFacialData = Map.unmodifiable(
+      domainRepository
+          .getFacialDataFromStudent(theStudents)
+          .map<Student, int>((key, value) => MapEntry(key, value.length)),
+    );
 
     return AttendanceSummary._private(
       domainRepository: domainRepository,
@@ -69,12 +77,12 @@ class AttendanceSummary {
       attendances: attendances,
       lessons: lessons,
       students: students,
-      now: now,
       pastLessons: pastLessons,
       lastLesson: lastLesson,
       absentsLastLesson: absentsLastLesson,
       studentsFaceImage: studentsFaceImage,
       minimumAttendanceRatio: minimumAttendanceRatio,
+      studentsNumberFacialData: studentsNumberFacialData,
     );
   }
 
@@ -84,35 +92,35 @@ class AttendanceSummary {
     required Map<Student, List<Attendance>> attendances,
     required List<Lesson> lessons,
     required List<Student> students,
-    required DateTime now,
     required List<Lesson> pastLessons,
     required Lesson? lastLesson,
     required List<Student> absentsLastLesson,
     required Map<Student, FacePicture?> studentsFaceImage,
     required double minimumAttendanceRatio,
+    required studentsNumberFacialData,
   })  : _domainRepository = domainRepository,
         _subjectClass = subjectClass,
         _attendances = attendances,
         _lessons = lessons,
         _students = students,
-        _now = now,
         _pastLessons = pastLessons,
         _lastLesson = lastLesson,
         _absentsLastLesson = absentsLastLesson,
         _studentsFaceImage = studentsFaceImage,
-        _minimumAttendaceRatio = minimumAttendanceRatio;
+        _minimumAttendaceRatio = minimumAttendanceRatio,
+        _studentsNumberFacialData = studentsNumberFacialData;
 
   final IDomainRepository _domainRepository;
   final SubjectClass _subjectClass;
   final Map<Student, List<Attendance>> _attendances;
   final List<Lesson> _lessons;
   final List<Student> _students;
-  final DateTime _now;
   final List<Lesson> _pastLessons;
   final Lesson? _lastLesson;
   final List<Student> _absentsLastLesson;
   final Map<Student, FacePicture?> _studentsFaceImage;
   final double _minimumAttendaceRatio;
+  final Map<Student, int> _studentsNumberFacialData;
 
   int get nRegisteredLessons => _lessons.length;
   int get nPastLessons => _pastLessons.length;
@@ -129,6 +137,7 @@ class AttendanceSummary {
         )
         .length;
   }
+  Map get studentsNumberFacialData => _studentsNumberFacialData;
 
   static int _sortLessonsByDateTime(Lesson a, Lesson b) {
     return a.utcDateTime.compareTo(b.utcDateTime);
