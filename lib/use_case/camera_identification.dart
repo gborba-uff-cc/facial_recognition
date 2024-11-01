@@ -239,10 +239,9 @@ class CameraIdentificationHandheldForCamerawesome implements
     final pkg_awesome.AnalysisImage input,
   ) async {
     final rects = await recognitionPipeline.detectFace(input);
-    final image = imageHandler.fromCameraImage(input);
-    final faces = imageHandler.cropFromImage(image, rects);
+    final faces = await recognitionPipeline.cropFaces(input: input, rects: rects);
     final embeddings = await recognitionPipeline.extractEmbedding(faces);
-    final jpgs = faces.map<JpegPictureBytes>((e) => imageHandler.toJpg(image)).toList();
+    final jpgs = faces.map<JpegPictureBytes>((e) => imageHandler.toJpg(e)).toList();
 
     // call back the function to handle the detected faces image
     final localShowFaceImages = onDetectionResult;
@@ -346,19 +345,24 @@ class CameraIdentificationTotemForCamerawesome implements
   Future<void> onNewCameraInput(
     final pkg_awesome.AnalysisImage input,
   ) async {
+    final dateTime = DateTime.now().toUtc();
     List<Rect> rects = await recognitionPipeline.detectFace(input);
     rects = List.of(rects);
     rects.sort((a,b) => (a.width*a.height).compareTo(b.width*b.height));
-    final image = imageHandler.fromCameraImage(input);
-    final faces = imageHandler.cropFromImage(image, rects.isNotEmpty ? [rects.last] : []);
-    final jpgs = faces.map<JpegPictureBytes>((e) => imageHandler.toJpg(image)).toList();
+    final biggestRectIndex = rects.length-1;
+    // NOTE - only the biggest face, so faces length is 0 or 1
+    final faces = await recognitionPipeline.cropFaces(
+      input: input,
+      rects: rects.isNotEmpty ? [rects[biggestRectIndex]] : [],
+    );
+    final facesJpg = faces.map<JpegPictureBytes>((e) => imageHandler.toJpg(e)).toList();
 
     if (onDetectionResult != null) {
-      final l = List.generate(
-        rects.length,
-        (index) => (rect: rects[index], face: jpgs[index]),
+      onDetectionResult!(
+        faces.isEmpty
+            ? []
+            : [(rect: rects[biggestRectIndex], face: facesJpg.first)],
       );
-      onDetectionResult!(l);
     }
 
     final embeddings = await recognitionPipeline.extractEmbedding(faces);
@@ -375,12 +379,11 @@ class CameraIdentificationTotemForCamerawesome implements
       ),
     );
 
-    final dateTime = DateTime.now().toUtc();
     final embeddingsAndFaces = List.generate(
       embeddings.length,
       (index) => (
         embedding: embeddings[index],
-        face: jpgs[index],
+        face: facesJpg[index],
         utcDateTime: dateTime,
       ),
     );

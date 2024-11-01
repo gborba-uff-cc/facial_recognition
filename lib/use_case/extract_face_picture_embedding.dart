@@ -41,10 +41,10 @@ class ExtractFacePictureEmbeddingForCamerawesome {
     pkg_awesome.AnalysisImage input,
   ) async {
     List<Rect> rects = await recognitionPipeline.detectFace(input);
-    final image = imageHandler.fromCameraImage(input);
+    final image = await imageHandler.fromCameraImage(input);
     final imageJpg = imageHandler.toJpg(image);
     final faces = imageHandler.cropFromImage(image, rects);
-    final jpgs = faces.map<JpegPictureBytes>((e) => imageHandler.toJpg(image)).toList();
+    final jpgs = faces.map<JpegPictureBytes>((e) => imageHandler.toJpg(e)).toList();
     final embeddings = await recognitionPipeline.extractEmbedding(faces);
 
     final List<ExtractFacePictureEmbeddingAnalysisResult> result = rects.indexed.map((indexAndRect) {

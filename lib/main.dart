@@ -149,7 +149,8 @@ class MainApp extends StatelessWidget {
     final IFaceDetector<pkg_awesome.AnalysisImage> faceDetector = GoogleFaceDetectorForCamerawesome();
     final ICameraImageHandler<pkg_awesome.AnalysisImage , pkg_image.Image, Uint8List> imageHandler = CameraImageHandlerForCamerawesome();
     final IFaceEmbedder faceEmbedder = FacenetFaceEmbedder();
-    final IFaceRecognizer<Student, List<double>> faceRecognizer = DistanceClassifier(distanceFunction: euclideanDistance);
+    // final IFaceRecognizer<Student, List<double>> faceRecognizer = DistanceClassifier(distanceFunction: euclideanDistance);
+    final IFaceRecognizer<Student, List<double>> faceRecognizer = KnnClassifier(distanceFunction: euclideanDistance);
     final IRecognitionPipeline<
         pkg_awesome.AnalysisImage,
         pkg_image.Image,

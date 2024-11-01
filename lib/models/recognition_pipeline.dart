@@ -200,7 +200,7 @@ class RecognitionPipelineForCamerawesome implements
     }
 
     // detach faces into manipulable images
-    final manipulableImage = imageHandler.fromCameraImage(input);
+    final manipulableImage = await imageHandler.fromCameraImage(input);
     final faces = imageHandler.cropFromImage(manipulableImage, rects.toList());
     return faces;
   }

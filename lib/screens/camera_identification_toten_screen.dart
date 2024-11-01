@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:camerawesome/camerawesome_plugin.dart';
 import 'package:facial_recognition/interfaces.dart';
 import 'package:facial_recognition/models/domain.dart';
+import 'package:facial_recognition/models/use_case.dart';
 import 'package:facial_recognition/screens/common/app_defaults.dart';
 import 'package:facial_recognition/screens/common/grid_selector.dart';
 import 'package:facial_recognition/screens/grid_student_selector_screen.dart';
@@ -66,25 +67,39 @@ class _CameraIdentificationTotemScreenState extends State<CameraIdentificationTo
     _isHandlingImage = false;
   }
 
+  void _handleRecognitionResult({
+    final Iterable<EmbeddingRecognitionResult> notRecognized = const [],
+    final Iterable<EmbeddingRecognitionResult> recognized = const [],
+  }) {
+    if (recognized.isEmpty && notRecognized.isEmpty) {
+      // clearing _isHandlingImage (no face detected)
+      _clearIsHandlingImage();
+      return;
+    }
+    else if (recognized.isNotEmpty) {
+      _detectedFacesController.add(
+        (
+          face: recognized.first.inputFace,
+          student: recognized.first.nearestStudent,
+          arriveUtcDateTime: recognized.first.utcDateTime,
+        ),
+      );
+    }
+    else {
+      _detectedFacesController.add(
+        (
+          face: notRecognized.first.inputFace,
+          student: null,
+          arriveUtcDateTime: notRecognized.first.utcDateTime,
+        ),
+      );
+    }
+  }
+
   @override
   void initState() {
     super.initState();
-    widget.cameraAttendanceUseCase.onDetectionResult = (jpegImages) async {
-      if (jpegImages.isEmpty) {
-        _clearIsHandlingImage();
-        // clearing _isHandlingImage (no face detected)
-        return;
-      }
-      else {
-        _detectedFacesController.add(
-          (
-            face: jpegImages.first.face,
-            student: null,
-            arriveUtcDateTime: DateTime.now().toUtc(),
-          ),
-        );
-      }
-    };
+    widget.cameraAttendanceUseCase.onRecognitionResult = _handleRecognitionResult;
   }
 
   @override
@@ -209,7 +224,6 @@ class _CameraIdentificationTotemScreenState extends State<CameraIdentificationTo
     // !SECTION
 
     // run asyncronously
-    
     return Future(() => widget.cameraAttendanceUseCase.onNewCameraInput(image));
   }
 

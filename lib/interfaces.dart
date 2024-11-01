@@ -33,7 +33,7 @@ abstract class ICameraImageHandler<CI, I, J> implements
 {}
 
 abstract class ICameraImageConverter<CI, I> {
-  I fromCameraImage(final CI input);
+  Future<I> fromCameraImage(final CI input);
 }
 
 abstract class IImageHandler<I, J> {

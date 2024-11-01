@@ -108,7 +108,7 @@ class KnnClassifier<TElement extends List<num>, TLabel>
       assert (kNeighbors > 0);
 
   final int kNeighbors;
-  final DistanceFunction distanceFunction;
+  final DistanceFunction<TElement> distanceFunction;
   final double _recognitionThreshold;
 
   @override

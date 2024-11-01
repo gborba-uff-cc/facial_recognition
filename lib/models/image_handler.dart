@@ -6,6 +6,7 @@ import 'package:facial_recognition/interfaces.dart';
 import 'package:facial_recognition/models/domain.dart';
 import 'package:facial_recognition/models/use_case.dart';
 import 'package:facial_recognition/utils/algorithms.dart';
+import 'package:facial_recognition/utils/project_logger.dart';
 import 'package:flutter/foundation.dart';
 import 'package:image/image.dart' as pkg_image;
 
@@ -13,9 +14,9 @@ class CameraImageConverter implements
     ICameraImageConverter<PackageCameraMethodsInput, pkg_image.Image> {
   /// return a manipulable image from the camera image
   @override
-  pkg_image.Image fromCameraImage(
+  Future<pkg_image.Image> fromCameraImage(
     final PackageCameraMethodsInput input,
-  ) {
+  ) async {
     final image = input.image;
     switch (image.format.group) {
       case pkg_camera.ImageFormatGroup.yuv420:
@@ -82,108 +83,49 @@ class CameraImageConverter implements
 class CameraImageConverterForCamerawesome implements
     ICameraImageConverter<pkg_awesome.AnalysisImage, pkg_image.Image> {
   @override
-  pkg_image.Image fromCameraImage(pkg_awesome.AnalysisImage input) {
-    final image = input.when(
-      yuv420: (image) {
-        final planesInfos = [
-          (
-            bytes: image.planes[0].bytes,
-            bytesPerPixel: image.planes[0].bytesPerPixel ?? 1,
-            // NOTE - here is correct
-            bytesPerRow: image.planes[0].bytesPerRow
-          ),
-          (
-            bytes: image.planes[1].bytes,
-            bytesPerPixel: image.planes[1].bytesPerPixel ?? 1,
-            // NOTE - must divide by two because nv21 is a 4:2:0 subsamplig
-            // (implying in half width resolution) and received information do
-            // not account for that
-            bytesPerRow: image.planes[1].bytesPerRow ~/ 2
-          ),
-          (
-            bytes: image.planes[2].bytes,
-            bytesPerPixel: image.planes[2].bytesPerPixel ?? 1,
-            // NOTE - must divide by two because nv21 is a 4:2:0 subsamplig
-            // (implying in half width resolution) and received information do
-            // not account for that
-            bytesPerRow: image.planes[2].bytesPerRow ~/ 2
-          ),
-        ];
-        final rgba = rgbaFromPlanes(
-          width: image.width,
-          height: image.height,
-          format: PlanesFormatsToRgbaPacked.yuv420,
-          planes: planesInfos,
-        );
-        final aux = pkg_image.Image.fromBytes(
-          width: image.width,
-          height: image.height,
-          bytes: ByteData.sublistView(rgba).buffer,
-          numChannels: 4,
-          order: pkg_image.ChannelOrder.rgba,
-        );
-        return aux;
+  Future<pkg_image.Image> fromCameraImage(pkg_awesome.AnalysisImage input) async {
+    final blackImage = pkg_image.Image(width: 64, height: 64);
+    final Future<pkg_awesome.JpegImage>? jpgImage = input.when<Future<pkg_awesome.JpegImage>>(
+      yuv420: (image) async {
+        final jpg = image.toJpeg();
+        return jpg;
       },
       nv21: (image) {
-        final yPlaneSize = image.height * image.planes.first.bytesPerRow;
-        final yPlane = Uint8List.sublistView(
-            image.bytes, 0, yPlaneSize);
-        final vuPlane = Uint8List.sublistView(
-            image.bytes, yPlaneSize, image.bytes.length);
-        final planesInfos = [
-          (
-            bytes: yPlane,
-            bytesPerPixel: image.planes[0].bytesPerPixel ?? 1,
-            // NOTE - here is correct
-            bytesPerRow: image.planes[0].bytesPerRow
-          ),
-          (
-            bytes: vuPlane,
-            bytesPerPixel: image.planes[1].bytesPerPixel ?? 1,
-            // NOTE - must divide by two because nv21 is a 4:2:0 subsamplig
-            // (implying in half width resolution) and received information do
-            // not account for that
-            bytesPerRow: image.planes[1].bytesPerRow ~/ 2
-          )
-        ];
-        final rgba = rgbaFromPlanes(
-          width: image.width,
-          height: image.height,
-          format: PlanesFormatsToRgbaPacked.nv21,
-          planes: planesInfos,
-        );
-        final aux = pkg_image.Image.fromBytes(
-          width: image.width,
-          height: image.height,
-          bytes: ByteData.sublistView(rgba).buffer,
-          numChannels: 4,
-          order: pkg_image.ChannelOrder.rgba,
-        );
-        return aux;
+        final jpg = image.toJpeg();
+        return jpg;
       },
       bgra8888: (image) {
-        return pkg_image.Image.fromBytes(
-          width: image.width,
-          height: image.height,
-          bytes: image.planes.single.bytes.buffer,
-          numChannels: 4,
-          order: pkg_image.ChannelOrder.bgra,
-        );
+        final jpg = image.toJpeg();
+        return jpg;
       },
-      jpeg: (image) {
-        final newImage = pkg_image.decodeJpg(image.bytes);
-        if (newImage == null) {
-          return pkg_image.Image(width: 64, height: 64);
-        }
-        return newImage;
+      jpeg: (image) async {
+        return Future.value(image);
       },
     );
 
-    if (image == null) {
-      return pkg_image.Image(width: 64, height: 64);
+    if (jpgImage == null) {
+      return blackImage;
     }
     else {
-      return image;
+      final rotateAngle = switch (input.rotation) {
+        pkg_awesome.InputAnalysisImageRotation.rotation0deg => 0,
+        pkg_awesome.InputAnalysisImageRotation.rotation90deg => 90,
+        pkg_awesome.InputAnalysisImageRotation.rotation180deg => 180,
+        pkg_awesome.InputAnalysisImageRotation.rotation270deg => 270,
+      };
+      // REVIEW - iOS - how should be the handlig for iOS?
+      final command = pkg_image.Command()
+        ..decodeJpg((await jpgImage).bytes)
+        ..copyRotate(angle: rotateAngle)
+        ..flip(direction: pkg_image.FlipDirection.horizontal);
+      await command.execute();
+      final outputImage = command.outputImage;
+      if (outputImage == null) {
+        return blackImage;
+      }
+      else {
+        return outputImage;
+      }
     }
   }
 }
@@ -287,8 +229,8 @@ class CameraImageHandler implements
   }
 
   @override
-  pkg_image.Image fromCameraImage(PackageCameraMethodsInput input) {
-    return cameraImageConverter.fromCameraImage(input);
+  Future<pkg_image.Image> fromCameraImage(PackageCameraMethodsInput input) async {
+    return await cameraImageConverter.fromCameraImage(input);
   }
 
   @override
@@ -341,7 +283,7 @@ class CameraImageHandlerForCamerawesome implements
   }
 
   @override
-  pkg_image.Image fromCameraImage(pkg_awesome.AnalysisImage input) {
+  Future<pkg_image.Image> fromCameraImage(pkg_awesome.AnalysisImage input) {
     return cameraImageConverter.fromCameraImage(input);
   }
 
