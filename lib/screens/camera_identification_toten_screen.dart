@@ -26,6 +26,11 @@ typedef _TotemScreenPayload = ({
   DateTime arriveUtcDateTime,
 });
 
+final _confirmationSnackbarDuration = Duration(milliseconds: 1500);
+const String _recognitionAcceptedMessage = 'Presença registrada';
+const String _recognitionDiscardedMessage = 'Reconhecimento descartado';
+const String _recognitionFailedMessage = 'Algo deu errado :(';
+
 class CameraIdentificationTotemScreen extends StatefulWidget {
   factory CameraIdentificationTotemScreen({
     final Key? key,
@@ -112,96 +117,39 @@ class _CameraIdentificationTotemScreenState extends State<CameraIdentificationTo
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 48.0),
-        child: CameraAwesomeBuilder.previewOnly(
-          previewAlignment: Alignment.topCenter,
-          previewFit: CameraPreviewFit.contain,
-          sensorConfig: SensorConfig.single(
-            sensor: Sensor.position(SensorPosition.front),
-            aspectRatio: CameraAspectRatios.ratio_1_1,
+    return ScaffoldMessenger(
+      child: Scaffold(
+        backgroundColor: Colors.black,
+        body: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 48.0),
+          child: CameraAwesomeBuilder.previewOnly(
+            previewAlignment: Alignment.topCenter,
+            previewFit: CameraPreviewFit.contain,
+            sensorConfig: SensorConfig.single(
+              sensor: Sensor.position(SensorPosition.front),
+              aspectRatio: CameraAspectRatios.ratio_1_1,
+            ),
+            onImageForAnalysis: _handleAnalysisImage,
+            // image analysis default use nv21 for android and bgra for ios
+            // (width configuration not working for some reason)
+            imageAnalysisConfig: AnalysisConfig(maxFramesPerSecond: 1),
+            builder: (state, preview) {
+              return Stack(
+                children: [Align(
+                  alignment: Alignment.bottomCenter,
+                  child: _ConfirmationCameraPreviewDecorator(
+                    detectedFacesStream: _detectedFacesController.stream,
+                    onAccept: _onTotemRecognitionAccepted,
+                    onRevise: _onTotemRecognitionRevision,
+                    onDiscard: _onTotemRecognitionDiscarded,
+                    // clearing _isHandlingImage (after interaction)
+                    // calls _clearIsHandlingImage,
+                    onClose: _onTotemRecognitionClosed,
+                  ),
+                ),],
+              );
+            },
           ),
-          onImageForAnalysis: _handleAnalysisImage,
-          // image analysis default use nv21 for android and bgra for ios
-          // (width configuration not working for some reason)
-          imageAnalysisConfig: AnalysisConfig(maxFramesPerSecond: 1),
-          builder: (state, preview) {
-            return Align(
-              alignment: Alignment.bottomCenter,
-              child: _ConfirmationCameraPreviewDecorator(
-                detectedFacesStream: _detectedFacesController.stream,
-                onAccept: (accepted) {
-                  _onTotemRecognitionAccepted(accepted);
-                },
-                onRevise: (beingRevised) async {
-                  Student? newSelected;
-                  final items = widget._facePicturesByStudent.entries
-                      .map((e) => (student: e.key, jpg: e.value?.faceJpeg))
-                      .toList()
-                    ..sort((a, b) => a.student.individual.displayFullName
-                        .compareTo(b.student.individual.displayFullName));
-                  int initialySelectedIndex = items.indexWhere((element) =>
-                      element.student.individual.displayFullName ==
-                      beingRevised.student?.individual.displayFullName);
-                  final initialySelected = initialySelectedIndex < 0
-                      ? null
-                      : items[initialySelectedIndex];
-                  await showDialog(
-                    context: context,
-                    builder: (context) => Dialog.fullscreen(
-                      child: StudentGridSelector(
-                        items: items,
-                        initialySelected: initialySelected,
-                        onSelection: (selected) {
-                          newSelected = selected?.student;
-                          final router = GoRouter.of(context);
-                          if (router.canPop()) {
-                            router.pop();
-                          }
-                        },
-                      ),
-                    ),
-                  );
-                  if (newSelected == null) {
-                    return;
-                  }
-                  else {
-                    widget.markAttendanceUseCase.writeStudentAttendance([
-                      (
-                        student: newSelected!,
-                        arriveUtcDateTime: beingRevised.arriveUtcDateTime
-                      ),
-                    ]);
-                  }
-                },
-                // onRevise: () async {
-                //   final items = widget._facePicturesByStudent.entries.toList();
-                //   final newSelection = await GoRouter.of(context)
-                //       .push<MapEntry<Student, FacePicture?>>(
-                //     '/mark_attendance_edit_student',
-                //     extra: GridStudentSelectorScreenArguments<
-                //         MapEntry<Student, FacePicture?>>(
-                //       items: items,
-                //       initialySelected: null,
-                //     ),
-                //   );
-                //   final student = newSelection?.key;
-                //   if (student == null) {
-                //     return;
-                //   }
-                //   else {
-                //     widget.markAttendanceUseCase
-                //         .writeStudentAttendance([student]);
-                //   }
-                // },
-                onDiscard: () {},
-                // clearing _isHandlingImage (after interaction)
-                onClose: _clearIsHandlingImage,
-              ),
-            );
-          },
         ),
       ),
     );
@@ -227,7 +175,9 @@ class _CameraIdentificationTotemScreenState extends State<CameraIdentificationTo
     return Future(() => widget.cameraAttendanceUseCase.onNewCameraInput(image));
   }
 
-  void _onTotemRecognitionAccepted(_TotemScreenPayload item) {
+  void _onTotemRecognitionAccepted(
+    _TotemScreenPayload item,
+  ) {
     if (item.student == null) {
       return;
     }
@@ -235,8 +185,59 @@ class _CameraIdentificationTotemScreenState extends State<CameraIdentificationTo
       (student: item.student!, arriveUtcDateTime: item.arriveUtcDateTime),
     ]);
   }
+
+  void _onTotemRecognitionRevision(
+    _TotemScreenPayload beingRevised,
+  ) async {
+    Student? newSelected;
+    final items = widget._facePicturesByStudent.entries
+        .map((e) => (student: e.key, jpg: e.value?.faceJpeg))
+        .toList()
+      ..sort((a, b) => a.student.individual.displayFullName
+          .compareTo(b.student.individual.displayFullName));
+    int initialySelectedIndex = items.indexWhere((element) =>
+        element.student.individual.displayFullName ==
+        beingRevised.student?.individual.displayFullName);
+    final initialySelected = initialySelectedIndex < 0
+        ? null
+        : items[initialySelectedIndex];
+    newSelected = await showDialog(
+      context: context,
+      builder: (context) => Dialog.fullscreen(
+        child: StudentGridSelector(
+          items: items,
+          initialySelected: initialySelected,
+          onSelection: (selected) {
+            // newSelected = selected?.student;
+            final router = GoRouter.of(context);
+            if (router.canPop()) {
+              router.pop(selected?.student);
+            }
+          },
+        ),
+      ),
+    );
+    if (newSelected == null) {
+      return;
+    }
+    else {
+      widget.markAttendanceUseCase.writeStudentAttendance([
+        (
+          student: newSelected,
+          arriveUtcDateTime: beingRevised.arriveUtcDateTime
+        ),
+      ]);
+    }
+  }
+
+  void _onTotemRecognitionDiscarded() {}
+
+  void _onTotemRecognitionClosed() {
+    _clearIsHandlingImage();
+  }
 }
 
+/// the trasparent widget in front of camera
 class _ConfirmationCameraPreviewDecorator extends StatefulWidget {
   final Stream<_TotemScreenPayload> detectedFacesStream;
   final void Function()? onClose;
@@ -259,29 +260,29 @@ class _ConfirmationCameraPreviewDecorator extends StatefulWidget {
 class _ConfirmationCameraPreviewDecoratorState extends State<_ConfirmationCameraPreviewDecorator> {
   _TotemScreenPayload? _latestData;
   _TotemScreenPayload? _latestBuiltData;
-  StreamSubscription? _streamSubscription;
+  StreamSubscription<_TotemScreenPayload>? _streamInteractionSubscription;
 
   @override
   void didUpdateWidget(covariant _ConfirmationCameraPreviewDecorator oldWidget) {
     super.didUpdateWidget(oldWidget);
-    _streamSubscription?.cancel();
-    _startReceiveingFromStream();
+    _streamInteractionSubscription?.cancel();
+    _startRecievingFromStream();
   }
 
   @override
   void initState() {
     super.initState();
-    _startReceiveingFromStream();
+    _startRecievingFromStream();
   }
 
   @override
   void dispose() {
-    _streamSubscription?.cancel();
+    _streamInteractionSubscription?.cancel();
     super.dispose();
   }
 
-  _startReceiveingFromStream() {
-    _streamSubscription = widget.detectedFacesStream.listen(
+  _startRecievingFromStream() {
+    _streamInteractionSubscription = widget.detectedFacesStream.listen(
       (event) {
         if (mounted) {
           setState(() {_latestData = event;});
@@ -293,10 +294,24 @@ class _ConfirmationCameraPreviewDecoratorState extends State<_ConfirmationCamera
   @override
   Widget build(BuildContext context) {
     final data = _latestData;
-    if (identical(_latestBuiltData, data) || data == null) {
-      return SizedBox.shrink();
+
+    final canShowConfirmation = !identical(_latestBuiltData, data) && data != null;
+    final shouldShowNothing = !canShowConfirmation;
+
+    if (shouldShowNothing) {
+      return _showNothig();
     }
-    _latestBuiltData = data;
+    else {
+      _latestBuiltData = data;
+      return _showInteraction(data);
+    }
+  }
+
+  Widget _showNothig() {
+    return SizedBox.shrink();
+  }
+
+  Widget _showInteraction(_TotemScreenPayload data) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24.0),
       child: ConstrainedBox(
@@ -342,58 +357,4 @@ class _ConfirmationCameraPreviewDecoratorState extends State<_ConfirmationCamera
       ),
     );
   }
-
-
-  /* @override
-  Widget build(BuildContext context) {
-    return StreamBuilder(
-      stream: widget.detectedFacesStream,
-      builder: (context, snapshot) {
-        if (!snapshot.hasData) {
-          if (widget.onClose != null) {
-            widget.onClose!();
-          }
-          return SizedBox.shrink();
-        }
-        else {
-          final data = snapshot.requireData;
-          return Padding(
-            padding: const EdgeInsets.symmetric(horizontal:  24.0),
-            child: ConstrainedBox(
-              constraints: BoxConstraints(minWidth: 300,maxWidth: 600),
-              child: AppDefaultTotenIdentificationCard(
-                faceJpg: data.face,
-                name: data.student?.individual.displayFullName ?? '(não reconhecido)',
-                registration: data.student?.registration ?? '',
-                onAccept: () {
-                  if (widget.onAccept != null) {
-                    widget.onAccept!(data.student);
-                  }
-                  if (widget.onClose != null) {
-                    widget.onClose!();
-                  }
-                },
-                onRevise: () async  {
-                  if (widget.onRevise != null) {
-                    await widget.onRevise!();
-                  }
-                  if (widget.onClose != null) {
-                    widget.onClose!();
-                  }
-                },
-                onDiscard: () {
-                  if (widget.onDiscard != null) {
-                    widget.onDiscard!();
-                  }
-                  if (widget.onClose != null) {
-                    widget.onClose!();
-                  }
-                },
-              ),
-            ),
-          );
-        }
-      },
-    );
-  } */
 }
