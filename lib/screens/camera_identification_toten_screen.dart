@@ -59,6 +59,8 @@ class CameraIdentificationTotemScreen extends StatefulWidget {
 }
 
 class _CameraIdentificationTotemScreenState extends State<CameraIdentificationTotemScreen> {
+  final StreamController<Widget> _feedbackWidgetsController =
+      StreamController<Widget>.broadcast();
   // final _faceDetectionController = BehaviorSubject<FaceDetectionModel>();
   final _detectedFacesController = StreamController<_TotemScreenPayload>.broadcast();
   // final _canHandleImage = StreamController<bool>();
@@ -112,6 +114,7 @@ class _CameraIdentificationTotemScreenState extends State<CameraIdentificationTo
     // _detectedFaces.clear();
     // _faceDetectionController.close();
     _detectedFacesController.close();
+    _feedbackWidgetsController.close();
     super.dispose();
   }
 
@@ -134,19 +137,19 @@ class _CameraIdentificationTotemScreenState extends State<CameraIdentificationTo
             // (width configuration not working for some reason)
             imageAnalysisConfig: AnalysisConfig(maxFramesPerSecond: 1),
             builder: (state, preview) {
-              return Stack(
-                children: [Align(
-                  alignment: Alignment.bottomCenter,
-                  child: _ConfirmationCameraPreviewDecorator(
-                    detectedFacesStream: _detectedFacesController.stream,
-                    onAccept: _onTotemRecognitionAccepted,
-                    onRevise: _onTotemRecognitionRevision,
-                    onDiscard: _onTotemRecognitionDiscarded,
-                    // clearing _isHandlingImage (after interaction)
-                    // calls _clearIsHandlingImage,
-                    onClose: _onTotemRecognitionClosed,
-                  ),
-                ),],
+              return Align(
+                alignment: Alignment.bottomCenter,
+                child: _ConfirmationCameraPreviewDecorator(
+                  interactionTriggerStream: _detectedFacesController.stream,
+                  interactionFeedbackStream:
+                      _feedbackWidgetsController.stream,
+                  onAccept: _onTotemRecognitionAccepted,
+                  onRevise: _onTotemRecognitionRevision,
+                  onDiscard: _onTotemRecognitionDiscarded,
+                  // clearing _isHandlingImage (after interaction)
+                  // calls _clearIsHandlingImage,
+                  onClose: _onTotemRecognitionClosed,
+                ),
               );
             },
           ),
@@ -178,12 +181,41 @@ class _CameraIdentificationTotemScreenState extends State<CameraIdentificationTo
   void _onTotemRecognitionAccepted(
     _TotemScreenPayload item,
   ) {
+    Theme.of(context).textTheme.titleMedium;
     if (item.student == null) {
+      _feedbackWidgetsController.add(
+        _InteractionFeedback(
+          child: Center(
+            child: _FeedbackText(_recognitionDiscardedMessage),
+          ),
+        ),
+      );
       return;
     }
-    widget.markAttendanceUseCase.writeStudentAttendance([
-      (student: item.student!, arriveUtcDateTime: item.arriveUtcDateTime),
-    ]);
+    try {
+      widget.markAttendanceUseCase.writeStudentAttendance([
+        (
+          student: item.student!,
+          arriveUtcDateTime: item.arriveUtcDateTime,
+        ),
+      ]);
+      _feedbackWidgetsController.add(
+        _InteractionFeedback(
+          child: Center(
+            child: _FeedbackText(_recognitionAcceptedMessage),
+          ),
+        ),
+      );
+    }
+    on Exception {
+      _feedbackWidgetsController.add(
+        _InteractionFeedback(
+          child: Center(
+            child: _FeedbackText(_recognitionFailedMessage),
+          ),
+        ),
+      );
+    }
   }
 
   void _onTotemRecognitionRevision(
@@ -218,19 +250,52 @@ class _CameraIdentificationTotemScreenState extends State<CameraIdentificationTo
       ),
     );
     if (newSelected == null) {
+      _feedbackWidgetsController.add(
+        _InteractionFeedback(
+          child: Center(
+            child: _FeedbackText(_recognitionDiscardedMessage),
+          ),
+        ),
+      );
       return;
     }
     else {
-      widget.markAttendanceUseCase.writeStudentAttendance([
-        (
-          student: newSelected,
-          arriveUtcDateTime: beingRevised.arriveUtcDateTime
-        ),
-      ]);
+      try {
+        widget.markAttendanceUseCase.writeStudentAttendance([
+          (
+            student: newSelected,
+            arriveUtcDateTime: beingRevised.arriveUtcDateTime
+          ),
+        ]);
+        _feedbackWidgetsController.add(
+          _InteractionFeedback(
+            child: Center(
+              child: _FeedbackText(_recognitionAcceptedMessage),
+            ),
+          ),
+        );
+      }
+      on Exception {
+        _feedbackWidgetsController.add(
+          _InteractionFeedback(
+            child: Center(
+              child: _FeedbackText(_recognitionFailedMessage),
+            ),
+          ),
+        );
+      }
     }
   }
 
-  void _onTotemRecognitionDiscarded() {}
+  void _onTotemRecognitionDiscarded() {
+    _feedbackWidgetsController.add(
+      _InteractionFeedback(
+        child: Center(
+          child: _FeedbackText(_recognitionDiscardedMessage),
+        ),
+      ),
+    );
+  }
 
   void _onTotemRecognitionClosed() {
     _clearIsHandlingImage();
@@ -239,14 +304,16 @@ class _CameraIdentificationTotemScreenState extends State<CameraIdentificationTo
 
 /// the trasparent widget in front of camera
 class _ConfirmationCameraPreviewDecorator extends StatefulWidget {
-  final Stream<_TotemScreenPayload> detectedFacesStream;
+  final Stream<_TotemScreenPayload> interactionTriggerStream;
+  final Stream<Widget> interactionFeedbackStream;
   final void Function()? onClose;
   final void Function(_TotemScreenPayload)? onAccept;
   final FutureOr<void> Function(_TotemScreenPayload)? onRevise;
   final void Function()? onDiscard;
 
   const _ConfirmationCameraPreviewDecorator({
-    required this.detectedFacesStream,
+    required this.interactionTriggerStream,
+    required this.interactionFeedbackStream,
     this.onClose,
     this.onAccept,
     this.onRevise,
@@ -259,13 +326,15 @@ class _ConfirmationCameraPreviewDecorator extends StatefulWidget {
 
 class _ConfirmationCameraPreviewDecoratorState extends State<_ConfirmationCameraPreviewDecorator> {
   _TotemScreenPayload? _latestData;
-  _TotemScreenPayload? _latestBuiltData;
   StreamSubscription<_TotemScreenPayload>? _streamInteractionSubscription;
+  Widget? _latestInteractionFeedback;
+  StreamSubscription<Widget>? _streamInteractionFeedbackSubscription;
 
   @override
   void didUpdateWidget(covariant _ConfirmationCameraPreviewDecorator oldWidget) {
     super.didUpdateWidget(oldWidget);
     _streamInteractionSubscription?.cancel();
+    _streamInteractionFeedbackSubscription?.cancel();
     _startRecievingFromStream();
   }
 
@@ -278,14 +347,22 @@ class _ConfirmationCameraPreviewDecoratorState extends State<_ConfirmationCamera
   @override
   void dispose() {
     _streamInteractionSubscription?.cancel();
+    _streamInteractionFeedbackSubscription?.cancel();
     super.dispose();
   }
 
   _startRecievingFromStream() {
-    _streamInteractionSubscription = widget.detectedFacesStream.listen(
+    _streamInteractionSubscription = widget.interactionTriggerStream.listen(
       (event) {
         if (mounted) {
           setState(() {_latestData = event;});
+        }
+      },
+    );
+    _streamInteractionFeedbackSubscription = widget.interactionFeedbackStream.listen(
+      (event) {
+        if (mounted) {
+          setState(() {_latestInteractionFeedback = event;});
         }
       },
     );
@@ -294,16 +371,20 @@ class _ConfirmationCameraPreviewDecoratorState extends State<_ConfirmationCamera
   @override
   Widget build(BuildContext context) {
     final data = _latestData;
+    final feedback = _latestInteractionFeedback;
 
-    final canShowConfirmation = !identical(_latestBuiltData, data) && data != null;
-    final shouldShowNothing = !canShowConfirmation;
+    // final canShowConfirmation = !identical(_latestBuiltData, data) && data != null;
+    final canShowInteraction = data != null;
+    final canShowInteractionFeedback = feedback != null;
 
-    if (shouldShowNothing) {
-      return _showNothig();
+    if (canShowInteraction) {
+      return _showInteraction(data);
+    }
+    else if (canShowInteractionFeedback) {
+      return _showInteractionFeedback(feedback);
     }
     else {
-      _latestBuiltData = data;
-      return _showInteraction(data);
+      return _showNothig();
     }
   }
 
@@ -312,49 +393,121 @@ class _ConfirmationCameraPreviewDecoratorState extends State<_ConfirmationCamera
   }
 
   Widget _showInteraction(_TotemScreenPayload data) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24.0),
-      child: ConstrainedBox(
-        constraints: BoxConstraints(minWidth: 300, maxWidth: 600),
-        child: AppDefaultTotenIdentificationCard(
-          faceJpg: data.face,
-          name: data.student?.individual.displayFullName ?? '(não reconhecido)',
-          registration: data.student?.registration ?? '',
-          onAccept: () {
-            if (widget.onAccept != null) {
-              widget.onAccept!(data);
-            }
-            if (widget.onClose != null) {
-              widget.onClose!();
-            }
-            if (mounted) {
-              setState(() {});
-            }
-          },
-          onRevise: () async {
-            if (widget.onRevise != null) {
-              await widget.onRevise!(data);
-            }
-            if (widget.onClose != null) {
-              widget.onClose!();
-            }
-            if (mounted) {
-              setState(() {});
-            }
-          },
-          onDiscard: () {
-            if (widget.onDiscard != null) {
-              widget.onDiscard!();
-            }
-            if (widget.onClose != null) {
-              widget.onClose!();
-            }
-            if (mounted) {
-              setState(() {});
-            }
-          },
+    return _InteractionPositionAndConstrain(
+      child: AppDefaultTotenIdentificationCard(
+        faceJpg: data.face,
+        name: data.student?.individual.displayFullName ?? '(não reconhecido)',
+        registration: data.student?.registration ?? '',
+        onAccept: () {
+          if (widget.onAccept != null) {
+            widget.onAccept!(data);
+          }
+          /* if (widget.onClose != null) {
+            widget.onClose!();
+          } */
+          if (mounted) {
+            setState(() {_latestData = null;});
+          }
+        },
+        onRevise: () async {
+          if (widget.onRevise != null) {
+            await widget.onRevise!(data);
+          }
+          /* if (widget.onClose != null) {
+            widget.onClose!();
+          } */
+          if (mounted) {
+            setState(() {_latestData = null;});
+          }
+        },
+        onDiscard: () {
+          if (widget.onDiscard != null) {
+            widget.onDiscard!();
+          }
+          /* if (widget.onClose != null) {
+            widget.onClose!();
+          } */
+          if (mounted) {
+            setState(() {_latestData = null;});
+          }
+        },
+      ),
+    );
+  }
+
+  Widget _showInteractionFeedback(Widget feedback) {
+    Future.delayed(_confirmationSnackbarDuration, () {
+      if (widget.onClose != null) {
+        widget.onClose!();
+      }
+      if (mounted) {
+        setState(() {
+          _latestInteractionFeedback = null;
+        });
+      }
+    });
+    return _InteractionPositionAndConstrain(
+      child: feedback,
+    );
+  }
+}
+
+class _InteractionPositionAndConstrain extends StatelessWidget {
+  final Widget child;
+
+  const _InteractionPositionAndConstrain({
+    super.key,
+    required this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: Alignment.bottomCenter,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24.0),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minWidth: 300, maxWidth: 600),
+          child: child,
         ),
       ),
     );
+  }
+}
+
+class _InteractionFeedback extends StatelessWidget {
+  final Widget child;
+
+  const _InteractionFeedback({super.key, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: EdgeInsets.zero,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Padding(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 8.0, vertical: 16.0),
+            child: child,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FeedbackText extends StatelessWidget {
+  final String text;
+
+  const _FeedbackText(
+    this.text, {
+    super.key,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(text,style: Theme.of(context).textTheme.titleMedium);
   }
 }
