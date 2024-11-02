@@ -44,6 +44,7 @@ import 'package:facial_recognition/use_case/select_lesson.dart';
 import 'package:facial_recognition/utils/distance.dart';
 import 'package:facial_recognition/utils/file_loaders.dart';
 import 'package:facial_recognition/utils/project_logger.dart';
+import 'package:facial_recognition/utils/ui.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
@@ -71,6 +72,17 @@ void main() async {
       ),
     ),
   );
+
+  // set up logging
+  final downloadsDirectory = await pkg_path_provider.getDownloadsDirectory();
+  File? logFile;
+  if (downloadsDirectory != null) {
+    final nowString = dateTimeToString2(DateTime.now());
+    final logFileName = 'appRecFac_log$nowString.log';
+    final logFilePath = pkg_path.canonicalize(pkg_path.join(downloadsDirectory.path, logFileName));
+    logFile = await File(logFilePath).create(recursive: true, exclusive: false);
+  }
+  initializeLogging(logToDevConsole: true, logToFile: logFile);
 
   // start async code as soon as possible
   final futures = Future.wait(
