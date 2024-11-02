@@ -60,7 +60,8 @@ void initializeLogging({
       );
     }
     if (logToFile != null) {
-      logToFile.writeAsString(text, flush: true);
+      logToFile.writeAsString('$text\n',
+          mode: FileMode.writeOnlyAppend, flush: true);
     }
     }
   );
