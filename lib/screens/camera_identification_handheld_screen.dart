@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:collection';
 // import 'dart:math';
 
 // import 'package:camera_app/utils/mlkit_utils.dart';
@@ -38,20 +39,23 @@ class _CameraPageState extends State<CameraIdentificationHandheldScreen> {
   _IdentificationMode _identificationMode = _IdentificationMode.manual;
   bool _shouldCaptureImage = false;
   bool _isHandlingImage = false;
+  final _jpgToShowController = StreamController<JpegPictureBytes>.broadcast();
 
   @override
   void initState() {
     super.initState();
     widget.useCase.onDetectionResult = (jpegImages) async {
-      if (mounted) {
-        setState(() => _detectedFaces.addAll(jpegImages));
-      }
+      jpegImages.map((e) => e.face).forEach(_jpgToShowController.add);
+      // if (mounted) {
+      //   setState(() => _detectedFaces.addAll(jpegImages));
+      // }
     };
   }
 
   @override
   void dispose() {
     _detectedFaces.clear();
+    _jpgToShowController.close();
     // _faceDetectionController.close();
     super.dispose();
   }
@@ -68,42 +72,57 @@ class _CameraPageState extends State<CameraIdentificationHandheldScreen> {
         onImageForAnalysis: _handleAnalysisImage,
         // image analysis default use nv21 for android and bgra for ios
         // (width configuration not working for some reason)
-        imageAnalysisConfig: AnalysisConfig(maxFramesPerSecond: 2),
+        imageAnalysisConfig: AnalysisConfig(maxFramesPerSecond: 1),
         builder: (state, preview) {
-          return Align(
-            alignment: Alignment.bottomCenter,
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(children: [],),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      switch (_identificationMode) {
-                        _IdentificationMode.manual => FilledButton.tonal(
-                            onPressed: () => setState(() =>
-                                _identificationMode = _IdentificationMode.automatic),
-                            child: const Text('Auto'),
-                          ),
-                        _IdentificationMode.automatic => FilledButton(
-                            onPressed: () => setState(() =>
-                                _identificationMode = _IdentificationMode.manual),
-                            child: const Text('Auto'),
-                          ),
-                      },
-                      AppDefaultCameraShutter(
-                        onTap: () => _shouldCaptureImage = true,
-                      ),
-                      AppDefaultCameraSwitcher(
-                        onTap: state.switchCameraSensor,
-                      ),
-                    ],
+          return SafeArea(
+            child: Stack(
+              children: [
+                Align(
+                  alignment: Alignment.topCenter,
+                  child: Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: _TopPreviewDecorator(
+                      jpgStream: _jpgToShowController.stream,
+                    ),
                   ),
-                ],
-              ),
+                ),
+                Align(
+                  alignment: Alignment.bottomCenter,
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        SizedBox.shrink(),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            switch (_identificationMode) {
+                              _IdentificationMode.manual => FilledButton.tonal(
+                                  onPressed: () => setState(() =>
+                                      _identificationMode = _IdentificationMode.automatic),
+                                  child: const Text('Auto'),
+                                ),
+                              _IdentificationMode.automatic => FilledButton(
+                                  onPressed: () => setState(() =>
+                                      _identificationMode = _IdentificationMode.manual),
+                                  child: const Text('Auto'),
+                                ),
+                            },
+                            AppDefaultCameraShutter(
+                              onTap: () => _shouldCaptureImage = true,
+                            ),
+                            AppDefaultCameraSwitcher(
+                              onTap: state.switchCameraSensor,
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
           );
         },
@@ -145,147 +164,78 @@ class _CameraPageState extends State<CameraIdentificationHandheldScreen> {
     }
   } */
 }
-
-class _MyPreviewDecoratorWidget extends StatelessWidget {
-  final CameraState cameraState;
-  final Stream<_FaceDetectionModel> faceDetectionStream;
-  final Preview preview;
-
-  const _MyPreviewDecoratorWidget({
-    required this.cameraState,
-    required this.faceDetectionStream,
-    required this.preview,
+class _TopPreviewDecorator extends StatefulWidget {
+  final Stream<JpegPictureBytes> jpgStream;
+  const _TopPreviewDecorator({
+    super.key,
+    required this.jpgStream,
   });
+
+  @override
+  State<_TopPreviewDecorator> createState() => _TopPreviewDecoratorState();
+}
+
+class _TopPreviewDecoratorState extends State<_TopPreviewDecorator> {
+  StreamSubscription<JpegPictureBytes>? jpgSubscription;
+  final Queue<JpegPictureBytes> jpgsToShow = Queue();
+  final Duration timeUntilRemove = Duration(milliseconds: 2000);
+
+  @override
+  void didUpdateWidget(covariant _TopPreviewDecorator oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    jpgSubscription?.cancel();
+    _startRecievingFromStream();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _startRecievingFromStream();
+  }
+
+  @override
+  void dispose() {
+    jpgSubscription?.cancel();
+    super.dispose();
+  }
+
+  void _startRecievingFromStream() {
+    jpgSubscription = widget.jpgStream.listen((event) {
+      if (mounted) {
+        setState(() {
+          jpgsToShow.addFirst(event);
+        });
+        if (jpgsToShow.length > 5) {
+          Future.delayed(timeUntilRemove, () {
+            if (mounted) {
+              setState(() {
+                jpgsToShow.removeLast();
+              });
+            }
+          });
+        }
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-    return IgnorePointer(
-      child: StreamBuilder(
-        stream: cameraState.sensorConfig$,
-        builder: (_, snapshot) {
-          if (!snapshot.hasData) {
-            return const SizedBox();
-          } else {
-            return StreamBuilder<_FaceDetectionModel>(
-              stream: faceDetectionStream,
-              builder: (_, faceModelSnapshot) {
-                if (!faceModelSnapshot.hasData) return const SizedBox();
-                // this is the transformation needed to convert the image to the preview
-                // Android mirrors the preview but the analysis image is not
-                final canvasTransformation = faceModelSnapshot.data!.img
-                    ?.getCanvasTransformation(preview);
-                return CustomPaint(
-                  painter: _FaceDetectorPainter(
-                    model: faceModelSnapshot.requireData,
-                    canvasTransformation: canvasTransformation,
-                    preview: preview,
-                  ),
-                );
-              },
-            );
-          }
-        },
+    final height = 100.0;
+    return SizedBox(
+      height: height,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        itemBuilder: (context, index) => Padding(
+          padding: const EdgeInsets.only(right: 8.0),
+          child: SizedBox.square(
+            dimension: height,
+            child: Image.memory(
+              jpgsToShow.elementAt(index),
+            ),
+          ),
+        ),
+        itemCount: jpgsToShow.length,
       ),
     );
   }
-}
-
-class _FaceDetectorPainter extends CustomPainter {
-  final _FaceDetectionModel model;
-  final CanvasTransformation? canvasTransformation;
-  final Preview? preview;
-
-  _FaceDetectorPainter({
-    required this.model,
-    this.canvasTransformation,
-    this.preview,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    if (preview == null || model.img == null) {
-      return;
-    }
-    // We apply the canvas transformation to the canvas so that the barcode
-    // rect is drawn in the correct orientation. (Android only)
-    if (canvasTransformation != null) {
-      canvas.save();
-      canvas.applyTransformation(canvasTransformation!, size);
-    }
-    for (final Face face in model.faces) {
-      final faceBB = face.boundingBox;
-      final previewRect = Rect.fromPoints(
-        preview!.convertFromImage(faceBB.topLeft, model.img!),
-        preview!.convertFromImage(faceBB.bottomRight, model.img!),
-      );
-      final scaledBB = Rect.fromLTWH(previewRect.left, previewRect.top*0.9, previewRect.width, previewRect.height*1.2);
-      canvas.drawRect(scaledBB, Paint()..style = PaintingStyle.stroke..strokeWidth = 1.0);
-    }
-    // if you want to draw without canvas transformation, use this:
-    if (canvasTransformation != null) {
-      canvas.restore();
-    }
-  }
-
-  @override
-  bool shouldRepaint(_FaceDetectorPainter oldDelegate) {
-    return oldDelegate.model != model;
-  }
-}
-
-/* extension InputImageRotationConversion on InputImageRotation {
-  double toRadians() {
-    final degrees = toDegrees();
-    return degrees * 2 * pi / 360;
-  }
-
-  int toDegrees() {
-    switch (this) {
-      case InputImageRotation.rotation0deg:
-        return 0;
-      case InputImageRotation.rotation90deg:
-        return 90;
-      case InputImageRotation.rotation180deg:
-        return 180;
-      case InputImageRotation.rotation270deg:
-        return 270;
-    }
-  }
-} */
-
-class _FaceDetectionModel {
-  final List<Face> faces;
-  final Size absoluteImageSize;
-  final int rotation;
-  final InputImageRotation imageRotation;
-  final AnalysisImage? img;
-
-  _FaceDetectionModel({
-    required this.faces,
-    required this.absoluteImageSize,
-    required this.rotation,
-    required this.imageRotation,
-    this.img,
-  });
-
-  Size get croppedSize => img!.croppedSize;
-
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is _FaceDetectionModel &&
-          runtimeType == other.runtimeType &&
-          faces == other.faces &&
-          absoluteImageSize == other.absoluteImageSize &&
-          rotation == other.rotation &&
-          imageRotation == other.imageRotation &&
-          croppedSize == other.croppedSize;
-
-  @override
-  int get hashCode =>
-      faces.hashCode ^
-      absoluteImageSize.hashCode ^
-      rotation.hashCode ^
-      imageRotation.hashCode ^
-      croppedSize.hashCode;
 }
