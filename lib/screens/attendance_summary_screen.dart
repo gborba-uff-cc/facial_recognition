@@ -232,8 +232,9 @@ class AttendanceSummaryScreen extends StatelessWidget {
   Future<void> _askToExport() async {
     // return null if user cancel the exportation
     final fileContent = useCase.attendanceAsSpreadsheet();
+    final now = dateTimeToString2(DateTime.now());
     final outputPath = await pkg_picker.FilePicker.platform.saveFile(
-      fileName: 'presencas_geradas.xlsx',
+      fileName: 'presencas_geradas_$now.xlsx',
       bytes: Uint8List.fromList(fileContent),
       type: pkg_picker.FileType.custom,
       allowedExtensions: ['xlsx'],

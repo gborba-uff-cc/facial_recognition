@@ -1,6 +1,7 @@
 import 'package:facial_recognition/interfaces.dart';
 import 'package:facial_recognition/models/domain.dart';
 import 'package:excel/excel.dart' as pkg_excel;
+import 'package:facial_recognition/utils/ui.dart';
 
 class AttendanceSummary {
   /// [referenceDatetime] usually the current day being used as reference for
@@ -168,7 +169,7 @@ class AttendanceSummary {
     final spreadsheet = pkg_excel.Excel.createExcel();
     final now = DateTime.now().toLocal();
     final oldSheetName = spreadsheet.getDefaultSheet();
-    final newSheetName = '${now.day}${now.month}${now.year}${now.hour}${now.minute}';
+    final newSheetName = 'em${dateTimeToString2(now)}';
     if (oldSheetName != null) {
       spreadsheet.rename(oldSheetName, newSheetName);
     }
