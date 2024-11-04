@@ -21,7 +21,7 @@ class MarkAttendanceScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          'Revisão',
+          'Confirmar presenças',
           maxLines: 1,
           style: Theme.of(context).textTheme.headlineLarge,
           overflow: TextOverflow.fade,

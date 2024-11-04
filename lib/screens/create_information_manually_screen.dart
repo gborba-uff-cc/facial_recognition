@@ -35,7 +35,7 @@ class CreateInformationManuallyScreen extends StatelessWidget {
       ),
       (
         action: () => GoRouter.of(context).push('/create_face_picture_embedding'),
-        text: 'Foto e embeddings',
+        text: 'Foto e dados faciais',
       ),
     ];
     final List<Widget> createMenuItems = createTriggers

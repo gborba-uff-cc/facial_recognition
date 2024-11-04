@@ -40,7 +40,7 @@ class _LandingScreenState extends State<LandingScreen> {
                 '/camera_identification_totem',
                 extra: lesson,
               ),
-        text: 'Autoverificação',
+        text: 'Autoindicação',
       ),
       (
         action: () => (lesson == null)
