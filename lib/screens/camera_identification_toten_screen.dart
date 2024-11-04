@@ -70,6 +70,9 @@ class _CameraIdentificationTotemScreenState extends State<CameraIdentificationTo
   bool _shouldCaptureImage = false;
   bool _isHandlingImage = false;
 
+  // NOTE - for the research on time expent on each interaction
+  Stopwatch interactionTimer = Stopwatch();
+
   void _clearIsHandlingImage() {
     _isHandlingImage = false;
   }
@@ -175,7 +178,10 @@ class _CameraIdentificationTotemScreenState extends State<CameraIdentificationTo
     // !SECTION
 
     // run asyncronously
-    return Future(() => widget.cameraAttendanceUseCase.onNewCameraInput(image));
+    return Future(() {
+      _startInteractionTimer();
+      widget.cameraAttendanceUseCase.onNewCameraInput(image);
+    });
   }
 
   void _onTotemRecognitionAccepted(
@@ -183,6 +189,7 @@ class _CameraIdentificationTotemScreenState extends State<CameraIdentificationTo
   ) {
     Theme.of(context).textTheme.titleMedium;
     if (item.student == null) {
+      _stopLogResetInteractionTimer(_TimerLabelInteractionType.acceptNotrecognized);
       _feedbackWidgetsController.add(
         _InteractionFeedback(
           child: Center(
@@ -192,29 +199,32 @@ class _CameraIdentificationTotemScreenState extends State<CameraIdentificationTo
       );
       return;
     }
-    try {
-      widget.markAttendanceUseCase.writeStudentAttendance([
-        (
-          student: item.student!,
-          arriveUtcDateTime: item.arriveUtcDateTime,
-        ),
-      ]);
-      _feedbackWidgetsController.add(
-        _InteractionFeedback(
-          child: Center(
-            child: _FeedbackText(_recognitionAcceptedMessage),
+    else {
+      _stopLogResetInteractionTimer(_TimerLabelInteractionType.acceptRecognized);
+      try {
+        widget.markAttendanceUseCase.writeStudentAttendance([
+          (
+            student: item.student!,
+            arriveUtcDateTime: item.arriveUtcDateTime,
           ),
-        ),
-      );
-    }
-    on Exception {
-      _feedbackWidgetsController.add(
-        _InteractionFeedback(
-          child: Center(
-            child: _FeedbackText(_recognitionFailedMessage),
+        ]);
+        _feedbackWidgetsController.add(
+          _InteractionFeedback(
+            child: Center(
+              child: _FeedbackText(_recognitionAcceptedMessage),
+            ),
           ),
-        ),
-      );
+        );
+      }
+      on Exception {
+        _feedbackWidgetsController.add(
+          _InteractionFeedback(
+            child: Center(
+              child: _FeedbackText(_recognitionFailedMessage),
+            ),
+          ),
+        );
+      }
     }
   }
 
@@ -250,6 +260,8 @@ class _CameraIdentificationTotemScreenState extends State<CameraIdentificationTo
       ),
     );
     if (newSelected == null) {
+      _stopLogResetInteractionTimer(
+          _TimerLabelInteractionType.modifyAndDiscard);
       _feedbackWidgetsController.add(
         _InteractionFeedback(
           child: Center(
@@ -260,6 +272,8 @@ class _CameraIdentificationTotemScreenState extends State<CameraIdentificationTo
       return;
     }
     else {
+      _stopLogResetInteractionTimer(
+          _TimerLabelInteractionType.modifyAndAccept);
       try {
         widget.markAttendanceUseCase.writeStudentAttendance([
           (
@@ -288,6 +302,7 @@ class _CameraIdentificationTotemScreenState extends State<CameraIdentificationTo
   }
 
   void _onTotemRecognitionDiscarded() {
+    _stopLogResetInteractionTimer(_TimerLabelInteractionType.discard);
     _feedbackWidgetsController.add(
       _InteractionFeedback(
         child: Center(
@@ -300,6 +315,31 @@ class _CameraIdentificationTotemScreenState extends State<CameraIdentificationTo
   void _onTotemRecognitionClosed() {
     _clearIsHandlingImage();
   }
+
+  void _startInteractionTimer() {
+    if (!interactionTimer.isRunning) {
+      interactionTimer.start();
+    }
+  }
+
+  void _stopLogResetInteractionTimer(_TimerLabelInteractionType type) {
+    if (interactionTimer.isRunning) {
+      interactionTimer.stop();
+      projectLogger
+          .info('[totem interaction time ms|${type.name}] ${interactionTimer.elapsedMilliseconds}');
+      interactionTimer.reset();
+    }
+  }
+}
+
+
+/// types of user intent
+enum _TimerLabelInteractionType {
+  acceptRecognized,
+  acceptNotrecognized,
+  discard,
+  modifyAndAccept,
+  modifyAndDiscard,
 }
 
 /// the trasparent widget in front of camera
