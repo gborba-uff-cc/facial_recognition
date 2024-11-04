@@ -163,7 +163,7 @@ class _StudentGridSelectorState extends State<StudentGridSelector> {
               FilledButton(
                 onPressed: onSelection == null
                     ? null
-                    : () => onSelection(widget.initialySelected),
+                    : () => onSelection(null),
                 child: const Text(
                   'Cancelar',
                   maxLines: 1,
