@@ -2,6 +2,8 @@ import 'dart:typed_data';
 
 import 'package:facial_recognition/models/domain.dart';
 import 'package:facial_recognition/models/use_case.dart';
+import 'package:facial_recognition/screens/common/app_defaults.dart';
+import 'package:facial_recognition/screens/common/grid_selector.dart';
 import 'package:facial_recognition/screens/grid_student_selector_screen.dart';
 import 'package:facial_recognition/use_case/mark_attendance.dart';
 import 'package:facial_recognition/utils/project_logger.dart';
@@ -18,14 +20,9 @@ class MarkAttendanceScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          'Confirmar presenças',
-          maxLines: 1,
-          style: Theme.of(context).textTheme.headlineLarge,
-          overflow: TextOverflow.fade,
-        ),
+    return AppDefaultMenuScaffold(
+      appBar: AppDefaultAppBar(
+        title: 'Confirmar presenças',
       ),
       body: Center(
         child: RecognitionReviewer(useCase: useCase),
@@ -59,7 +56,7 @@ class _RecognitionReviewerState extends State<RecognitionReviewer> {
 
   @override
   Widget build(BuildContext context) {
-    return ListView.builder(
+    /* return ListView.builder(
       itemCount: recognitions.length,
       itemBuilder: (buildContext, i) {
         final item = recognitions.elementAt(i);
@@ -72,6 +69,60 @@ class _RecognitionReviewerState extends State<RecognitionReviewer> {
           onReviseAction: () => _handleReviseRecognition(item),
           onDiscardAction: () => _handleDiscardRecognition(item),
         );
+      },
+    ); */
+    final titleLargeStyle = Theme.of(context).textTheme.titleLarge;
+    final itemsSpace = 8.0;
+    final prebuilt = [
+      Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: EdgeInsets.only(bottom: itemsSpace),
+            child: Text(
+              'Entrada manual',
+              style: titleLargeStyle,
+            ),
+          ),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton(
+              onPressed: _handleManualAttendance,
+              child: Text('Inserir presença'),
+            ),
+          ),
+        ],
+      ),
+      SizedBox(height: 16.0,),
+      Padding(
+        padding: EdgeInsets.only(bottom: itemsSpace),
+        child: Text(
+          'Identificadas por camera',
+          style: titleLargeStyle,
+        ),
+      ),
+    ];
+    final notPrebuilt = recognitions;
+    return ListView.builder(
+      itemCount: prebuilt.length + notPrebuilt.length,
+      itemBuilder: (context, index) {
+        if (index < prebuilt.length) {
+          return prebuilt[index];
+        } else {
+          final indexGenerated = index - prebuilt.length;
+          final item = notPrebuilt.elementAt(indexGenerated);
+          return ReviewCard(
+            key: ObjectKey(item.inputFace),
+            recognition: item,
+            identifiedStudentFacePicture:
+                studentFacePicture[item.nearestStudent]?.faceJpeg,
+            onCorrectAction:
+                item.recognized ? () => _handleConfirmRecognition(item) : null,
+            onReviseAction: () => _handleReviseRecognition(item),
+            onDiscardAction: () => _handleDiscardRecognition(item),
+          );
+        }
       },
     );
   }
@@ -124,6 +175,41 @@ class _RecognitionReviewerState extends State<RecognitionReviewer> {
     setState(() {
       recognitions = widget.useCase.getRecognitionFromCamera();
     });
+  }
+
+  void _handleManualAttendance() async {
+    final items = studentFacePicture.entries
+        .map((e) => (jpg: e.value?.faceJpeg, student: e.key))
+        .toList();
+    final Student? newSelected = await showDialog(
+      context: context,
+      builder: (context) => Dialog.fullscreen(
+        child: StudentGridSelector(
+          items: items,
+          initialySelected: null,
+          onSelection: (selected) {
+            // newSelected = selected?.student;
+            final router = GoRouter.of(context);
+            if (router.canPop()) {
+              router.pop(selected?.student);
+            }
+          },
+        ),
+      ),
+    );
+    if (newSelected != null) {
+      widget.useCase.writeStudentAttendance([
+        (
+          student: newSelected,
+          arriveUtcDateTime: DateTime.now(),
+        ),
+      ]);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Presença registrada')),
+        );
+      }
+    }
   }
 }
 
