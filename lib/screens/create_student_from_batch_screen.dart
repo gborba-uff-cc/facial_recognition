@@ -53,8 +53,29 @@ class _CreateStudentFromBatchScreenState extends State<CreateStudentFromBatchScr
             style: Theme.of(context).textTheme.titleLarge,
             overflow: TextOverflow.fade,
           ),
+          Text.rich(
+            softWrap: true,
+            TextSpan(
+              children: [
+                WidgetSpan(
+                  child: Padding(
+                    padding: const EdgeInsets.only(right: 4.0),
+                    child: Icon(
+                      Icons.info,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                  ),
+                  alignment: PlaceholderAlignment.middle,
+                ),
+                TextSpan(
+                  text:
+                      'A planilha deve listar as matrículas na primeira coluna e os nomes dos alunos na segunda, com uma linha por aluno a partir da primeira linha (sem cabeçalho).',
+                ),
+              ],
+            ),
+          ),
           Padding(
-            padding: EdgeInsets.all(8.0),
+            padding: EdgeInsets.all(8.0)+EdgeInsets.only(top: 8.0),
             child: pickedFile == null
                 ? Text(
                     'Nenhum arquivo selecionado',

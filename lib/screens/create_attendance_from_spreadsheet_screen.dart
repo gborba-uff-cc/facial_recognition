@@ -75,8 +75,29 @@ class _CreateAttendanceFromSpreadsheetScreenState extends State<CreateAttendance
             style: Theme.of(context).textTheme.titleLarge,
             overflow: TextOverflow.fade,
           ),
+          Text.rich(
+            softWrap: true,
+            TextSpan(
+              children: [
+                WidgetSpan(
+                  child: Padding(
+                    padding: const EdgeInsets.only(right: 4.0),
+                    child: Icon(
+                      Icons.info,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                  ),
+                  alignment: PlaceholderAlignment.middle,
+                ),
+                TextSpan(
+                  text:
+                      'A planilha listar as matrículas dos alunos na primeira coluna (cabeçalho ignorado). As colunas seguintes devem listar a data e horário da aula na primeira linha, e o status de presença (P - presente, F - falta) dos alunos nas linhas correspondentes à primeira coluna.',
+                ),
+              ],
+            ),
+          ),
           Padding(
-            padding: EdgeInsets.all(8.0),
+            padding: EdgeInsets.all(8.0)+EdgeInsets.only(top: 8.0),
             child: pickedFile == null
                 ? Text(
                     'Nenhum arquivo selecionado',

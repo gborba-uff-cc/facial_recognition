@@ -74,8 +74,29 @@ class _CreateLessonFromBatchScreenState extends State<CreateLessonFromBatchScree
             style: Theme.of(context).textTheme.titleLarge,
             overflow: TextOverflow.fade,
           ),
+          Text.rich(
+            softWrap: true,
+            TextSpan(
+              children: [
+                  WidgetSpan(
+                    child: Padding(
+                      padding: const EdgeInsets.only(right: 4.0),
+                      child: Icon(
+                        Icons.info,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                    ),
+                    alignment: PlaceholderAlignment.middle,
+                  ),
+                TextSpan(
+                  text:
+                      'A planilha deve listar as datas e horários das aulas na primeira coluna, com uma linha por aula começando da primeira linha (sem cabeçalho).',
+                ),
+              ],
+            ),
+          ),
           Padding(
-            padding: EdgeInsets.all(8.0),
+            padding: EdgeInsets.all(8.0)+EdgeInsets.only(top: 8.0),
             child: pickedFile == null
                 ? Text(
                     'Nenhum arquivo selecionado',
