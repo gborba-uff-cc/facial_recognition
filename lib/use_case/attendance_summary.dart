@@ -161,7 +161,7 @@ class AttendanceSummary {
 
   List<int> attendanceAsSpreadsheet() {
     final students = _students;
-    final lessons = _lessons;
+    final lessons = List.of(_lessons)..sort((a, b) => a.utcDateTime.compareTo(b.utcDateTime));
     final attendances = _attendances;
     if (students.isEmpty || lessons.isEmpty) {
       return const [];
@@ -203,7 +203,7 @@ class AttendanceSummary {
     Map<DateTime,int> dateTimeColumn = {};
     int rowIndex;
     int columnIndex;
-    // row A
+    // row 1
     rowIndex = 0;
     columnIndex = 0;
     cellIndex = pkg_excel.CellIndex.indexByColumnRow(
@@ -230,7 +230,7 @@ class AttendanceSummary {
       dateTimeColumn[l.utcDateTime] = columnIndex;
       columnIndex += 1;
     }
-    // row B onward
+    // row 2 onward
     rowIndex = 1;
     for (final s in students) {
       columnIndex = 0;
@@ -249,11 +249,16 @@ class AttendanceSummary {
       cellValue = pkg_excel.TextCellValue(s.registration);
       sheet.updateCell(cellIndex, cellValue);
       // ----------
-      for (columnIndex=2; columnIndex<2+_lessons.length; columnIndex+=1) {
+      final lastLessonDateTime = lastLesson?.utcDateTime;
+      for (columnIndex=2; columnIndex<2+lessons.length; columnIndex+=1) {
         cellIndex = pkg_excel.CellIndex.indexByColumnRow(
           rowIndex: rowIndex,
           columnIndex: columnIndex,
         );
+        // maintain empty the cells for lessons not given
+        if (lastLessonDateTime != null && lessons[columnIndex-2].utcDateTime.isAfter(lastLessonDateTime)) {
+          continue;
+        }
         cellValue = pkg_excel.TextCellValue('n');
         sheet.updateCell(cellIndex, cellValue, cellStyle: centerStyle);
       }
