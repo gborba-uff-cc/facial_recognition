@@ -456,7 +456,8 @@ class AppDefaultTripleOptionsCard extends StatelessWidget {
 class AppDefaultTotenIdentificationCard extends StatelessWidget {
   const AppDefaultTotenIdentificationCard({
     super.key,
-    required this.faceJpg,
+    required this.detectedFaceJpg,
+    this.recognizedAsJpg,
     required this.name,
     required this.registration,
     this.onAccept,
@@ -464,7 +465,8 @@ class AppDefaultTotenIdentificationCard extends StatelessWidget {
     this.onDiscard,
   });
 
-  final Uint8List faceJpg;
+  final Uint8List detectedFaceJpg;
+  final Uint8List? recognizedAsJpg;
   final String name;
   final String registration;
   final void Function()? onAccept;
@@ -496,7 +498,7 @@ class AppDefaultTotenIdentificationCard extends StatelessWidget {
               child: AspectRatio(
                 aspectRatio: 1,
                 child: Image.memory(
-                  faceJpg,
+                  detectedFaceJpg,
                   fit: BoxFit.contain,
                   errorBuilder: (context, error, stackTrace) => Icon(Icons.person),
                 ),
@@ -504,19 +506,34 @@ class AppDefaultTotenIdentificationCard extends StatelessWidget {
             ),
             SizedBox(width: 2.0,),
             Flexible(
-              flex: 2,
+              flex: 3,
               fit: FlexFit.tight,
               child: Column(
                 children: [
                   Text(
-                    name,
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  Text(
                     registration,
+                    maxLines: 2,
                     style: Theme.of(context).textTheme.bodyLarge,
                   ),
+                  Text(
+                    name,
+                    maxLines: 2,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
                 ],
+              ),
+            ),
+            SizedBox(width: 2.0,),
+            Flexible(
+              flex: 1,
+              fit: FlexFit.tight,
+              child: AspectRatio(
+                aspectRatio: 1,
+                child: recognizedAsJpg != null ? Image.memory(
+                  recognizedAsJpg!,
+                  fit: BoxFit.contain,
+                  errorBuilder: (context, error, stackTrace) => Icon(Icons.person),
+                ) : Icon(Icons.person),
               ),
             ),
           ],

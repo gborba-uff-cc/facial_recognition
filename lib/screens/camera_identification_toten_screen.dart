@@ -21,8 +21,9 @@ enum _IdentificationMode {
 }
 
 typedef _TotemScreenPayload = ({
-  Uint8List face,
-  Student? student,
+  Uint8List jpgFaceDetected,
+  Uint8List? jpgFaceRecognized,
+  Student? studentRecognized,
   DateTime arriveUtcDateTime,
 });
 
@@ -87,10 +88,16 @@ class _CameraIdentificationTotemScreenState extends State<CameraIdentificationTo
       return;
     }
     else if (recognized.isNotEmpty) {
+      final student = recognized.first.nearestStudent;
+      JpegPictureBytes? studentPicture;
+      if (student != null) {
+        studentPicture = widget._facePicturesByStudent[student]?.faceJpeg;
+      }
       _detectedFacesController.add(
         (
-          face: recognized.first.inputFace,
-          student: recognized.first.nearestStudent,
+          jpgFaceDetected: recognized.first.inputFace,
+          jpgFaceRecognized: studentPicture,
+          studentRecognized: student,
           arriveUtcDateTime: recognized.first.utcDateTime,
         ),
       );
@@ -98,8 +105,9 @@ class _CameraIdentificationTotemScreenState extends State<CameraIdentificationTo
     else {
       _detectedFacesController.add(
         (
-          face: notRecognized.first.inputFace,
-          student: null,
+          jpgFaceDetected: notRecognized.first.inputFace,
+          jpgFaceRecognized: null,
+          studentRecognized: null,
           arriveUtcDateTime: notRecognized.first.utcDateTime,
         ),
       );
@@ -188,7 +196,7 @@ class _CameraIdentificationTotemScreenState extends State<CameraIdentificationTo
     _TotemScreenPayload item,
   ) {
     Theme.of(context).textTheme.titleMedium;
-    if (item.student == null) {
+    if (item.studentRecognized == null) {
       _stopLogResetInteractionTimer(_TimerLabelInteractionType.acceptNotrecognized);
       _feedbackWidgetsController.add(
         _InteractionFeedback(
@@ -204,7 +212,7 @@ class _CameraIdentificationTotemScreenState extends State<CameraIdentificationTo
       try {
         widget.markAttendanceUseCase.writeStudentAttendance([
           (
-            student: item.student!,
+            student: item.studentRecognized!,
             arriveUtcDateTime: item.arriveUtcDateTime,
           ),
         ]);
@@ -239,7 +247,7 @@ class _CameraIdentificationTotemScreenState extends State<CameraIdentificationTo
           .compareTo(b.student.individual.displayFullName));
     int initialySelectedIndex = items.indexWhere((element) =>
         element.student.individual.displayFullName ==
-        beingRevised.student?.individual.displayFullName);
+        beingRevised.studentRecognized?.individual.displayFullName);
     final initialySelected = initialySelectedIndex < 0
         ? null
         : items[initialySelectedIndex];
@@ -435,9 +443,10 @@ class _ConfirmationCameraPreviewDecoratorState extends State<_ConfirmationCamera
   Widget _showInteraction(_TotemScreenPayload data) {
     return _InteractionPositionAndConstrain(
       child: AppDefaultTotenIdentificationCard(
-        faceJpg: data.face,
-        name: data.student?.individual.displayFullName ?? '(não reconhecido)',
-        registration: data.student?.registration ?? '',
+        detectedFaceJpg: data.jpgFaceDetected,
+        recognizedAsJpg: data.jpgFaceRecognized,
+        name: data.studentRecognized?.individual.displayFullName ?? '(não reconhecido)',
+        registration: data.studentRecognized?.registration ?? '',
         onAccept: () {
           if (widget.onAccept != null) {
             widget.onAccept!(data);
