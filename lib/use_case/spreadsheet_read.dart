@@ -84,7 +84,7 @@ class SpreadsheetRead {
     required final pkg_excel.Sheet sheet,
     final int skipRowsCount = 0,
   }) {
-    if (sheet.maxColumns<2) {
+    if (sheet.maxColumns<1) {
       return const [];
     }
     final List<DateTime> result = [];

@@ -192,7 +192,7 @@ class AttendanceSummaryScreen extends StatelessWidget {
                 absentOnLastLesson: absentOnLastLesson,
                 absentCount: nPastLessons - presenceCount,
                 presenceCount: presenceCount,
-                attendanceRatio: presenceCount / nPastLessons,
+                attendanceRatio: nPastLessons < 1 ? 1 : presenceCount / nPastLessons,
                 attendanceMinimumRatio: minimumAttendaceRatio,
                 numberFacialDataResgistered: studentNumberRegisteredFacialData,
                 onTap: () => showDialog(
