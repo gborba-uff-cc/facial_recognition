@@ -159,7 +159,9 @@ class MainApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final IFaceDetector<pkg_awesome.AnalysisImage> faceDetector = GoogleFaceDetectorForCamerawesome();
-    final ICameraImageHandler<pkg_awesome.AnalysisImage , pkg_image.Image, Uint8List> imageHandler = CameraImageHandlerForCamerawesome();
+    final ICameraImageHandler<
+        pkg_awesome.AnalysisImage,
+        pkg_image.Image, Uint8List> cameraImageHandler = CameraImageHandlerForCamerawesome();
     final IFaceEmbedder faceEmbedder = FacenetFaceEmbedder();
     // final IFaceRecognizer<Student, List<double>> faceRecognizer = DistanceClassifier(distanceFunction: euclideanDistance);
     final IFaceRecognizer<Student, List<double>> faceRecognizer = KnnClassifier(distanceFunction: euclideanDistance);
@@ -170,7 +172,7 @@ class MainApp extends StatelessWidget {
         Student,
         FaceEmbedding> recognitionPipeline = RecognitionPipelineForCamerawesome(
       faceDetector: faceDetector,
-      imageHandler: imageHandler,
+      imageHandler: cameraImageHandler,
       faceEmbedder: faceEmbedder,
       faceRecognizer: faceRecognizer,
     );
@@ -233,7 +235,7 @@ class MainApp extends StatelessWidget {
                   useCase: CameraIdentificationHandheldForCamerawesome(
                     domainRepository: domainRepository,
                     recognitionPipeline: recognitionPipeline,
-                    imageHandler: imageHandler,
+                    imageHandler: cameraImageHandler,
                     // null, // showFaceImages
                     lesson: state.extra as Lesson,
                   ),
@@ -245,7 +247,7 @@ class MainApp extends StatelessWidget {
                   cameraAttendanceUseCase: CameraIdentificationTotemForCamerawesome(
                     domainRepository: domainRepository,
                     recognitionPipeline: recognitionPipeline,
-                    imageHandler: imageHandler,
+                    imageHandler: cameraImageHandler,
                     // null, // showFaceImages
                     lesson: state.extra as Lesson,
                   ),
@@ -299,9 +301,10 @@ class MainApp extends StatelessWidget {
                 path: 'create_face_picture_embedding',
                 builder: (context, state) => CreateFacePictureEmbeddingForCamerawesome(
                   createModelsUseCase: createModels,
+                  imageHandler: ImageHandler(),
                   extractFacePictureEmbedding: ExtractFacePictureEmbeddingForCamerawesome(
                     recognitionPipeline: recognitionPipeline,
-                    imageHandler: imageHandler,
+                    imageHandler: cameraImageHandler,
                   ),
                 ),
               ),
@@ -363,7 +366,7 @@ class MainApp extends StatelessWidget {
                   Student,
                   FaceEmbedding>(
                     recognitionPipeline: recognitionPipeline,
-                    imageHandler: imageHandler,
+                    imageHandler: cameraImageHandler,
                   ),
                 ),
               ),

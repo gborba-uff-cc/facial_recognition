@@ -130,7 +130,7 @@ class CameraImageConverterForCamerawesome implements
   }
 }
 
-class ImageHanler implements
+class ImageHandler implements
     IImageHandler<pkg_image.Image, JpegPictureBytes> {
   /// Return new images from subareas of [image].
   @override
@@ -215,7 +215,7 @@ class CameraImageHandler implements
         JpegPictureBytes>
 {
   ICameraImageConverter<PackageCameraMethodsInput, pkg_image.Image> cameraImageConverter = CameraImageConverter();
-  IImageHandler<pkg_image.Image, JpegPictureBytes> imageHandler = ImageHanler();
+  IImageHandler<pkg_image.Image, JpegPictureBytes> imageHandler = ImageHandler();
   CameraImageHandler();
 
   @override
@@ -270,7 +270,7 @@ class CameraImageHandlerForCamerawesome implements
   final ICameraImageConverter<pkg_awesome.AnalysisImage, pkg_image.Image>
       cameraImageConverter = CameraImageConverterForCamerawesome();
   final IImageHandler<pkg_image.Image, JpegPictureBytes> imageHandler =
-      ImageHanler();
+      ImageHandler();
 
   @override
   List<pkg_image.Image> cropFromImage(pkg_image.Image image, List<Rect> rect) {

@@ -10,14 +10,17 @@ import 'package:facial_recognition/use_case/extract_face_picture_embedding.dart'
 import 'package:facial_recognition/utils/project_logger.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image/image.dart' as pkg_image;
 
 class CreateFacePictureEmbeddingForCamerawesome extends StatefulWidget {
   final CreateModels createModelsUseCase;
   final ExtractFacePictureEmbeddingForCamerawesome extractFacePictureEmbedding;
+  final IImageHandler<pkg_image.Image, JpegPictureBytes> imageHandler;
   const CreateFacePictureEmbeddingForCamerawesome({
     super.key,
     required this.createModelsUseCase,
     required this.extractFacePictureEmbedding,
+    required this.imageHandler,
   });
 
   @override
@@ -292,8 +295,21 @@ class _CreateFacePictureEmbeddingForCamerawesomeState extends State<CreateFacePi
     final facePicture = _selectedForPicture;
     final studentRegistration = _studentRegistration.text;
     if (facePicture != null) {
+      const defaultHeight = 480;
+      final img = widget.imageHandler.fromJpg(facePicture);
+      JpegPictureBytes? resizedPicture;
+      if (img != null) {
+        final ratio = img.height/defaultHeight;
+        int newWidth = img.width ~/ ratio;
+        if (newWidth % defaultHeight > 0) {
+          newWidth += 1;
+        }
+        final resizedImage = widget.imageHandler.resizeImage(img, newWidth, defaultHeight);
+        resizedPicture = widget.imageHandler.toJpg(resizedImage);
+      }
+      final picture = resizedPicture ?? facePicture;
       widget.createModelsUseCase.createStudentFacePicture(
-        jpegFacePicture: facePicture,
+        jpegFacePicture: picture,
         studentRegistration: studentRegistration,
       );
     }
