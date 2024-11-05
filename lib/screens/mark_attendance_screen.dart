@@ -147,7 +147,8 @@ class _RecognitionReviewerState extends State<RecognitionReviewer> {
   void _handleReviseRecognition(
     EmbeddingRecognitionResult recognition,
   ) async {
-    final items = studentFacePicture.entries.toList();
+    final items = studentFacePicture.entries.toList()
+      ..sort((a, b) => _studentsNameAscCompare(a.key, b.key));
     final initialySelected = recognition.recognized
         ? items.firstWhere(
             (element) => element.key == recognition.nearestStudent,
@@ -180,7 +181,8 @@ class _RecognitionReviewerState extends State<RecognitionReviewer> {
   void _handleManualAttendance() async {
     final items = studentFacePicture.entries
         .map((e) => (jpg: e.value?.faceJpeg, student: e.key))
-        .toList();
+        .toList()
+      ..sort((a, b) => _studentsNameAscCompare(a.student, b.student));
     final Student? newSelected = await showDialog(
       context: context,
       builder: (context) => Dialog.fullscreen(
@@ -211,6 +213,9 @@ class _RecognitionReviewerState extends State<RecognitionReviewer> {
       }
     }
   }
+
+  int _studentsNameAscCompare(Student a, Student b) =>
+      a.individual.displayFullName.compareTo(b.individual.displayFullName);
 }
 
 class ReviewCard extends StatelessWidget {
