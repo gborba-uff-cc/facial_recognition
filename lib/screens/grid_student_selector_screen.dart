@@ -16,17 +16,41 @@ class GridStudentSelectorScreenArguments<T> {
 /// attendance screen
 GridSelectorScreen<MapEntry<Student, FacePicture?>> gridStudentSelector(
   GridStudentSelectorScreenArguments<MapEntry<Student, FacePicture?>> args,
-) => GridSelectorScreen<MapEntry<Student, FacePicture?>>(
-    initialySelected: args.initialySelected,
-    items: args.items,
-    gridItemBuilder: (context, item) => AspectRatio(
-      aspectRatio: 1.0,
-      child: item.value != null
-            ? Image.memory(item.value!.faceJpeg, fit: BoxFit.contain)
-            : Text(
-              item.key.individual.displayFullName,
-              softWrap: true,
-              overflow: TextOverflow.fade,
-            ),
-    ),
-  );
+) =>
+    GridSelectorScreen<MapEntry<Student, FacePicture?>>(
+      initialySelected: args.initialySelected,
+      items: args.items,
+      gridItemBuilder: (context, item) {
+        final student = item.key;
+        final jpg = item.value?.faceJpeg;
+        return AspectRatio(
+          aspectRatio: 1.0,
+          child: jpg != null
+              ? Image.memory(jpg, fit: BoxFit.contain)
+              : DecoratedBox(
+                  decoration: BoxDecoration(border: Border.all(width: 1)),
+                  child: Padding(
+                    padding: const EdgeInsets.all(2.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          student.registration,
+                          maxLines: 2,
+                          softWrap: true,
+                          overflow: TextOverflow.fade,
+                        ),
+                        Text(
+                          student.individual.displayFullName,
+                          maxLines: 3,
+                          softWrap: true,
+                          overflow: TextOverflow.fade,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+        );
+      },
+    );

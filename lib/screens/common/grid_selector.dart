@@ -125,11 +125,30 @@ class _StudentGridSelectorState extends State<StudentGridSelector> {
       aspectRatio: 1.0,
       child: jpg != null
           ? Image.memory(jpg, fit: BoxFit.contain)
-          : Text(
-              student.individual.displayFullName,
-              softWrap: true,
-              overflow: TextOverflow.fade,
-            ),
+          : DecoratedBox(
+                decoration: BoxDecoration(border: Border.all(width: 1)),
+                child: Padding(
+                  padding: const EdgeInsets.all(2.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        student.registration,
+                        maxLines: 2,
+                        softWrap: true,
+                        overflow: TextOverflow.fade,
+                      ),
+                      Text(
+                        student.individual.displayFullName,
+                        maxLines: 3,
+                        softWrap: true,
+                        overflow: TextOverflow.fade,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
     );
   }
 
