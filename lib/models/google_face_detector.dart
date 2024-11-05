@@ -189,7 +189,7 @@ class GoogleFaceDetectorForCamerawesome implements
   GoogleFaceDetectorForCamerawesome()
       : _detector = FaceDetector(
           options: FaceDetectorOptions(
-            performanceMode: FaceDetectorMode.accurate,
+            performanceMode: FaceDetectorMode.fast,
           ),
         );
 
