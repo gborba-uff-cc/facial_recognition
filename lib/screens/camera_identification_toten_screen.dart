@@ -460,7 +460,7 @@ class _ConfirmationCameraPreviewDecoratorState extends State<_ConfirmationCamera
         recognizedAsJpg: data.jpgFaceRecognized,
         name: data.studentRecognized?.individual.displayFullName ?? '(não reconhecido)',
         registration: data.studentRecognized?.registration ?? '',
-        onAccept: () {
+        onAccept: data.studentRecognized == null ? null : () {
           if (widget.onAccept != null) {
             widget.onAccept!(data);
           }
