@@ -18,7 +18,12 @@ class AttendanceSummaryScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final classAttendance = useCase.classAttendance.entries;
+    // no need to get all of these values on every build
+    final classAttendance = useCase.classAttendance.entries.toList()
+      ..sort(
+        (a, b) => a.key.individual.displayFullName
+            .compareTo(b.key.individual.displayFullName),
+      );
     final nRegisteredLessons = useCase.nRegisteredLessons;
     final nPastLessons = useCase.nPastLessons;
     final pastLessons = useCase.pastLessons;
