@@ -45,6 +45,7 @@ import 'package:facial_recognition/utils/distance.dart';
 import 'package:facial_recognition/utils/file_loaders.dart';
 import 'package:facial_recognition/utils/project_logger.dart';
 import 'package:facial_recognition/utils/ui.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
@@ -52,6 +53,8 @@ import 'package:image/image.dart' as pkg_image;
 import 'package:path/path.dart' as pkg_path;
 import 'package:path_provider/path_provider.dart' as pkg_path_provider;
 import 'package:camerawesome/camerawesome_plugin.dart' as pkg_awesome;
+import 'package:cross_file/cross_file.dart' as pkg_xfile;
+import 'package:facial_recognition/utils/copy_file.dart';
 
 import 'models/domain_repository.dart';
 
@@ -136,6 +139,13 @@ void main() async {
   final String databasePath = pkg_path.canonicalize(
     pkg_path.join(appDocuments.path, relativeDatabasePath),
   );
+
+  if (!kReleaseMode) {
+    final file = pkg_xfile.XFile(databasePath);
+    final now = DateTime.now();
+    final filename = '${dateTimeToString2(now)}copyOf${file.name}';
+    exportFile(file, downloadsDirectory, filename);
+  }
 
   // final domainRepository = kDebugMode || kProfileMode ? InMemoryDomainRepositoryForTests() : InMemoryDomainRepository();
   final domainRepository = SQLite3DomainRepository(
