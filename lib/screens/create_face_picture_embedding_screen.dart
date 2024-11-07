@@ -323,7 +323,6 @@ class _CreateFacePictureEmbeddingForCamerawesomeState extends State<CreateFacePi
         studentRegistration: studentRegistration,
       );
     }
-    projectLogger.fine(_studentRegistration.text);
 
     // _studentRegistration.clear();
     formState.reset();

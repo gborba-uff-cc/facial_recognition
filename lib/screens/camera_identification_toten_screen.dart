@@ -196,8 +196,11 @@ class _CameraIdentificationTotemScreenState extends State<CameraIdentificationTo
     _TotemScreenPayload item,
   ) {
     Theme.of(context).textTheme.titleMedium;
+    _stopLogResetInteractionTimer(
+      type: _TimerLabelInteractionType.accept,
+      recognized: item.studentRecognized != null,
+    );
     if (item.studentRecognized == null) {
-      _stopLogResetInteractionTimer(_TimerLabelInteractionType.acceptNotrecognized);
       _feedbackWidgetsController.add(
         _InteractionFeedback(
           child: Center(
@@ -208,7 +211,6 @@ class _CameraIdentificationTotemScreenState extends State<CameraIdentificationTo
       return;
     }
     else {
-      _stopLogResetInteractionTimer(_TimerLabelInteractionType.acceptRecognized);
       try {
         widget.markAttendanceUseCase.writeStudentAttendance([
           (
@@ -269,7 +271,9 @@ class _CameraIdentificationTotemScreenState extends State<CameraIdentificationTo
     );
     if (newSelected == null) {
       _stopLogResetInteractionTimer(
-          _TimerLabelInteractionType.modifyAndDiscard);
+        type: _TimerLabelInteractionType.modifyAndDiscard,
+        recognized: beingRevised.studentRecognized != null,
+      );
       _feedbackWidgetsController.add(
         _InteractionFeedback(
           child: Center(
@@ -281,7 +285,9 @@ class _CameraIdentificationTotemScreenState extends State<CameraIdentificationTo
     }
     else {
       _stopLogResetInteractionTimer(
-          _TimerLabelInteractionType.modifyAndAccept);
+        type: _TimerLabelInteractionType.modifyAndAccept,
+        recognized: beingRevised.studentRecognized != null,
+      );
       try {
         widget.markAttendanceUseCase.writeStudentAttendance([
           (
@@ -309,8 +315,13 @@ class _CameraIdentificationTotemScreenState extends State<CameraIdentificationTo
     }
   }
 
-  void _onTotemRecognitionDiscarded() {
-    _stopLogResetInteractionTimer(_TimerLabelInteractionType.discard);
+  void _onTotemRecognitionDiscarded(
+    _TotemScreenPayload item
+  ) {
+    _stopLogResetInteractionTimer(
+      type: _TimerLabelInteractionType.discard,
+      recognized: item.studentRecognized != null,
+    );
     _feedbackWidgetsController.add(
       _InteractionFeedback(
         child: Center(
@@ -330,11 +341,14 @@ class _CameraIdentificationTotemScreenState extends State<CameraIdentificationTo
     }
   }
 
-  void _stopLogResetInteractionTimer(_TimerLabelInteractionType type) {
+  void _stopLogResetInteractionTimer({
+    required final _TimerLabelInteractionType type,
+    required final bool recognized
+  }) {
     if (interactionTimer.isRunning) {
       interactionTimer.stop();
       projectLogger
-          .info('[totem interaction time ms|${type.name}] ${interactionTimer.elapsedMilliseconds}');
+          .info('[totem interaction time ms|${type.name}|${recognized ? 'recognized' : 'notRecognized'}] ${interactionTimer.elapsedMilliseconds}');
       interactionTimer.reset();
     }
   }
@@ -343,8 +357,7 @@ class _CameraIdentificationTotemScreenState extends State<CameraIdentificationTo
 
 /// types of user intent
 enum _TimerLabelInteractionType {
-  acceptRecognized,
-  acceptNotrecognized,
+  accept,
   discard,
   modifyAndAccept,
   modifyAndDiscard,
@@ -357,7 +370,7 @@ class _ConfirmationCameraPreviewDecorator extends StatefulWidget {
   final void Function()? onClose;
   final void Function(_TotemScreenPayload)? onAccept;
   final FutureOr<void> Function(_TotemScreenPayload)? onRevise;
-  final void Function()? onDiscard;
+  final void Function(_TotemScreenPayload)? onDiscard;
 
   const _ConfirmationCameraPreviewDecorator({
     required this.interactionTriggerStream,
@@ -471,7 +484,7 @@ class _ConfirmationCameraPreviewDecoratorState extends State<_ConfirmationCamera
         },
         onDiscard: () {
           if (widget.onDiscard != null) {
-            widget.onDiscard!();
+            widget.onDiscard!(data);
           }
           /* if (widget.onClose != null) {
             widget.onClose!();

@@ -82,7 +82,8 @@ void main() async {
     final logFilePath = pkg_path.canonicalize(pkg_path.join(downloadsDirectory.path, logFileName));
     logFile = await File(logFilePath).create(recursive: true, exclusive: false);
   }
-  initializeLogging(logToDevConsole: true, logToFile: logFile);
+  final logFileStream = logFile?.openWrite(mode: FileMode.append);
+  initializeLogging(logToDevConsole: true, logToFile: logFileStream);
 
   // start async code as soon as possible
   final futures = Future.wait(
@@ -122,6 +123,8 @@ void main() async {
         ),
       ),
     ));
+    await logFileStream?.flush();
+    await logFileStream?.close();
     return;
   }
 
@@ -143,18 +146,34 @@ void main() async {
   runApp(MainApp(
     cameras: availableCams,
     domainRepository: domainRepository,
+    // let the app close the stream
+    fileLoggingStream: logFileStream,
   ));
 }
 
-class MainApp extends StatelessWidget {
+class MainApp extends StatefulWidget {
   const MainApp({
     super.key,
     required this.cameras,
     required this.domainRepository,
+    required this.fileLoggingStream,
   });
 
   final List<pkg_camera.CameraDescription> cameras;
   final IDomainRepository domainRepository;
+  final IOSink? fileLoggingStream;
+
+  @override
+  State<MainApp> createState() => _MainAppState();
+}
+
+class _MainAppState extends State<MainApp> {
+  @override
+  void dispose() async {
+    await widget.fileLoggingStream?.flush();
+    await widget.fileLoggingStream?.close();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -176,7 +195,7 @@ class MainApp extends StatelessWidget {
       faceEmbedder: faceEmbedder,
       faceRecognizer: faceRecognizer,
     );
-    final CreateModels createModels = CreateModels(domainRepository);
+    final CreateModels createModels = CreateModels(widget.domainRepository);
     final spreadsheetRead = SpreadsheetRead();
     return MaterialApp.router(
       theme: ThemeData(useMaterial3: true),
@@ -196,7 +215,7 @@ class MainApp extends StatelessWidget {
 */
             // landing screen
             builder: (context, state) => LandingScreen(
-              domainRepository: domainRepository,
+              domainRepository: widget.domainRepository,
             ),
             routes: <RouteBase>[
               // NOTE - for development
@@ -208,7 +227,7 @@ class MainApp extends StatelessWidget {
                 path: 'select_information',
                 builder: (context, state) => SelectInformationScreen(
                   useCase: SelectLesson(
-                    domainRepository,
+                    widget.domainRepository,
                   ),
                   hideLesson:
                       state.uri.queryParameters['hideLesson'] == '${true}',
@@ -233,7 +252,7 @@ class MainApp extends StatelessWidget {
                 path: 'camera_view',
                 builder: (context, state) => CameraIdentificationHandheldScreen(
                   useCase: CameraIdentificationHandheldForCamerawesome(
-                    domainRepository: domainRepository,
+                    domainRepository: widget.domainRepository,
                     recognitionPipeline: recognitionPipeline,
                     imageHandler: cameraImageHandler,
                     // null, // showFaceImages
@@ -245,14 +264,14 @@ class MainApp extends StatelessWidget {
                 path: 'camera_identification_totem',
                 builder: (context, state) => CameraIdentificationTotemScreen(
                   cameraAttendanceUseCase: CameraIdentificationTotemForCamerawesome(
-                    domainRepository: domainRepository,
+                    domainRepository: widget.domainRepository,
                     recognitionPipeline: recognitionPipeline,
                     imageHandler: cameraImageHandler,
                     // null, // showFaceImages
                     lesson: state.extra as Lesson,
                   ),
                   markAttendanceUseCase: MarkAttendance(
-                    domainRepository,
+                    widget.domainRepository,
                     state.extra as Lesson,
                   ),
                 ),
@@ -261,7 +280,7 @@ class MainApp extends StatelessWidget {
                 path: 'mark_attendance',
                 builder: (context, state) => MarkAttendanceScreen(
                   useCase: MarkAttendance(
-                    domainRepository,
+                    widget.domainRepository,
                     state.extra as Lesson,
                   ),
                 ),
@@ -276,7 +295,7 @@ class MainApp extends StatelessWidget {
                 path: 'attendance_summary',
                 builder: (context, state) => AttendanceSummaryScreen(
                   useCase: AttendanceSummary(
-                    domainRepository: domainRepository,
+                    domainRepository: widget.domainRepository,
                     subjectClass: state.extra as SubjectClass,
                     minimumAttendanceRatio: 0.75,
                   ),

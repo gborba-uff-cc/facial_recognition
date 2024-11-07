@@ -20,7 +20,7 @@ late final Logger projectLogger;
 void initializeLogging({
   bool logToStdout = false,
   bool logToDevConsole = false,
-  File? logToFile,
+  IOSink? logToFile,
 }) {
   /*
   All messages at or above the level are handled.
@@ -60,8 +60,7 @@ void initializeLogging({
       );
     }
     if (logToFile != null) {
-      logToFile.writeAsString('$text\n',
-          mode: FileMode.writeOnlyAppend, flush: true);
+      logToFile.write('$text\n');
     }
     }
   );
