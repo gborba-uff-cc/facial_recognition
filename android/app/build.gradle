@@ -92,7 +92,7 @@ android {
         professor {
             dimension "endUser"
             applicationIdSuffix ".professor"
-            manifestPlaceholders = [applicationLabel: "Rec.Fac. - Professor"]
+            manifestPlaceholders = [applicationLabel: "Aluno em Aula - Prof."]
         }
     }
 }
