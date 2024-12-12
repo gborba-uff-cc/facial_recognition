@@ -1,5 +1,4 @@
 import 'package:excel/excel.dart' as pkg_excel;
-import 'package:facial_recognition/utils/project_logger.dart';
 
 class SpreadsheetRead {
   SpreadsheetRead();

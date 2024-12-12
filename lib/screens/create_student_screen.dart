@@ -1,6 +1,3 @@
-import 'dart:typed_data';
-
-import 'package:facial_recognition/models/domain.dart';
 import 'package:facial_recognition/screens/common/create_student.dart';
 import 'package:facial_recognition/screens/common/submit_form_button.dart';
 import 'package:facial_recognition/use_case/create_models.dart';

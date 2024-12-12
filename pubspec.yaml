@@ -14,13 +14,9 @@ dependencies:
     sdk: flutter
   go_router: ^14.3.0
   logging: ^1.1.1
-  camera: ^0.11.0+2
   google_mlkit_face_detection: ^0.12.0
   image: ^4.0.16
   tflite_flutter: ^0.11.0
-  shelf: ^1.4.1
-  shelf_router: ^1.1.4
-  requests: ^4.7.0
   sqlite3: ^2.4.6
   path: ^1.8.2
   crypto: ^3.0.3

@@ -1,6 +1,5 @@
 import 'dart:typed_data';
 
-import 'package:facial_recognition/screens/common/grid_selector.dart';
 import 'package:flutter/material.dart';
 
 final _appBarPreferredSize = AppBar().preferredSize;

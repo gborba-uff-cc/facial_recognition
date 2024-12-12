@@ -1,22 +1,15 @@
-import 'dart:typed_data';
-
-import 'package:facial_recognition/interfaces.dart';
-import 'package:facial_recognition/models/domain.dart';
 import 'package:facial_recognition/screens/common/create_teacher.dart';
 import 'package:facial_recognition/screens/common/submit_form_button.dart';
 import 'package:facial_recognition/use_case/create_models.dart';
 import 'package:flutter/material.dart';
-import 'package:camerawesome/camerawesome_plugin.dart' as pkg_awesome;
 
 class CreateTeacherScreen extends StatefulWidget {
   const CreateTeacherScreen({
     super.key,
     required this.createModelsUseCase,
-    required this.facialDataHandlerUseCase,
   });
 
   final CreateModels createModelsUseCase;
-  final IFacialDataHandler<pkg_awesome.AnalysisImage, JpegPictureBytes, FaceEmbedding> facialDataHandlerUseCase;
 
   @override
   State<CreateTeacherScreen> createState() => _CreateTeacherScreenState();

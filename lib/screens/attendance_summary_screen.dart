@@ -3,7 +3,6 @@ import 'dart:typed_data';
 import 'package:facial_recognition/models/domain.dart';
 import 'package:facial_recognition/screens/common/app_defaults.dart';
 import 'package:facial_recognition/use_case/attendance_summary.dart';
-import 'package:facial_recognition/utils/project_logger.dart';
 import 'package:facial_recognition/utils/ui.dart';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart' as pkg_picker;
@@ -303,13 +302,6 @@ class _SummaryTile extends StatelessWidget {
     final jpeg = faceJpeg;
     final absentCount = this.absentCount;
     final titleMediumTheme = Theme.of(context).textTheme.titleMedium;
-    final titleLargeTheme = Theme.of(context).textTheme.titleLarge;
-    final headlineSmallTheme = Theme.of(context).textTheme.headlineSmall;
-/*
-  null  --> 'Frequência insuficiente';
-  false --> 'Ausente'
-  true  --> 'Presente'
- */
 
     final attendanceStatus = _getFrequencyStatus(
       actualRatio: attendanceRatio,
@@ -435,7 +427,6 @@ class _SummaryDetailedDialog extends StatelessWidget {
     final jpeg = faceJpeg;
     final absentCount = this.absentCount;
     final titleMediumStyle = Theme.of(context).textTheme.titleMedium;
-    final labelLargeStyle = Theme.of(context).textTheme.labelLarge;
     final bodyLargeStyle = Theme.of(context).textTheme.bodyLarge;
     final attendanceStatus = _getFrequencyStatus(
       actualRatio: attendanceRatio,

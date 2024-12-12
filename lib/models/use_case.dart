@@ -1,7 +1,6 @@
 import 'dart:typed_data';
 
 import 'package:facial_recognition/models/domain.dart';
-import 'package:camera/camera.dart' as pkg_camera;
 
 class Duple<T1, T2> {
   final T1 value1;
@@ -27,15 +26,5 @@ class EmbeddingRecognitionResult {
     required this.recognized,
     required this.utcDateTime,
     required this.nearestStudent,
-  });
-}
-
-class PackageCameraMethodsInput {
-  final pkg_camera.CameraImage image;
-  final pkg_camera.CameraController controller;
-
-  PackageCameraMethodsInput({
-    required this.image,
-    required this.controller,
   });
 }

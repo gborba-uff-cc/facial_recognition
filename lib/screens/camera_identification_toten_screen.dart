@@ -6,12 +6,10 @@ import 'package:facial_recognition/models/domain.dart';
 import 'package:facial_recognition/models/use_case.dart';
 import 'package:facial_recognition/screens/common/app_defaults.dart';
 import 'package:facial_recognition/screens/common/grid_selector.dart';
-import 'package:facial_recognition/screens/grid_student_selector_screen.dart';
 import 'package:facial_recognition/use_case/mark_attendance.dart';
 import 'package:facial_recognition/utils/project_logger.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-// import 'package:rxdart/rxdart.dart';
 
 // made out of a camerawesome example (camerawesome-2.1.0/example/lib/ai_analysis_faces.dart)
 
@@ -64,9 +62,7 @@ class _CameraIdentificationTotemScreenState extends State<CameraIdentificationTo
       StreamController<Widget>.broadcast();
   // final _faceDetectionController = BehaviorSubject<FaceDetectionModel>();
   final _detectedFacesController = StreamController<_TotemScreenPayload>.broadcast();
-  // final _canHandleImage = StreamController<bool>();
-  // final StreamSubscription _canHandleImageStream =
-  // final List _detectedFaces = [];
+
   _IdentificationMode _identificationMode = _IdentificationMode.automatic;
   bool _shouldCaptureImage = false;
   bool _isHandlingImage = false;
@@ -122,8 +118,6 @@ class _CameraIdentificationTotemScreenState extends State<CameraIdentificationTo
 
   @override
   void dispose() {
-    // _detectedFaces.clear();
-    // _faceDetectionController.close();
     _detectedFacesController.close();
     _feedbackWidgetsController.close();
     super.dispose();
@@ -260,7 +254,6 @@ class _CameraIdentificationTotemScreenState extends State<CameraIdentificationTo
           items: items,
           initialySelected: initialySelected,
           onSelection: (selected) {
-            // newSelected = selected?.student;
             final router = GoRouter.of(context);
             if (router.canPop()) {
               router.pop(selected?.student);
@@ -434,7 +427,6 @@ class _ConfirmationCameraPreviewDecoratorState extends State<_ConfirmationCamera
     final data = _latestData;
     final feedback = _latestInteractionFeedback;
 
-    // final canShowConfirmation = !identical(_latestBuiltData, data) && data != null;
     final canShowInteraction = data != null;
     final canShowInteractionFeedback = feedback != null;
 
@@ -464,9 +456,6 @@ class _ConfirmationCameraPreviewDecoratorState extends State<_ConfirmationCamera
           if (widget.onAccept != null) {
             widget.onAccept!(data);
           }
-          /* if (widget.onClose != null) {
-            widget.onClose!();
-          } */
           if (mounted) {
             setState(() {_latestData = null;});
           }
@@ -475,9 +464,6 @@ class _ConfirmationCameraPreviewDecoratorState extends State<_ConfirmationCamera
           if (widget.onRevise != null) {
             await widget.onRevise!(data);
           }
-          /* if (widget.onClose != null) {
-            widget.onClose!();
-          } */
           if (mounted) {
             setState(() {_latestData = null;});
           }
@@ -486,9 +472,6 @@ class _ConfirmationCameraPreviewDecoratorState extends State<_ConfirmationCamera
           if (widget.onDiscard != null) {
             widget.onDiscard!(data);
           }
-          /* if (widget.onClose != null) {
-            widget.onClose!();
-          } */
           if (mounted) {
             setState(() {_latestData = null;});
           }

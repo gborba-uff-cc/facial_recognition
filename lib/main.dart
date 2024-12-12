@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:camera/camera.dart' as pkg_camera;
 import 'package:facial_recognition/interfaces.dart';
 import 'package:facial_recognition/models/domain.dart';
 import 'package:facial_recognition/models/face_recognizer.dart';
@@ -10,7 +9,6 @@ import 'package:facial_recognition/models/google_face_detector.dart';
 import 'package:facial_recognition/models/image_handler.dart';
 import 'package:facial_recognition/models/recognition_pipeline.dart';
 import 'package:facial_recognition/screens/attendance_summary_screen.dart';
-import 'package:facial_recognition/screens/camera_identification_screen.dart';
 import 'package:facial_recognition/screens/camera_identification_toten_screen.dart';
 import 'package:facial_recognition/screens/create_attendance_from_spreadsheet_screen.dart';
 import 'package:facial_recognition/screens/create_enrollment_screen.dart';
@@ -26,7 +24,6 @@ import 'package:facial_recognition/screens/create_student_screen.dart';
 import 'package:facial_recognition/screens/create_subject_class_screen.dart';
 import 'package:facial_recognition/screens/create_subject_screen.dart';
 import 'package:facial_recognition/screens/create_teacher_screen.dart';
-import 'package:facial_recognition/screens/fast_view.dart';
 import 'package:facial_recognition/screens/grid_student_selector_screen.dart';
 import 'package:facial_recognition/screens/landing_screen.dart';
 import 'package:facial_recognition/screens/mark_attendance_screen.dart';
@@ -35,7 +32,6 @@ import 'package:facial_recognition/screens/camera_identification_handheld_screen
 import 'package:facial_recognition/screens/select_information_screen.dart';
 import 'package:facial_recognition/use_case/attendance_summary.dart';
 import 'package:facial_recognition/use_case/extract_face_picture_embedding.dart';
-import 'package:facial_recognition/use_case/facial_data_handler.dart';
 import 'package:facial_recognition/use_case/spreadsheet_read.dart';
 import 'package:facial_recognition/use_case/camera_identification.dart';
 import 'package:facial_recognition/use_case/create_models.dart';
@@ -53,8 +49,6 @@ import 'package:image/image.dart' as pkg_image;
 import 'package:path/path.dart' as pkg_path;
 import 'package:path_provider/path_provider.dart' as pkg_path_provider;
 import 'package:camerawesome/camerawesome_plugin.dart' as pkg_awesome;
-import 'package:cross_file/cross_file.dart' as pkg_xfile;
-import 'package:facial_recognition/utils/copy_file.dart';
 
 import 'models/domain_repository.dart';
 
@@ -91,7 +85,6 @@ void main() async {
   // start async code as soon as possible
   final futures = Future.wait(
     [
-      pkg_camera.availableCameras(),
       pkg_path_provider.getApplicationDocumentsDirectory(),
       rootBundle.loadStructuredData<SqlStatementsLoader>(
         relativeSqlStatementsJsonPath,
@@ -104,9 +97,6 @@ void main() async {
   dynamic errorOrEception;
   try {
     completed = await futures;
-  }
-  on pkg_camera.CameraException catch (e) {
-    errorOrEception = e;
   }
   on pkg_path_provider.MissingPlatformDirectoryException catch (e) {
     errorOrEception = e;
@@ -132,29 +122,18 @@ void main() async {
   }
 
   // sync code goes under here
-  final List<pkg_camera.CameraDescription> availableCams =
-      completed[0] as List<pkg_camera.CameraDescription>;
-  final Directory appDocuments = completed[1] as Directory;
-  final SqlStatementsLoader sqlStatementsLoader = completed[2] as SqlStatementsLoader;
+  final Directory appDocuments = completed[0] as Directory;
+  final SqlStatementsLoader sqlStatementsLoader = completed[1] as SqlStatementsLoader;
   final String databasePath = pkg_path.canonicalize(
     pkg_path.join(appDocuments.path, relativeDatabasePath),
   );
 
-  if (!kReleaseMode) {
-    final file = pkg_xfile.XFile(databasePath);
-    final now = DateTime.now();
-    final filename = '${dateTimeToString2(now)}copyOf${file.name}';
-    exportFile(file, downloadsDirectory, filename);
-  }
-
-  // final domainRepository = kDebugMode || kProfileMode ? InMemoryDomainRepositoryForTests() : InMemoryDomainRepository();
   final domainRepository = SQLite3DomainRepository(
     databasePath: databasePath,
     statementsLoader: sqlStatementsLoader,
   );
 
   runApp(MainApp(
-    cameras: availableCams,
     domainRepository: domainRepository,
     // let the app close the stream
     fileLoggingStream: logFileStream,
@@ -164,12 +143,10 @@ void main() async {
 class MainApp extends StatefulWidget {
   const MainApp({
     super.key,
-    required this.cameras,
     required this.domainRepository,
     required this.fileLoggingStream,
   });
 
-  final List<pkg_camera.CameraDescription> cameras;
   final IDomainRepository domainRepository;
   final IOSink? fileLoggingStream;
 
@@ -214,25 +191,11 @@ class _MainAppState extends State<MainApp> {
         routes: [
           GoRoute(
             path: '/',
-/*
-            // fast view
-            builder: (context, state) => FastView(),
-            // dev menu
-            builder: (context, state) => PlaceholderScreen(
-              nextScreens: const ['/select_lesson', '/camera_view', '/mark_attendance', '/attendance_summary', '/create_models'],
-              domainRepository: domainRepository,
-            ),
-*/
             // landing screen
             builder: (context, state) => LandingScreen(
               domainRepository: widget.domainRepository,
             ),
             routes: <RouteBase>[
-              // NOTE - for development
-              GoRoute(
-                path: 'fast_view',
-                builder: (context, state) => FastView(),
-              ),
               GoRoute(
                 path: 'select_information',
                 builder: (context, state) => SelectInformationScreen(
@@ -245,19 +208,6 @@ class _MainAppState extends State<MainApp> {
                       state.uri.queryParameters['hideSubjectClass'] == '${true}',
                 ),
               ),
-              /* GoRoute(
-                path: 'camera_view',
-                builder: (context, state) => CameraIdentificationScreen(
-                  cameras: cameras,
-                  useCase: CameraIdentification(
-                    recognitionPipeline,
-                    imageHandler,
-                    domainRepository,
-                    // null, // showFaceImages
-                    state.extra as Lesson,
-                  ),
-                ),
-              ), */
               GoRoute(
                 path: 'camera_view',
                 builder: (context, state) => CameraIdentificationHandheldScreen(
@@ -265,7 +215,6 @@ class _MainAppState extends State<MainApp> {
                     domainRepository: widget.domainRepository,
                     recognitionPipeline: recognitionPipeline,
                     imageHandler: cameraImageHandler,
-                    // null, // showFaceImages
                     lesson: state.extra as Lesson,
                   ),
                 ),
@@ -277,7 +226,6 @@ class _MainAppState extends State<MainApp> {
                     domainRepository: widget.domainRepository,
                     recognitionPipeline: recognitionPipeline,
                     imageHandler: cameraImageHandler,
-                    // null, // showFaceImages
                     lesson: state.extra as Lesson,
                   ),
                   markAttendanceUseCase: MarkAttendance(
@@ -383,20 +331,10 @@ class _MainAppState extends State<MainApp> {
                   createModelsUseCase: createModels,
                 ),
               ),
-              // TODO - remove facial data handler
               GoRoute(
                 path: 'create_teacher',
                 builder: (context, state) => CreateTeacherScreen(
                   createModelsUseCase: createModels,
-                  facialDataHandlerUseCase: FacialDataHandlerForCameraAwesome<
-                  pkg_awesome.AnalysisImage,
-                  pkg_image.Image,
-                  JpegPictureBytes,
-                  Student,
-                  FaceEmbedding>(
-                    recognitionPipeline: recognitionPipeline,
-                    imageHandler: cameraImageHandler,
-                  ),
                 ),
               ),
               GoRoute(

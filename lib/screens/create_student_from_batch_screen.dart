@@ -26,8 +26,6 @@ class CreateStudentFromBatchScreen extends StatefulWidget {
 }
 
 class _CreateStudentFromBatchScreenState extends State<CreateStudentFromBatchScreen> {
-  final GlobalKey<FormState> _formKey = GlobalKey();
-
   pkg_xfile.XFile? _pickedFile;
   pkg_excel.Excel? _spreadsheet;
   final List<String> _spreadsheetSheetsName = [];

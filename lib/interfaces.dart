@@ -1,12 +1,7 @@
-import 'dart:typed_data';
 import 'dart:ui';
 
 import 'package:facial_recognition/models/domain.dart';
 import 'package:facial_recognition/models/use_case.dart';
-
-abstract class IFacialDataHandler<CI, J, V> {
-  Future<({Rect rect, J face, V embedding})?> processImage(CI input);
-}
 
 abstract class IRecognitionPipeline<CI, I, J, L, V> {
   Future<List<Rect>> detectFace(final CI input);

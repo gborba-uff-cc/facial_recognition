@@ -1,5 +1,4 @@
 import 'package:cross_file/cross_file.dart';
-import 'package:facial_recognition/screens/common/app_defaults.dart';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart' as pkg_picker;
 import 'package:cross_file/cross_file.dart' as pkg_xfile;

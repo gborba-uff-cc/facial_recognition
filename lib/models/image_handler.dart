@@ -1,84 +1,10 @@
 import 'dart:ui';
 
-import 'package:camera/camera.dart' as pkg_camera;
 import 'package:camerawesome/camerawesome_plugin.dart' as pkg_awesome;
 import 'package:facial_recognition/interfaces.dart';
 import 'package:facial_recognition/models/domain.dart';
-import 'package:facial_recognition/models/use_case.dart';
-import 'package:facial_recognition/utils/algorithms.dart';
-import 'package:facial_recognition/utils/project_logger.dart';
 import 'package:flutter/foundation.dart';
 import 'package:image/image.dart' as pkg_image;
-
-class CameraImageConverter implements
-    ICameraImageConverter<PackageCameraMethodsInput, pkg_image.Image> {
-  /// return a manipulable image from the camera image
-  @override
-  Future<pkg_image.Image> fromCameraImage(
-    final PackageCameraMethodsInput input,
-  ) async {
-    final image = input.image;
-    switch (image.format.group) {
-      case pkg_camera.ImageFormatGroup.yuv420:
-        final rgba = rgbaFromPlanes(
-            width: image.width,
-            height: image.height,
-            format: PlanesFormatsToRgbaPacked.yuv420,
-            planes: image.planes
-                .map((plane) => (
-                      bytes: plane.bytes,
-                      bytesPerPixel: plane.bytesPerPixel ?? 1,
-                      bytesPerRow: plane.bytesPerRow
-                    ))
-                .toList());
-        final aux = pkg_image.Image.fromBytes(
-          width: image.width,
-          height: image.height,
-          bytes: ByteData.sublistView(rgba).buffer,
-          numChannels: 4,
-          order: pkg_image.ChannelOrder.rgba,
-        );
-        return aux;
-      case pkg_camera.ImageFormatGroup.nv21:
-        final rgba = rgbaFromPlanes(
-            width: image.width,
-            height: image.height,
-            format: PlanesFormatsToRgbaPacked.nv21,
-            planes: image.planes
-                .map((plane) => (
-                      bytes: plane.bytes,
-                      bytesPerPixel: plane.bytesPerPixel ?? 1,
-                      bytesPerRow: plane.bytesPerRow
-                    ))
-                .toList());
-        final aux = pkg_image.Image.fromBytes(
-          width: image.width,
-          height: image.height,
-          bytes: ByteData.sublistView(rgba).buffer,
-          numChannels: 4,
-          order: pkg_image.ChannelOrder.rgba,
-        );
-        return aux;
-      case pkg_camera.ImageFormatGroup.bgra8888:
-        return pkg_image.Image.fromBytes(
-          width: image.width,
-          height: image.height,
-          bytes: image.planes.single.bytes.buffer,
-          numChannels: 4,
-          order: pkg_image.ChannelOrder.bgra,
-        );
-      case pkg_camera.ImageFormatGroup.jpeg:
-        final newImage = pkg_image.decodeJpg(image.planes.single.bytes);
-        if (newImage == null) {
-          return pkg_image.Image(width: 64, height: 64);
-        }
-        return newImage;
-      default:
-        // defaults to a black image
-        return pkg_image.Image(width: 64, height: 64);
-    }
-  }
-}
 
 class CameraImageConverterForCamerawesome implements
     ICameraImageConverter<pkg_awesome.AnalysisImage, pkg_image.Image> {
@@ -206,59 +132,6 @@ class ImageHandler implements
       growable: false,
     );
   }
-}
-
-class CameraImageHandler implements
-    ICameraImageHandler<
-        PackageCameraMethodsInput,
-        pkg_image.Image,
-        JpegPictureBytes>
-{
-  ICameraImageConverter<PackageCameraMethodsInput, pkg_image.Image> cameraImageConverter = CameraImageConverter();
-  IImageHandler<pkg_image.Image, JpegPictureBytes> imageHandler = ImageHandler();
-  CameraImageHandler();
-
-  @override
-  List<pkg_image.Image> cropFromImage(pkg_image.Image image, List<Rect> rect) {
-    return imageHandler.cropFromImage(image, rect);
-  }
-
-  @override
-  pkg_image.Image flipHorizontal(pkg_image.Image image) {
-    return imageHandler.flipHorizontal(image);
-  }
-
-  @override
-  Future<pkg_image.Image> fromCameraImage(PackageCameraMethodsInput input) async {
-    return await cameraImageConverter.fromCameraImage(input);
-  }
-
-  @override
-  pkg_image.Image? fromJpg(JpegPictureBytes jpgBytes) {
-    return imageHandler.fromJpg(jpgBytes);
-  }
-
-  @override
-  pkg_image.Image resizeImage(pkg_image.Image image, int width, int height) {
-    return imageHandler.resizeImage(image, width, height);
-  }
-
-  @override
-  pkg_image.Image rotateImage(pkg_image.Image image, num angle) {
-    return imageHandler.rotateImage(image, angle);
-  }
-
-  @override
-  JpegPictureBytes toJpg(pkg_image.Image image) {
-    return imageHandler.toJpg(image);
-  }
-
-  @override
-  List<List<List<int>>> toRgbMatrix(pkg_image.Image image) {
-    return imageHandler.toRgbMatrix(image);
-  }
-
-
 }
 
 class CameraImageHandlerForCamerawesome implements

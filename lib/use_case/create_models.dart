@@ -1,6 +1,5 @@
 import 'dart:typed_data';
 
-import 'package:image/image.dart' as pkg_image;
 import 'package:facial_recognition/interfaces.dart';
 import 'package:facial_recognition/models/domain.dart';
 

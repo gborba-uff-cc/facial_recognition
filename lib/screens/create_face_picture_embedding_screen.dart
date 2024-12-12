@@ -1,5 +1,3 @@
-import 'dart:typed_data';
-
 import 'package:camerawesome/camerawesome_plugin.dart' as pkg_awesome;
 import 'package:facial_recognition/interfaces.dart';
 import 'package:facial_recognition/models/domain.dart';
@@ -7,7 +5,6 @@ import 'package:facial_recognition/screens/common/app_defaults.dart';
 import 'package:facial_recognition/screens/common/form_fields.dart';
 import 'package:facial_recognition/use_case/create_models.dart';
 import 'package:facial_recognition/use_case/extract_face_picture_embedding.dart';
-import 'package:facial_recognition/utils/project_logger.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image/image.dart' as pkg_image;

@@ -1,17 +1,11 @@
 import 'dart:async';
 import 'dart:collection';
-// import 'dart:math';
 
-// import 'package:camera_app/utils/mlkit_utils.dart';
 import 'package:camerawesome/camerawesome_plugin.dart';
 import 'package:facial_recognition/interfaces.dart';
 import 'package:facial_recognition/models/domain.dart';
 import 'package:facial_recognition/screens/common/app_defaults.dart';
-import 'package:facial_recognition/utils/project_logger.dart';
-// import 'package:facial_recognition/use_case/camera_identification.dart';
 import 'package:flutter/material.dart';
-import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
-// import 'package:rxdart/rxdart.dart';
 
 // made out of a camerawesome example (camerawesome-2.1.0/example/lib/ai_analysis_faces.dart)
 
@@ -26,7 +20,6 @@ class CameraIdentificationHandheldScreen extends StatefulWidget {
     required this.useCase,
   });
 
-  // final CameraIdentification useCase;
   final ICameraAttendance<AnalysisImage, JpegPictureBytes> useCase;
 
   @override
@@ -34,7 +27,6 @@ class CameraIdentificationHandheldScreen extends StatefulWidget {
 }
 
 class _CameraPageState extends State<CameraIdentificationHandheldScreen> {
-  // final _faceDetectionController = BehaviorSubject<FaceDetectionModel>();
   final List _detectedFaces = [];
   _IdentificationMode _identificationMode = _IdentificationMode.manual;
   bool _shouldCaptureImage = false;
@@ -46,9 +38,6 @@ class _CameraPageState extends State<CameraIdentificationHandheldScreen> {
     super.initState();
     widget.useCase.onDetectionResult = (jpegImages) async {
       jpegImages.map((e) => e.face).forEach(_jpgToShowController.add);
-      // if (mounted) {
-      //   setState(() => _detectedFaces.addAll(jpegImages));
-      // }
     };
   }
 
@@ -56,7 +45,6 @@ class _CameraPageState extends State<CameraIdentificationHandheldScreen> {
   void dispose() {
     _detectedFaces.clear();
     _jpgToShowController.close();
-    // _faceDetectionController.close();
     super.dispose();
   }
 
@@ -144,25 +132,6 @@ class _CameraPageState extends State<CameraIdentificationHandheldScreen> {
         .then((value) => _isHandlingImage = false);
     return Future.value();
   }
-
-/*   Future _analyzeImage(AnalysisImage img) async {
-    final inputImage = img.toInputImage();
-
-    try {
-      _faceDetectionController.add(
-        FaceDetectionModel(
-          faces: await faceDetector.processImage(inputImage),
-          absoluteImageSize: inputImage.metadata!.size,
-          rotation: 0,
-          imageRotation: img.inputImageRotation,
-          img: img,
-        ),
-      );
-      // debugPrint("...sending image resulted with : ${faces?.length} faces");
-    } catch (error) {
-      debugPrint("...sending image resulted error $error");
-    }
-  } */
 }
 class _TopPreviewDecorator extends StatefulWidget {
   final Stream<JpegPictureBytes> jpgStream;
