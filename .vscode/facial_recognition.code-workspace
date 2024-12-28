@@ -5,6 +5,8 @@
 		}
 	],
 	"settings": {
-		"explorer.excludeGitIgnore": true
+		"explorer.excludeGitIgnore": true,
+		"editor.hover.delay": 1400,
+		"dart.onlyAnalyzeProjectsWithOpenFiles": true,
 	}
 }
