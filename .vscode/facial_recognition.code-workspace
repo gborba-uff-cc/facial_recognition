@@ -4,5 +4,9 @@
 			"path": ".."
 		}
 	],
-	"settings": {}
+	"settings": {
+		"explorer.excludeGitIgnore": true,
+		"editor.hover.delay": 1400,
+		"dart.onlyAnalyzeProjectsWithOpenFiles": true,
+	}
 }

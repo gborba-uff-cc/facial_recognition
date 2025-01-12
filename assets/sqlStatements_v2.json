@@ -1,0 +1,174 @@
+{
+    "tcl": {
+        "begin": "BEGIN TRANSACTION;",
+        "commit": "COMMIT TRANSACTION;",
+        "rollback": "ROLLBACK TRANSACTION;"
+    },
+    "individual": {
+        "ddl": {
+            "create": "CREATE TABLE IF NOT EXISTS individual (auto_id INTEGER NOT NULL, individualRegistration TEXT NOT NULL, name TEXT NOT NULL, surname TEXT, UNIQUE (individualRegistration), PRIMARY KEY (auto_id)) STRICT;",
+            "drop": "DROP TABLE IF EXISTS individual;"
+        },
+        "dml": {
+            "insert": "INSERT INTO individual (individualRegistration, name, surname) VALUES (:individualRegistration, :name, :surname);",
+            "delete": {
+                "byAutoId": "DELETE FROM individual WHERE auto_id = :auto_id;",
+                "byIndividualRegistration": "DELETE FROM individual WHERE individualRegistration = :individualRegistration;",
+                "byIndividualRegistrationReturningAutoId": "DELETE FROM individual WHERE individualRegistration = :individualRegistration RETURNING auto_id;"
+            }
+        }
+    },
+    "facialData": {
+        "ddl": {
+            "create": "CREATE TABLE IF NOT EXISTS facialData (auto_id INTEGER NOT NULL, data BLOB NOT NULL, individualId INTEGER NOT NULL, FOREIGN KEY (individualId) REFERENCES individual (auto_id), UNIQUE (data, individualId) , PRIMARY KEY (auto_id)) STRICT;",
+            "drop": "DROP TABLE IF EXISTS facialData;"
+        },
+        "dml": {
+            "insert": "WITH _individual AS (SELECT auto_id FROM individual WHERE individualRegistration = :individualRegistration) INSERT INTO facialData (data, individualId) SELECT :data, auto_id FROM _individual;",
+            "delete": "DELETE FROM facialData WHERE auto_id = :auto_id;"
+        }
+    },
+    "facePicture": {
+        "ddl": {
+            "create": "CREATE TABLE IF NOT EXISTS facePicture (auto_id INTEGER NOT NULL, picture BLOB NOT NULL, individualId INTEGER NOT NULL, FOREIGN KEY (individualId) REFERENCES individual (auto_id), UNIQUE (individualId) , PRIMARY KEY (auto_id)) STRICT;",
+            "drop": "DROP TABLE IF EXISTS facePicture;"
+        },
+        "dml": {
+            "insert": "WITH _individual AS (SELECT auto_id FROM individual WHERE individualRegistration = :individualRegistration) INSERT OR REPLACE INTO facePicture (picture, individualId) SELECT :picture, auto_id FROM _individual;",
+            "delete": "DELETE FROM facePicture WHERE auto_id = :auto_id;"
+        }
+    },
+    "student": {
+        "ddl": {
+            "create": "CREATE TABLE IF NOT EXISTS student (registration TEXT NOT NULL, individualId INTEGER NOT NULL, FOREIGN KEY (individualId) REFERENCES individual (auto_id), UNIQUE (individualId), PRIMARY KEY (registration)) STRICT;",
+            "drop": "DROP TABLE IF EXISTS student;"
+        },
+        "dml": {
+            "insert": "WITH _individual AS (SELECT auto_id FROM individual WHERE individualRegistration = :individualRegistration) INSERT INTO student (registration, individualId) SELECT :registration, auto_id FROM _individual;",
+            "delete": {
+                "byRegistration": "DELETE FROM student WHERE registration = :registration;",
+                "byIndividualId": "DELETE FROM student WHERE individualId = :individualId;"
+            }
+        }
+    },
+    "teacher": {
+        "ddl": {
+            "create": "CREATE TABLE IF NOT EXISTS teacher (registration TEXT NOT NULL, individualId INTEGER NOT NULL, FOREIGN KEY (individualId) REFERENCES individual (auto_id), UNIQUE (individualId), PRIMARY KEY (registration)) STRICT;",
+            "drop": "DROP TABLE IF EXISTS teacher;"
+        },
+        "dml": {
+            "insert": "WITH _individual AS (SELECT auto_id FROM individual WHERE individualRegistration = :individualRegistration) INSERT INTO teacher (registration, individualId) SELECT :registration, auto_id FROM _individual;",
+            "delete": {
+                "byRegistration": "DELETE FROM teacher WHERE registration = :registration",
+                "byIndividualId": "DELETE FROM teacher WHERE individualId = :individualId;"
+            }
+        }
+    },
+    "subject": {
+        "ddl": {
+            "create": "CREATE TABLE IF NOT EXISTS subject (code TEXT NOT NULL, name TEXT NOT NULL, PRIMARY KEY (code)) STRICT;",
+            "drop": "DROP TABLE IF EXISTS subject;"
+        },
+        "dml": {
+            "insert": "INSERT INTO subject (code, name) VALUES (:code, :name);",
+            "delete": "DELETE FROM subject WHERE code = :code;"
+        }
+    },
+    "class": {
+        "ddl": {
+            "create": "CREATE TABLE IF NOT EXISTS class (auto_id INTEGER NOT NULL, subjectCode TEXT NOT NULL, year INTEGER NOT NULL, semester INTEGER NOT NULL, name TEXT NOT NULL, teacherRegistration TEXT NOT NULL, FOREIGN KEY (subjectCode) REFERENCES subject (code), FOREIGN KEY (teacherRegistration) REFERENCES teacher (registration), UNIQUE (subjectCode, year, semester, name), PRIMARY KEY (auto_id)) STRICT;",
+            "drop": "DROP TABLE IF EXISTS class;"
+        },
+        "dml": {
+            "insert": "INSERT INTO class (subjectCode, year, semester, name, teacherRegistration) VALUES (:subjectCode, :year, :semester, :name, :teacherRegistration);",
+            "delete": {
+                "byAutoId": "DELETE FROM class WHERE auto_id = :auto_id;",
+                "bySubjectCodeYearSemesterName": "DELETE FROM class WHERE subjectCode = :subjectCode AND year = :year AND semester = :semester AND name = :name;",
+                "bySubjectCodeYearSemesterNameReturningAutoId": "DELETE FROM class WHERE subjectCode = :subjectCode AND year = :year AND semester = :semester AND name = :name RETURNING auto_id;"
+            }
+        }
+    },
+    "lesson": {
+        "ddl": {
+            "create": "CREATE TABLE IF NOT EXISTS lesson (auto_id INTEGER NOT NULL, classId INTEGER NOT NULL, utcDateTime TEXT NOT NULL, teacherRegistration TEXT NOT NULL, FOREIGN KEY (classId) REFERENCES class (auto_id), FOREIGN KEY (teacherRegistration) REFERENCES teacher (registration), UNIQUE (classId, utcDateTime), PRIMARY KEY (auto_id)) STRICT;",
+            "drop": "DROP TABLE IF EXISTS lesson;"
+        },
+        "dml": {
+            "insert": "WITH _class AS (SELECT auto_id FROM class WHERE subjectCode = :subjectCode AND year = :year AND semester = :semester AND name = :name) INSERT INTO lesson (classId, utcDateTime, teacherRegistration) SELECT auto_id, :utcDateTime, :teacherRegistration FROM _class;",
+            "delete": {
+                "byAutoId": "DELETE FROM lesson WHERE auto_id = :auto_id;",
+                "byClassIdUtcDateTime": "DELETE FROM lesson WHERE classId = :classId AND utcDateTime = :utcDateTime;",
+                "byClassIdUtcDateTimeReturningAutoId": "DELETE FROM lesson WHERE classId = :classId AND utcDateTime = :utcDateTime RETURNING auto_id;"
+            }
+        }
+    },
+    "enrollment": {
+        "ddl": {
+            "create": "CREATE TABLE IF NOT EXISTS enrollment (studentRegistration TEXT NOT NULL, classId INTEGER NOT NULL, FOREIGN KEY (studentRegistration) REFERENCES student (registration), FOREIGN KEY (classId) REFERENCES class (auto_id), PRIMARY KEY (studentRegistration, classId)) STRICT;",
+            "drop": "DROP TABLE IF EXISTS enrollment;"
+        },
+        "dml": {
+            "insert": "WITH _class AS (SELECT auto_id FROM class WHERE subjectCode = :subjectCode AND year = :year AND semester = :semester AND name = :name) INSERT INTO enrollment (studentRegistration, classId) SELECT :studentRegistration, auto_id FROM _class;",
+            "delete": "DELETE FROM enrollment WHERE studentRegistration = :studentRegistration AND classId = :classId;"
+        }
+    },
+    "attendance": {
+        "ddl": {
+            "create": "CREATE TABLE IF NOT EXISTS attendance (studentRegistration TEXT NOT NULL, lessonId INTEGER NOT NULL, utcDateTime TEXT NOT NULL, FOREIGN KEY (studentRegistration) REFERENCES student (registration), FOREIGN KEY (lessonId) REFERENCES lesson (auto_id), PRIMARY KEY (studentRegistration, lessonId)) STRICT;",
+            "drop": "DROP TABLE IF EXISTS attendance;"
+        },
+        "dml": {
+            "insert": "WITH _class AS (SELECT auto_id FROM class WHERE subjectCode = :subjectCode AND year = :year AND semester = :semester AND name = :name), _lesson AS (SELECT auto_id FROM lesson WHERE classId = (SELECT auto_id FROM _class) AND utcDateTime = :lessonUtcDateTime) INSERT INTO attendance (studentRegistration, lessonId, utcDateTime) SELECT :studentRegistration, auto_id, :attendanceUtcDateTime FROM _lesson;",
+            "delete": "DELETE FROM attendance WHERE studentRegistration = :studentRegistration AND lessonId = :lessonId;"
+        }
+    },
+    "notRecognizedFromCamera": {
+        "ddl": {
+            "create": "CREATE TABLE IF NOT EXISTS notRecognizedFromCamera(picture BLOB NOT NULL, pictureMd5 TEXT NOT NULL, embedding BLOB NOT NULL, utcDateTime TEXT NOT NULL, nearestStudentRegistration TEXT, lessonId INTEGER NOT NULL, FOREIGN KEY (nearestStudentRegistration) REFERENCES student (registration), FOREIGN KEY (lessonId) REFERENCES lesson (auto_id), PRIMARY KEY (pictureMd5)) STRICT;",
+            "drop": "DROP TABLE IF EXISTS notRecognizedFromCamera;"
+        },
+        "dml": {
+            "insert": "WITH _class AS (SELECT auto_id FROM class WHERE subjectCode = :subjectCode AND year = :year AND semester = :semester AND name = :name), _lesson AS (SELECT auto_id FROM lesson WHERE classId = (SELECT auto_id FROM _class) AND utcDateTime = :lessonUtcDateTime) INSERT INTO notRecognizedFromCamera (picture, pictureMd5, embedding, utcDateTime, nearestStudentRegistration, lessonId) SELECT :picture, :pictureMd5, :embedding, :arriveUtcDateTime, :nearestStudentRegistration, auto_id FROM _lesson;",
+            "delete": "WITH _lesson AS (SELECT * FROM lesson as l INner JOIN class as c ON l.classId = c.auto_id WHERE c.subjectCode = :subjectCode ANd c.year = :year AND c.semester = :semester AND c.name = :name AND l.utcDateTime = :utcDateTime) DELETE FROM notRecognizedFromCamera AS n WHERE n.pictureMd5 = :pictureMd5 AND n.lessonId = (SELECT lessonId FROM _lesson);"
+        }
+    },
+    "recognizedFromCamera": {
+        "ddl": {
+            "create": "CREATE TABLE IF NOT EXISTS recognizedFromCamera(picture BLOB NOT NULL, pictureMd5 TEXT NOT NULL, embedding BLOB NOT NULL, utcDateTime TEXT NOT NULL, nearestStudentRegistration TEXT, lessonId INTEGER NOT NULL, FOREIGN KEY (nearestStudentRegistration) REFERENCES student (registration), FOREIGN KEY (lessonId) REFERENCES lesson (auto_id), PRIMARY KEY (pictureMd5)) STRICT;",
+            "drop": "DROP TABLE IF EXISTS recognizedFromCamera;"
+        },
+        "dml": {
+            "insert": "WITH _class AS (SELECT auto_id FROM class WHERE subjectCode = :subjectCode AND year = :year AND semester = :semester AND name = :name), _lesson AS (SELECT auto_id FROM lesson WHERE classId = (SELECT auto_id FROM _class) AND utcDateTime = :lessonUtcDateTime) INSERT INTO recognizedFromCamera (picture, pictureMd5, embedding, utcDateTime, nearestStudentRegistration, lessonId) SELECT :picture, :pictureMd5, :embedding, :arriveUtcDateTime, :nearestStudentRegistration, auto_id FROM _lesson;",
+            "delete": "WITH _lesson AS (SELECT * FROM lesson as l INner JOIN class as c ON l.classId = c.auto_id WHERE c.subjectCode = :subjectCode ANd c.year = :year AND c.semester = :semester AND c.name = :name AND l.utcDateTime = :utcDateTime) DELETE FROM recognizedFromCamera AS r WHERE r.pictureMd5 = :pictureMd5 AND r.lessonId = (SELECT lessonId FROM _lesson);"
+        }
+    },
+    "deferredRecognitionPool": {
+        "ddl": {
+            "create": "CREATE TABLE IF NOT EXISTS deferredRecognitionPool(picture BLOB NOT NULL, pictureMd5 TEXT NOT NULL, embedding BLOB NOT NULL, utcDateTime TEXT NOT NULL, lessonId INTEGER NOT NULL, FOREIGN KEY (lessonId) REFERENCES lesson (auto_id), PRIMARY KEY (pictureMd5)) STRICT;",
+            "drop": "DROP TABLE IF EXISTS deferredRecognitionPool;"
+        },
+        "dml": {
+            "insert": "WITH _class AS (SELECT auto_id FROM class WHERE subjectCode = :subjectCode AND year = :year AND semester = :semester AND name = :name), _lesson AS (SELECT auto_id FROM lesson WHERE classId = (SELECT auto_id FROM _class) AND utcDateTime = :lessonUtcDateTime) INSERT INTO deferredRecognitionPool (picture, pictureMd5, embedding, utcDateTime, lessonId) SELECT :picture, :pictureMd5, :embedding, :arriveUtcDateTime, auto_id FROM _lesson;",
+            "delete": "WITH _lesson AS (SELECT * FROM lesson as l INner JOIN class as c ON l.classId = c.auto_id WHERE c.subjectCode = :subjectCode ANd c.year = :year AND c.semester = :semester AND c.name = :name AND l.utcDateTime = :utcDateTime) DELETE FROM deferredRecognitionPool AS d WHERE d.pictureMd5 = :pictureMd5 AND d.lessonId = (SELECT lessonId FROM _lesson);"
+        }
+    },
+    "dql": {
+        "allSubjects": "SELECT code, name FROM subject;",
+        "notRecognizedFromCameraByLesson": "SELECT n.picture, n.embedding, s.registration, i.individualRegistration, i.name, i.surname, n.utcDateTime from notRecognizedFromCamera as n LEFT JOIN lesson as l ON n.lessonId == l.auto_id LEFT JOIN class as c ON l.classId == c.auto_id left JOIN student as s ON n.nearestStudentRegistration == s.registration LEFT JOIN individual as i ON s.individualId = i.auto_id WHERE c.subjectCode == :subjectCode AND c.year == :year AND c.semester == :semester AND c.name == :name AND l.utcDateTime == :utcDateTime;",
+        "recognizedFromCameraByLesson": "SELECT r.picture, r.embedding, s.registration, i.individualRegistration, i.name, i.surname, r.utcDateTime from recognizedFromCamera as r LEFT JOIN lesson as l ON r.lessonId == l.auto_id LEFT JOIN class as c ON l.classId == c.auto_id left JOIN student as s ON r.nearestStudentRegistration == s.registration LEFT JOIN individual as i ON s.individualId = i.auto_id WHERE c.subjectCode == :subjectCode AND c.year == :year AND c.semester == :semester AND c.name == :name AND l.utcDateTime == :utcDateTime;",
+        "deferredRecognitionPoolByLesson": "SELECT d.picture, d.embedding, d.utcDateTime from deferredRecognitionPool as d LEFT JOIN lesson as l ON d.lessonId == l.auto_id LEFT JOIN class as c ON l.classId == c.auto_id WHERE c.subjectCode == :subjectCode AND c.year == :year AND c.semester == :semester AND c.name == :name AND l.utcDateTime == :utcDateTime;",
+        "facePictureByStudentRegistration": "SELECT f.picture, s.registration, i.individualRegistration, i.name, i.surname FROM facePicture as f LEFT JOIN individual as i on f.individualId = i.auto_id LEFT JOIN student as s ON i.auto_id == s.individualId WHERE s.registration = :registration;",
+        "facePictureByTeacherRegistration": "SELECT f.picture, t.registration, i.individualRegistration, i.name, i.surname FROM facePicture as f LEFT JOIN individual as i on f.individualId = i.auto_id LEFT JOIN teacher as t ON i.auto_id == t.individualId WHERE t.registration = :registration;",
+        "facialDataByStudentRegistration" : "SELECT f.data, s.registration, i.individualRegistration, i.name, i.surname FROM facialData as f LEFT JOIN individual as i on f.individualId = i.auto_id LEFT JOIN student as s ON i.auto_id == s.individualId WHERE s.registration = :registration;",
+        "facialDataByTeacherRegistration" : "SELECT f.data, t.registration, i.individualRegistration, i.name, i.surname FROM facialData as f LEFT JOIN individual as i on f.individualId = i.auto_id LEFT JOIN teacher as t ON i.auto_id == t.individualId WHERE t.registration = :registration;",
+        "individualByRegistration": "SELECT i.individualRegistration, i.name, i.surname FROM individual AS i WHERE i.individualRegistration = :individualRegistration;",
+        "lessonBySubjectClass" : "WITH _teacher AS (SELECT t.registration, i.individualRegistration, i.name, i.surname FROM teacher as t INNER JOIN individual AS i ON t.individualId = i.auto_id) SELECT c.subjectCode, c.year, c.semester, c.name, c.teacherRegistration AS cTeacherRegistration, ct.individualRegistration AS cTeacherIndividualRegistration, ct.name AS cTeacherName, ct.surname AS cTeacherSurname, l.utcDateTime, l.teacherRegistration AS lTeacherRegistration, lt.individualRegistration AS lTeacherIndividualRegistration, lt.name AS lTeacherName, lt.surname AS lTeacherSurname FROM lesson as l INNER JOIN class AS c ON l.classId = c.auto_id INNER JOIN _teacher AS ct ON c.teacherRegistration = ct.registration INNER JOIN _teacher AS lt ON l.teacherRegistration = lt.registration WHERE c.subjectCode = :subjectCode AND c.year = :year AND c.semester = :semester AND c.name = :name;",
+        "studentByRegistration" : "SELECT s.registration, i.individualRegistration, i.name, i.surname FROM student as s Inner JOIN individual as i ON s.individualId = i.auto_id WHERE registration = :registration;",
+        "studentFromSubjectClass" : "WITH _teacher AS (SELECT t.registration, i.individualRegistration, i.name, i.surname FROM teacher as t INNER JOIN individual AS i ON t.individualId = i.auto_id), _student AS (SELECT s.registration, i.individualRegistration, i.name, i.surname FROM student as s INNER JOIN individual AS i ON s.individualId = i.auto_id) SELECT c.subjectCode, c.year, c.semester, c.name, c.teacherRegistration as cTeacherRegistration, t.individualRegistration as cTeacherIndividualRegistration, t.name as cTeacherName, t.surname as cTeacherSurname, e.studentRegistration as sRegistration, s.individualRegistration as sIndividualRegistration, s.name as sName, s.surname as sSurname FROM enrollment as e Inner JOIN class as c ON e.classId = c.auto_id INNER JOIN _teacher as t on c.teacherRegistration = t.registration inner JOIN _student as s oN e.studentRegistration = s.registration WHERE c.subjectCode = :subjectCode AND c.year = :year AND c.semester = :semester AND c.name = :name;",
+        "subjectClass" : "SELECT c.subjectCode, su.name AS subjectName, c.year, c.semester, c.name, c.teacherRegistration as cTeacherRegistration, i.individualRegistration as cTeacherIndividualRegistration, i.name as cTeacherName, i.surname as cTeacherSurname FROM class as c INNER JOIN subject AS su ON c.subjectCode = su.code JOIN teacher as t on c.teacherRegistration = t.registration inner JOIN individual as i oN t.individualId = i.auto_id WHERE c.subjectCode = :subjectCode AND c.year = :year AND c.semester = :semester AND c.name = :name;",
+        "attendance" : "WITH _teacher AS (SELECT t.registration, i.individualRegistration, i.name, i.surname FROM teacher as t INNER JOIN individual AS i ON t.individualId = i.auto_id), _student AS (SELECT s.registration, i.individualRegistration, i.name, i.surname FROM student as s INNER JOIN individual AS i ON s.individualId = i.auto_id), _enrollmentAndAttendance as (SELECT e.classId, e.studentRegistration, a.utcDateTime, a.lessonId from attendance as a INNER JOIN lesson as l ON l.auto_id = a.lessonId FULL JOIN enrollment as e ON e.classId = l.classId AND e.studentRegistration = a.studentRegistration) SELECT su.code as subjectCode, su.name as subjectName, c.year as classYear, c.semester AS classSemester, c.name AS className, ct.registration as classTeacherRegistration, ct.individualRegistration as classTeacherIndividualRegistration, ct.name as classTeacherName, ct.surname as classTeacherSurname, s.registration as studentRegistration, s.individualRegistration as studentIndividualRegistration, s.name as studentName, s.surname as studentSurname, ea.lessonId, l.utcDateTime as lessonDateTime, lt.registration as lessonTeacherRegistration, lt.individualRegistration as lessonTeacherIndividualRegistration, lt.name as lessonTeacherName, lt.surname as lessonTeacherSurname, ea.utcDateTime AS attendanceUtcDateTime FROM _enrollmentAndAttendance as ea INNER join class as c on c.auto_id = ea.classId INNER JOIN subject as su on su.code = c.subjectCode Inner JOIN _teacher as ct on ct.registration = c.teacherRegistration LEFT JOIN lesson as l ON l.auto_id = ea.lessonId LEFT JOIN _teacher as lt ON lt.registration = l.teacherRegistration left JOIN _student as s on s.registration = ea.studentRegistration WHERE c.subjectCode = :subjectCode AND c.year = :year AND c.semester = :semester AND c.name = :name ORDER by c.subjectCode, c.name, ea.studentRegistration, ea.lessonId;",
+        "classBySubject" : "SELECT c.subjectCode, c.year, c.semester, c.name, c.teacherRegistration as cTeacherRegistration, i.individualRegistration as cTeacherIndividualRegistration, i.name as cTeacherName, i.surname as cTeacherSurname FROM class as c INNER JOIN teacher as t on c.teacherRegistration = t.registration inner JOIN individual as i oN t.individualId = i.auto_id WHERE c.subjectCode = :subjectCode;",
+        "subjectByCode" : "SELECT s.code, s.name FROM subject as s WHERE s.code = :code;",
+        "teacherByRegistration" : "SELECT t.registration, i.individualRegistration, i.name, i.surname FROM teacher as t Inner JOIN individual as i ON t.individualId = i.auto_id WHERE registration = :registration;"
+    }
+}
