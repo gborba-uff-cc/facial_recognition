@@ -2,20 +2,51 @@
 
 Uma aplicação para contabilizar a presença de alunos em aula através do reconhecimento facial.
 
+![Tela inicial](./readme_images/landing.jpg)
+![Tela do checkin individual](./readme_images/checkin_individual.jpg)
+![Tela de resumo das presenças](./readme_images/resumo.jpg)
+
 App desenvolvido como projeto final para o bacharelado em Ciência da Computação.
 
 **Aluno**: Gabriel Borba
 
 **Orientadora**: Daniela Trevisan
 
----
+## Obter o modelo de representação de faces
 
-## Pontos de Entrada no código
+1. criar um ambiente virtual python:
+
+```
+py -3.11 -m venv --symlinks .python3_11_venv
+```
+
+2. ativar o ambiente virtual:
+
+```
+.\.python3_11_venv\Scripts\Activate.ps1
+```
+
+3. instalar e atualizar no ambiente virtual: pip, setuptools, wheel, tensorflow (versão 2.13.0), deepface (versão 0.0.79):
+
+```
+python -m pip install --upgrade pip setuptools wheel autopep8 tensorflow==2.13.0 deepface==0.0.79
+```
+
+4. baixar do pacote deepface e converter o modelo FaceNet-512:
+
+```
+python .\assets\generate_facenet512.py
+```
+
+
+## Pontos de entrada do código
 
 Aplicativo: `.\lib\main.dart` (desenvolvido e testado em smarphone android)
 
-    flutter run --release --flavor professor --device-id <android-device-bridge-partial-or-full-id-or-name> -t .\lib\main.dart
-
+Compilar e executar (com flutter instalado):
+```
+flutter run --release --flavor professor --device-id <android-device-bridge-partial-or-full-id-or-name> -t .\lib\main.dart
+```
 ## Correções de bugs necessários
 
 ### Pacote: Excel
