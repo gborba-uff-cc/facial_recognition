@@ -40,7 +40,7 @@ class _LandingScreenState extends State<LandingScreen> {
                 '/camera_identification_totem',
                 extra: lesson,
               ),
-        text: 'Autoindicação',
+        text: 'CheckIn individual',
       ),
       (
         action: () => (lesson == null)
@@ -53,7 +53,7 @@ class _LandingScreenState extends State<LandingScreen> {
                 '/camera_view',
                 extra: lesson,
               ),
-        text: 'Apontamento por câmera',
+        text: 'CheckIn em grupo',
       ),
       (
         action: () => (lesson == null)
