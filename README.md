@@ -3,7 +3,7 @@
 Uma aplicação para contabilizar a presença de alunos em aula através do reconhecimento facial.
 
 ![Tela inicial](./readme_images/landing.jpg)
-![Tela do checkin individual](./readme_images/checkin_individual.jpg)
+![Tela do checkin individual](./readme_images/checkIn_individual.jpg)
 ![Tela de resumo das presenças](./readme_images/resumo.jpg)
 
 App desenvolvido como projeto final para o bacharelado em Ciência da Computação.
